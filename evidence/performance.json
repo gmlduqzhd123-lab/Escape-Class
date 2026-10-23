@@ -1,0 +1,70 @@
+{
+  "builtFiles": [
+    {
+      "path": "dist\\assets\\chime.wav",
+      "bytes": 18566,
+      "gzip": 15667
+    },
+    {
+      "path": "dist\\assets\\classroom-font-Ci0MRo_e.woff2",
+      "bytes": 1008060,
+      "gzip": 1008370
+    },
+    {
+      "path": "dist\\assets\\classroom.svg",
+      "bytes": 8429,
+      "gzip": 2811
+    },
+    {
+      "path": "dist\\assets\\index-C-szctWv.css",
+      "bytes": 31332,
+      "gzip": 7717
+    },
+    {
+      "path": "dist\\assets\\index-C-TkoaN3.js",
+      "bytes": 79816,
+      "gzip": 27371
+    },
+    {
+      "path": "dist\\assets\\key.svg",
+      "bytes": 296,
+      "gzip": 222
+    },
+    {
+      "path": "dist\\data\\game-config.json",
+      "bytes": 135,
+      "gzip": 122
+    },
+    {
+      "path": "dist\\data\\rankings.json",
+      "bytes": 169,
+      "gzip": 137
+    },
+    {
+      "path": "dist\\data\\schools.json",
+      "bytes": 3,
+      "gzip": 23
+    },
+    {
+      "path": "dist\\index.html",
+      "bytes": 1130,
+      "gzip": 669
+    },
+    {
+      "path": "dist\\licenses\\NotoSansKR-OFL.txt",
+      "bytes": 4388,
+      "gzip": 1973
+    },
+    {
+      "path": "dist\\licenses\\ORIGINAL-ASSETS.txt",
+      "bytes": 397,
+      "gzip": 293
+    }
+  ],
+  "totalBytes": 1152721,
+  "initialAssetUpperBoundBytes": 1152721,
+  "initialAssetTargetBytes": 4194304,
+  "jsCssGzipBytes": 35088,
+  "jsCssGzipTargetBytes": 409600,
+  "pass": true
+}

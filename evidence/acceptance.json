@@ -1,0 +1,186 @@
+{
+  "date": "2026-10-23",
+  "scope": "Local Windows Edge and pure logic; production GitHub Pages unverified",
+  "criteria": [
+    {
+      "id": "AC01",
+      "status": "PASS",
+      "evidence": "개인정보 입력 없이 학교 없이 시작하여 전체 PC 플레이 완료"
+    },
+    {
+      "id": "AC02",
+      "status": "PASS",
+      "evidence": "테스트 전용 등록 학교 선택 후 저장된 schoolId·roundId 확인"
+    },
+    {
+      "id": "AC03",
+      "status": "PASS",
+      "evidence": "P1 발견 조건과 C1→C3→C5 검사, 반복 해결 시 16점 유지"
+    },
+    {
+      "id": "AC04",
+      "status": "PASS",
+      "evidence": "개인·공용 렌즈 양쪽 판정 동일; 전체 브라우저에서는 공용 렌즈 사용"
+    },
+    {
+      "id": "AC05",
+      "status": "PASS",
+      "evidence": "숫자만 입력 시 실패, 렌즈 보유·적용·0도·713 모두 필요"
+    },
+    {
+      "id": "AC06",
+      "status": "PASS",
+      "evidence": "공을 칸마다 시뮬레이션하고 네 친구 방문·골대 도착 검사"
+    },
+    {
+      "id": "AC07",
+      "status": "PASS",
+      "evidence": "친구 누락·벽·반복·범위 이탈 실패와 타일 방향 유지 확인"
+    },
+    {
+      "id": "AC08",
+      "status": "PASS",
+      "evidence": "사진 전달만 차단한 UI 상태에서 P4 실패"
+    },
+    {
+      "id": "AC09",
+      "status": "PASS",
+      "evidence": "교무실·상담교사·둘 다 연결하는 세 정답 자동 검사"
+    },
+    {
+      "id": "AC10",
+      "status": "PASS",
+      "evidence": "부재 장소 왕복 후 상담실 성공; 바로 교무실·상담실로 가는 경로도 판정 통과"
+    },
+    {
+      "id": "AC11",
+      "status": "PASS",
+      "evidence": "필수 퍼즐 반복 해결에도 완료 ID·점수·조각 수 불변"
+    },
+    {
+      "id": "AC12",
+      "status": "PASS",
+      "evidence": "같은 추가 단서 반복 판정에도 5점만 반영"
+    },
+    {
+      "id": "AC13",
+      "status": "PASS",
+      "evidence": "필수 5개는 80점·finalReady이며 escaped가 아님"
+    },
+    {
+      "id": "AC14",
+      "status": "PASS",
+      "evidence": "100점·지도 완성 상태에도 출구 사용 전 공식 결과 생성 불가"
+    },
+    {
+      "id": "AC15",
+      "status": "PASS",
+      "evidence": "조합 → 화분 → 열쇠 획득 → 가방 선택 → 출구 사용의 실제 플레이"
+    },
+    {
+      "id": "AC16",
+      "status": "PASS",
+      "evidence": "탈출 후 모든 게임 상태 변경 차단 및 frozenScore 유지"
+    },
+    {
+      "id": "AC17",
+      "status": "PASS",
+      "evidence": "P1 완료 후 새로고침해 완료 ID 유지, 일시정지로 복원"
+    },
+    {
+      "id": "AC18",
+      "status": "PASS",
+      "evidence": "localStorage 접근을 차단한 브라우저에서도 실제 단서 획득 가능"
+    },
+    {
+      "id": "AC19",
+      "status": "PASS",
+      "evidence": "삭제 함수와 실제 UI에서 이 앱 키만 삭제, 다른 앱 키 보존"
+    },
+    {
+      "id": "AC20",
+      "status": "PASS",
+      "evidence": "잘못된 버전·중복 ID·허용되지 않은 개인정보 필드 거부"
+    },
+    {
+      "id": "AC21",
+      "status": "PASS",
+      "evidence": "P1~P5+B1+B3를 90점으로 재계산; 실제 공식 fixture 파일 다운로드"
+    },
+    {
+      "id": "AC22",
+      "status": "PASS",
+      "evidence": "동일 결과 중복 제거, 90·95점 충돌 시 유지·교체 명시적 선택"
+    },
+    {
+      "id": "AC23",
+      "status": "PASS",
+      "evidence": "100·95·95·90점의 공동 순위가 1·2·2·4위"
+    },
+    {
+      "id": "AC24",
+      "status": "PASS",
+      "evidence": "운영용 학교·순위 비어 있음 및 실제 빈 공식 순위 화면 확인"
+    },
+    {
+      "id": "AC25",
+      "status": "PASS",
+      "evidence": "학교·순위 정적 읽기 503 응답 상황에서도 체험 게임 진행"
+    },
+    {
+      "id": "AC26",
+      "status": "PASS",
+      "evidence": "Edge 360·768·1440px의 가로 넘침 없음; 360px에서 전체 플레이"
+    },
+    {
+      "id": "AC27",
+      "status": "PASS",
+      "evidence": "전체 필수 조작의 키보드 활성화, Escape, 포커스 복귀, 본문 바로가기"
+    },
+    {
+      "id": "AC28",
+      "status": "PASS",
+      "evidence": "소리 기본 끄기·움직임 줄이기 상태에서 전체 단서·게임 확인"
+    },
+    {
+      "id": "AC29",
+      "status": "NOT_RUN",
+      "evidence": "로컬 `/classroom-escape/`에서 자산·JSON·해시·새로고침은 통과. 실제 저장소 이름·Pages 주소가 없어 실제 원격 하위 경로는 미확인"
+    },
+    {
+      "id": "AC30",
+      "status": "PASS",
+      "evidence": "전체 게임·집계·내보내기 요청은 같은 출처의 정적 GET뿐. 학생 개인정보 입력·추적 코드 없음"
+    },
+    {
+      "id": "AC31",
+      "status": "PASS",
+      "evidence": "UI 잠금과 판정 함수 모두 선행 조건 검사; 잠긴 장치를 조작한 저장도 거부"
+    },
+    {
+      "id": "AC32",
+      "status": "PASS",
+      "evidence": "실제 파일 선택·집계·충돌 후 로컬 다운로드 확인, POST·외부 요청 없음"
+    },
+    {
+      "id": "AC33",
+      "status": "PASS",
+      "evidence": "이전 회차 저장은 회차 ID 유지; 새 회차 설정에서 공식 내보내기 차단"
+    },
+    {
+      "id": "AC34",
+      "status": "PASS",
+      "evidence": "회차 없음·설정 오류·접수 종료에서 공식 내보내기와 순위 생성 차단"
+    },
+    {
+      "id": "AC35",
+      "status": "PASS",
+      "evidence": "bonusCount 100·580점·학교 중복·허용되지 않은 행 필드 거부"
+    },
+    {
+      "id": "AC36",
+      "status": "PASS",
+      "evidence": "정상 공개 순위 스키마에 결과 파일용 퍼즐 ID를 요구하지 않음"
+    }
+  ]
+}

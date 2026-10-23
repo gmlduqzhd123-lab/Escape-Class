@@ -1,0 +1,106 @@
+# 교실 탈출 · 사라진 우정 열쇠
+
+초등학교 3~6학년 친구사랑 수업을 위한 모둠 협동 방탈출 웹앱입니다. TypeScript, Vite, CSS, DOM/SVG로 구현한 정적 앱이며, 앱 운영용 외부 서버·DB·학생 계정을 사용하지 않습니다.
+
+- 저장소: [gmlduqzhd123-lab/Escape-Class](https://github.com/gmlduqzhd123-lab/Escape-Class)
+- GitHub Pages: [교실 탈출 실행](https://gmlduqzhd123-lab.github.io/Escape-Class/)
+
+학교와 공식 회차를 제공받지 않아 초기 상태는 **학교 목록 없음 / 연습 모드 / 빈 공식 순위**입니다. 가짜 학교·공식 기록을 등록하지 않았습니다.
+
+## 실행
+
+Node.js 24 이상과 npm을 사용합니다. 터미널을 이 파일이 있는 폴더에서 열어 실행하세요.
+
+이미 빌드된 게임만 실행하려면 **`PLAY.cmd`를 더블클릭**하고 표시된 로컬 주소를 브라우저에서 여세요. Node.js가 필요하며 서버 창을 닫으면 실행이 끝납니다. 이 방식에는 npm 설치가 필요하지 않습니다.
+
+```powershell
+npm ci
+npm run dev
+```
+
+터미널에 표시되는 로컬 주소를 브라우저에서 엽니다. `index.html`을 파일 탐색기에서 직접 열면 모듈과 정적 JSON 조회가 동작하지 않습니다.
+
+빌드와 로컬 하위 경로 확인:
+
+```powershell
+npm run build
+node scripts/serve.mjs
+```
+
+검증용 정적 서버 주소는 `http://127.0.0.1:4173/classroom-escape/`입니다. Ctrl+C로 종료합니다. `npm run preview`도 사용할 수 있습니다.
+
+같은 서버는 실제 배포 경로인 `http://127.0.0.1:4173/Escape-Class/`도 지원합니다. `PAGES_BASE=/Escape-Class/`로 빌드한 결과는 이 경로에서 확인할 수 있습니다.
+
+## 검증
+
+```powershell
+npm test
+npm run build
+npm run measure
+```
+
+실제 Edge 브라우저 검증은 먼저 위 정적 서버를 실행한 뒤, 다른 터미널에서 실행합니다.
+
+```powershell
+npm run test:browser
+```
+
+브라우저 실행 파일이 다른 위치라면 `EDGE_PATH` 환경 변수로 지정합니다. Playwright 자체 브라우저 다운로드는 필수가 아닙니다. 검증은 로컬 정적 파일을 사용하며, 공식 회차·학교 관련 시나리오만 브라우저의 정적 응답을 테스트 fixture로 대체합니다. 운영 데이터는 변경하지 않습니다.
+
+- [완료 보고와 AC01~AC36](docs/COMPLETION.md)
+- [브라우저 검사 결과](evidence/browser-results.json)
+- [용량 측정](evidence/performance.json)
+- [공식 회차와 순위 운영](docs/OPERATIONS.md)
+- [교사용 40분 수업 안내](docs/TEACHER.md)
+- [자산 출처와 라이선스](docs/ASSETS.md)
+
+## 화면과 조작
+
+시작 `#/` → 학교·활동 설정 `#/setup` → 이야기 `#/intro` → 탐색 `#/play` → 탈출·성찰 `#/result` 순서입니다. 공식 순위 `#/rankings`, 수업 안내 `#/teacher`, 로컬 집계 `#/tools/results`를 제공합니다.
+
+교실 물건 또는 물건 목록을 눌러 조사합니다. 가방에서 도구를 선택한 뒤 조사 패널에서 사용합니다. 카드·문장·조각은 버튼으로 배치하고 빼며, 화살표와 렌즈는 회전 버튼으로 조작합니다. Tab/Shift+Tab, Enter/Space, Escape를 지원합니다. 패널을 닫으면 원래 조사 대상에 포커스가 돌아갑니다.
+
+P1→P2→P3→P4→P5를 해결해 조각 다섯 개를 모으고, 출구의 최종 조합판을 완성한 뒤 화분 받침에서 열쇠를 찾아 가방에서 선택하고 출구에 사용해야 탈출합니다. 100점이나 조각 보유만으로 자동 탈출하지 않습니다.
+
+## 코드 책임
+
+| 경로                                      | 책임                                                       |
+| ----------------------------------------- | ---------------------------------------------------------- |
+| `src/game/model.ts`, `engine.ts`          | 상태, 선행 조건, 상태 전이, ID 기반 점수                   |
+| `src/content/data.ts`                     | 12개 물건, 카드, 이야기, 힌트, 성찰 문장                   |
+| `src/puzzles/judges.ts`                   | P1~P5와 최종 조합 판정, 공 이동 시뮬레이션                 |
+| `src/storage/progress.ts`                 | 엄격한 복원 검증, 저장 실패 복구, 앱별 삭제                |
+| `src/ranking/validation.ts`, `service.ts` | 설정·학교·결과·순위 검증, 내보내기, 공동 순위              |
+| `src/tools/aggregate.ts`                  | 로컬 파일 제한, 중복 제거, 명시적 충돌 선택                |
+| `src/ui/`, `src/main.ts`, `src/style.css` | 화면, 조작, 시간 측정, 접근성, 반응형                      |
+| `public/data/`                            | 운영자가 관리하는 설정·학교·공개 순위                      |
+| `tests/`                                  | 순수 로직 및 실제 브라우저 검사; 가상 학교는 여기에만 존재 |
+
+## GitHub Pages 배포
+
+이 폴더는 `https://github.com/gmlduqzhd123-lab/Escape-Class.git`에 연결되어 있습니다. Pages는 GitHub API에서 확인한 `/Escape-Class/` 하위 경로를 사용하며, 배포 소스는 GitHub Actions입니다.
+
+1. 이 프로젝트 내용 전체를 실제 대상 저장소 루트에 넣고 저장소 절차에 따라 커밋·푸시합니다.
+2. 저장소 Settings → Pages → Source를 **GitHub Actions**로 설정합니다.
+3. `.github/workflows/pages.yml`은 `main` 푸시 또는 수동 실행 시 정적 빌드와 Pages 배포만 수행합니다. 결과 접수 기능은 없습니다.
+4. 워크플로가 `configure-pages`의 실제 `base_path`를 `PAGES_BASE`에 전달합니다. 저장소 이름을 코드에 추측해 넣지 않습니다. 로컬 빌드 기본값은 상대 경로 `./`입니다.
+5. 기본 브랜치가 `main`이 아니면 워크플로 트리거를 실제 브랜치로 바꿉니다.
+6. 배포 완료 후 Actions가 돌려주는 실제 `page_url`에서 새 게임, `#/play` 새로고침, 자산·JSON 읽기, 이어하기를 다시 확인합니다.
+
+수동 빌드 시 실제 하위 경로가 확인된 경우만 `PAGES_BASE`를 지정하세요.
+
+```powershell
+$env:PAGES_BASE = '/Escape-Class/'
+npm run build
+Remove-Item Env:PAGES_BASE
+```
+
+Vite의 [공식 GitHub Pages 안내](https://vite.dev/guide/static-deploy.html#github-pages)를 기준으로 구성했습니다. 서비스 워커와 완전한 오프라인 최초 시작은 후속 범위입니다.
+
+## 저장과 개인정보
+
+저장 키는 `classroom-escape:<실제 배포 경로>:progress:v1`입니다. 현재 기기·브라우저에만 저장되며 자동 동기화하지 않습니다. 앱 활동 삭제는 이 키 하나만 제거합니다. 저장이 차단되어도 메모리에서 게임을 계속할 수 있습니다.
+
+학생 이름·개인 닉네임·학년반·번호·연락처·사진·음성·실제 피해 경험을 받지 않습니다. 지속적인 학생·기기 식별자와 분석·추적 스크립트가 없습니다. 모든 앱 통신은 같은 출처의 배포 자산과 읽기 전용 정적 JSON GET입니다. 호스팅 제공자가 자체 접속 기록을 남길 수 있다는 점은 수업 안내에 명시했습니다.
+
+공식 결과는 조건이 충족될 때 로컬 JSON 파일로 다운로드됩니다. 서버 접수·GitHub 쓰기 API를 사용하지 않습니다. 형식 검증은 실제 플레이나 학교 소속을 인증하지 않으므로 운영자 확인이 필요합니다.

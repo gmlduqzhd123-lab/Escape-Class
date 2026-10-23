@@ -1,0 +1,596 @@
+{
+  "base": "http://127.0.0.1:4173/classroom-escape/",
+  "engine": "Installed Microsoft Edge, Playwright headless",
+  "startedAt": "2026-10-23T10:46:10.788Z",
+  "checks": [
+    {
+      "name": "start assets, no valid continue, local font",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC01 practice without personal input, intro timer stopped",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC31 prerequisite lock in UI and plant before assembly",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "B1-B3 discovery and wrong-answer recovery",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC17 reload restores progress paused",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC04-AC05 shared lens and number-only failure",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC06-AC07 ball failure, retained arrows, successful simulation",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC08 photo-block alone fails; counselor help succeeds",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC10 absent teacher alternative route and request",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "partial B4 code survives panel close and reopen",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC13-AC14 100 points and assembly do not escape",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "print media shows activity record and selected reflection without export controls",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC15-AC16 final key exit, frozen 100, practice export disabled",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC27 full mandatory game operated by focus + Enter without drag or pointer",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "result timer stopped and escaped restore validated",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC26 mobile 360 / tablet 768 / desktop 1440, no horizontal overflow",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC27 Escape returns focus to investigation target",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "skip-to-content retains the play hash route",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "44px hit targets on mobile play screen",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC28 sound off and reduced motion preserve full clue access",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "pause timer stopped",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC24 official empty state; no invented schools",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC34 no-round import/download disabled",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC30 only same-origin static GETs in actual full game",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC18 blocked localStorage still allows real UI activity",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC25 failed schools/rankings do not block practice",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "required asset failure and retry recovery",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC20-AC22,AC32 actual file picker, conflict choice, local download and strict fields (fixtures)",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC02 real registered-school selection preserved (fixture)",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "official fixture full mobile UI play and 90-point completion download, exact permitted fields",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC33 previous-round completed UI cannot export into a new round",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC34 round closed while tool open disables generation after refresh",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC32 aggregation and official export cause only local downloads and static GETs",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "teacher 40-minute flow, role cards and privacy guidance rendered",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "AC19 actual erase UI preserves another app's storage key",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "no browser page errors",
+      "status": "PASS",
+      "details": ""
+    }
+  ],
+  "consoleErrors": [],
+  "requests": [
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/index-C-TkoaN3.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/index-C-szctWv.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/chime.wav",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/index-C-TkoaN3.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/index-C-szctWv.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/chime.wav",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/index-C-TkoaN3.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/index-C-szctWv.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/chime.wav",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/index-C-TkoaN3.js",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/index-C-szctWv.css",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/chime.wav",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/game-config.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/schools.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/data/rankings.json",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/classroom-font-Ci0MRo_e.woff2",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:4173/classroom-escape/assets/key.svg",
+      "method": "GET"
+    }
+  ],
+  "screenshots": [
+    "evidence/01-home-desktop.png",
+    "evidence/02-p1-desktop.png",
+    "evidence/03-p3-desktop.png",
+    "evidence/04-p5-desktop.png",
+    "evidence/05-result-desktop.png",
+    "evidence/13-result-print.png",
+    "evidence/06-home-360.png",
+    "evidence/06-home-768.png",
+    "evidence/06-home-1440.png",
+    "evidence/07-play-mobile.png",
+    "evidence/10-lens-mobile.png",
+    "evidence/11-network-mobile.png",
+    "evidence/12-final-map-mobile.png",
+    "evidence/08-official-result-mobile.png",
+    "evidence/09-teacher-tablet.png"
+  ],
+  "completedAt": "2026-10-23T10:46:24.096Z"
+}

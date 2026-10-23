@@ -1,0 +1,12 @@
+{
+  "clientDate": "2026-10-23",
+  "timezone": "Asia/Seoul",
+  "node": "v24.15.0",
+  "gitRepositoryPresent": false,
+  "remoteRepository": null,
+  "commit": "NOT_RUN",
+  "push": "NOT_RUN",
+  "githubPagesDeployment": "NOT_RUN",
+  "browser": "Installed Microsoft Edge via Playwright headless",
+  "physicalDevices": "NOT_RUN"
+}

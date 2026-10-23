@@ -1,0 +1,40 @@
+
+> classroom-escape@1.0.0 test
+> tsx --test tests/*.test.ts
+
+✔ AC01·AC02: practice without school; registered choice fixed at new game (1.1833ms)
+✔ AC03: P1 requires discovery and direct speech order; reward once (0.6012ms)
+✔ AC03: guesses cannot replace direct speech (0.182ms)
+✔ AC04: either permitted lens earns identical reward (1.2817ms)
+✔ AC05: numeric answer alone, unaligned lens, or no inventory rejected (0.1836ms)
+✔ wrong tool application preserves inventory (0.6431ms)
+✔ AC06: path simulation visits every friend and reaches goal (0.2138ms)
+✔ AC06: unused arrows can vary; evaluator simulates visits rather than matching board state (0.2ms)
+✔ AC07: missing friends, wall, repeated tile, out of range all fail (0.6789ms)
+✔ AC08·AC09: photo block requires help route; all three adult options valid (0.2067ms)
+✔ AC10: absent teacher optional; either available adult and R1/R2 order valid (0.5304ms)
+✔ AC11·AC12: repeated solve/bonus cannot accumulate scores (0.3655ms)
+✔ AC13·AC14: 80 or 100 points before exit is not escaped/exportable (0.4419ms)
+✔ AC15: final assembly then plant inspection then key use required (0.3896ms)
+✔ AC16: escaped score and progress frozen under engine actions (0.1468ms)
+✔ AC17·AC19: restoration pauses and deletion uses only namespaced key (0.3489ms)
+✔ AC18: blocked storage failure is contained; game remains playable (0.1528ms)
+✔ save rejects duplicate, forged phase, invalid dependency/type/unknown field (0.2586ms)
+✔ save rejects locked-device manipulation and keeps partial bonus input (0.5189ms)
+✔ AC20·AC21: strict result schema and recalculated 90 points (0.4557ms)
+✔ AC22: duplicates collapse and conflicting school requires explicit decision (2.0709ms)
+✔ AC23: competition ranking 100,95,95,90 → 1,2,2,4 (9.3406ms)
+✔ AC24: production schools and rankings intentionally empty (15.5381ms)
+✔ AC31: every next puzzle checks prerequisites even with correct local control values (0.1736ms)
+✔ AC33: previous round can resume but cannot become current official result (0.3662ms)
+✔ AC34: no round, closed round, or missing config disallows export and aggregate (0.332ms)
+✔ AC35·AC36: ranking has its own strict schema; reject bonus overflow and school duplicates (0.3396ms)
+✔ closed last-round leaderboard is readable but cannot be aggregated (0.1406ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 586.8792

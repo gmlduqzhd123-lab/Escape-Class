@@ -1,0 +1,15 @@
+
+> classroom-escape@1.0.0 build
+> tsc --noEmit && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 17 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                1.13 kB │ gzip:  0.67 kB
+dist/assets/classroom-font-Ci0MRo_e.woff2  1,008.06 kB
+dist/assets/index-C-szctWv.css                31.33 kB │ gzip:  7.80 kB
+dist/assets/index-C-TkoaN3.js                 79.81 kB │ gzip: 27.49 kB
+
+✓ built in 839ms

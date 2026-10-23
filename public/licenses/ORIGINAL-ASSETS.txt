@@ -1,0 +1,8 @@
+SPDX-License-Identifier: CC0-1.0
+
+Original classroom illustration, key icon, animal and interface SVG drawings,
+and synthesized chime made for this project are dedicated under CC0 1.0:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+This dedication does not apply to the Noto Sans KR derived font, which remains
+under SIL Open Font License 1.1, or to educational content supplied by the user.
