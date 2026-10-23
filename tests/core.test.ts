@@ -18,6 +18,9 @@ import {
   combine,
   escape,
   move,
+  pickMemo,
+  pickFragment,
+  beginRequest,
 } from "../src/game/engine";
 import {
   runBall,
@@ -31,6 +34,7 @@ import {
   extendPath,
   routeArrows,
   recoverLegacyPath,
+  tapRoute,
 } from "../src/puzzles/judges";
 import { objective, hintTarget } from "../src/ui/experience";
 import type { ViewContext } from "../src/ui/views";
@@ -665,4 +669,104 @@ test("hints follow the inspected device, including optional bonus devices", () =
       hintTarget({ state: fresh(), objectId, device } as ViewContext),
       expected,
     );
+});
+
+test("direct memo placement retains discovery, capacity and completion gates", () => {
+  const s = fresh();
+  assert.equal(pickMemo(s, "P1-C1"), false);
+  inspect(s, "O02");
+  assert.equal(pickMemo(s, "P1-C3"), false);
+  inspect(s, "O03");
+  for (const id of ["P1-C1", "P1-C3", "P1-C5"])
+    assert.equal(pickMemo(s, id), true);
+  assert.equal(pickMemo(s, "P1-C2"), false);
+  assert.equal(solve(s, "P1").ok, true);
+  assert.equal(pickMemo(s, "P1-C4"), false);
+  assert.equal(score(s), 16);
+});
+test("memo mistakes can be removed and corrected without choosing a separate home", () => {
+  const s = fresh();
+  inspect(s, "O02");
+  inspect(s, "O03");
+  for (const id of ["P1-C1", "P1-C2", "P1-C5"]) pickMemo(s, id);
+  assert.equal(solve(s, "P1").ok, false);
+  s.puzzles.p1.order.splice(1);
+  for (const id of ["P1-C3", "P1-C5"]) pickMemo(s, id);
+  assert.equal(solve(s, "P1").ok, true);
+  assert.deepEqual(validateProgress(s, config, schools).puzzles.p1.order, [
+    "P1-C1",
+    "P1-C3",
+    "P1-C5",
+  ]);
+});
+test("tapping a visited route cell rewinds; invalid new steps do not mutate the path", () => {
+  const path = [10, 5, 0, 1, 2];
+  assert.deepEqual(tapRoute(path, 0), [10, 5, 0]);
+  assert.deepEqual(tapRoute(path, 10), [10]);
+  assert.deepEqual(tapRoute(path, 7), [10, 5, 0, 1, 2, 7]);
+  assert.equal(tapRoute(path, 24), null);
+  assert.equal(tapRoute(path, 6), null);
+  assert.deepEqual(path, [10, 5, 0, 1, 2]);
+});
+test("direct fragments seat upright and still require the correct order and hidden key", () => {
+  const s = fresh();
+  assert.equal(pickFragment(s, "F1"), false);
+  all(s);
+  for (const id of ["F2", "F1", "F3", "F4", "F5"])
+    assert.equal(pickFragment(s, id), true);
+  assert.equal(combine(s).ok, false);
+  s.puzzles.final.order = [];
+  for (const id of ["F1", "F2", "F3", "F4", "F5"]) pickFragment(s, id);
+  assert.equal(combine(s).ok, true);
+  assert.equal(escape(s, "final-key").ok, false);
+  inspect(s, "O11");
+  assert.equal(escape(s, "final-key").ok, true);
+  assert.equal(pickFragment(s, "F1"), false);
+});
+test("old seated pieces are aligned on inspection without changing their order", () => {
+  const s = fresh();
+  all(s);
+  s.puzzles.final.order = ["F1", "F2", "F3"];
+  const old = structuredClone(s);
+  inspect(s, "O12");
+  assert.deepEqual(s.puzzles.final.order, old.puzzles.final.order);
+  assert.deepEqual(s.puzzles.final.rotations, [0, 0, 0, 0, 0]);
+  assert.equal(s.finalCombined, false);
+  assert.equal(score(s), 80);
+  assert.ok(validateProgress(s, config, schools));
+});
+test("a help conversation starts at either available adult and accepts either comfortable choice", () => {
+  const locked = fresh();
+  assert.equal(beginRequest(locked), false);
+  for (const place of ["교무실", "상담실"] as const)
+    for (const choice of ["R1", "R2"]) {
+      const s = fresh();
+      p4(s);
+      assert.equal(beginRequest(s), false);
+      move(s, "복도");
+      move(s, place);
+      s.puzzles.p5.sentence = ["R1", "R0"];
+      assert.equal(beginRequest(s), true);
+      assert.deepEqual(s.puzzles.p5.sentence, ["R0"]);
+      s.puzzles.p5.sentence.push(choice);
+      assert.equal(solve(s, "P5").ok, true);
+      assert.equal(beginRequest(s), false);
+      assert.ok(validateProgress(s, config, schools));
+    }
+});
+test("paused and escaped progress cannot be changed by the simplified controls", () => {
+  const s = fresh();
+  inspect(s, "O02");
+  s.paused = true;
+  assert.equal(pickMemo(s, "P1-C1"), false);
+  assert.equal(pickFragment(s, "F1"), false);
+  assert.equal(beginRequest(s), false);
+  const end = fresh();
+  finish(end);
+  const before = structuredClone(end);
+  pickMemo(end, "P1-C2");
+  pickFragment(end, "F1");
+  beginRequest(end);
+  inspect(end, "O12");
+  assert.deepEqual(end, before);
 });

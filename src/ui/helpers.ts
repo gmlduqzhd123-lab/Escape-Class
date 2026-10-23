@@ -25,6 +25,9 @@ export function icon(name: string, size = 24) {
     close: '<path d="m6 6 12 12M6 18 18 6"/>',
     check: '<path d="m5 12 4 4L19 6"/>',
     home: '<path d="m3 10 9-7 9 7v11H3Zm6 11v-8h6v8"/>',
+    chat: '<path d="M4 4h16v12H10l-6 5V4Z"/>',
+    adult:
+      '<circle cx="12" cy="6" r="3"/><path d="M6 21v-5a6 6 0 0 1 12 0v5M9 21v-5m6 5v-5"/>',
   };
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shapes[name] ?? shapes.star}</svg>`;
 }

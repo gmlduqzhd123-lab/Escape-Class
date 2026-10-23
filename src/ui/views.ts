@@ -55,7 +55,7 @@ export function setup(c: ViewContext) {
   const matches = c.schools.filter(
     (s) => s.name.includes(c.schoolQuery) || s.schoolId.includes(c.schoolQuery),
   );
-  return `<main id="main" class="narrow"><a class="back-link" href="#/">← 시작 화면</a><span class="eyebrow">시작하기 전에 · 1 / 2</span><h1>우리 모둠, 준비됐나요?</h1><p>학교 선택은 소속 인증이 아니에요. 학교 없이도 모든 퍼즐을 풀 수 있어요.</p><div class="surface"><h2>활동 학교 선택</h2><label for="school-search">등록 학교 검색</label><input id="school-search" data-input="school-query" value="${esc(c.schoolQuery)}" placeholder="등록된 학교 이름 찾기" autocomplete="off" /><div id="school-options" class="school-options">${schoolOptions(c, matches)}</div><p class="notice">${c.config?.activeRound?.acceptingResults ? esc(c.config.activeRound.label) + " · 결과 접수 중" : "접수 중인 공식 회차가 없어 연습으로 시작해요."}</p></div><div class="surface"><h2>편안하게 활동해요</h2><label class="check-label"><input type="checkbox" data-setting="setup-sound" ${c.setupSound ? "checked" : ""} /> 효과음 켜기 (기본 끄기)</label><label class="check-label"><input type="checkbox" data-setting="setup-reduced" ${c.setupReduced ? "checked" : ""} /> 움직임 줄이기</label><p>이야기와 모든 단서는 소리 없이도 읽을 수 있어요.</p></div>${b("이야기와 조작 안내 보기 →", "setup-next", "", 'class="primary large"')}</main>`;
+  return `<main id="main" class="narrow"><a class="back-link" href="#/">← 시작 화면</a><span class="eyebrow">시작하기 전에 · 1 / 2</span><h1>우리 모둠, 준비됐나요?</h1><p>학교 선택은 소속 인증이 아니에요. 학교 없이도 모든 퍼즐을 풀 수 있어요.</p><div class="surface">${c.schools.length ? `<h2>활동 학교 선택</h2><label for="school-search">등록 학교 검색</label><input id="school-search" data-input="school-query" value="${esc(c.schoolQuery)}" placeholder="등록된 학교 이름 찾기" autocomplete="off" /><div id="school-options" class="school-options">${schoolOptions(c, matches)}</div><p class="notice">${c.config?.activeRound?.acceptingResults ? esc(c.config.activeRound.label) + " · 결과 접수 중" : "연습 모드로 시작해요."}</p>` : `<h2>바로 시작할 수 있어요</h2><p>학교 선택이나 이름 입력 없이 모든 퍼즐을 즐길 수 있어요.</p>`}</div><div class="surface"><h2>편안하게 활동해요</h2><label class="check-label"><input type="checkbox" data-setting="setup-sound" ${c.setupSound ? "checked" : ""} /> 효과음 켜기 (기본 끄기)</label><label class="check-label"><input type="checkbox" data-setting="setup-reduced" ${c.setupReduced ? "checked" : ""} /> 움직임 줄이기</label><p>이야기와 모든 단서는 소리 없이도 읽을 수 있어요.</p></div>${b("이야기와 조작 안내 보기 →", "setup-next", "", 'class="primary large"')}</main>`;
 }
 export function schoolOptions(
   c: ViewContext,
@@ -99,7 +99,7 @@ export function modalContent(c: ViewContext) {
   const s = c.state;
   switch (c.modal) {
     case "reward":
-      return `<h2 id="dialog-title">${esc(c.reward?.title)}</h2><div class="reward-piece">${icon("key", 70)}</div><p>${esc(c.reward?.text)}</p>${b("단서 따라 살펴보기 →", "follow-clue", c.reward?.next ?? "", 'class="primary"')}${b("교실로 돌아가기", "reward-room")}`;
+      return `<h2 id="dialog-title">${esc(c.reward?.title)}</h2><div class="reward-piece">${icon("key", 70)}</div><p>${esc(c.reward?.text)}</p>${b(`${OBJECTS.find((o) => o.id === c.reward?.next)?.name ?? "다음 단서"} 살펴보기 →`, "follow-clue", c.reward?.next ?? "", 'class="primary"')}${b("교실로 돌아가기", "reward-room")}`;
     case "objects":
       return `<h2 id="dialog-title">교실 물건 목록</h2><p>목록에서도 모든 물건을 살펴볼 수 있어요.</p><div class="object-picker">${OBJECTS.map((o) => b(`${o.name}${s?.discoveredClueIds.includes(o.id) ? " ✓" : ""}`, "inspect", o.id)).join("")}</div>`;
     case "bag":
@@ -138,7 +138,7 @@ export function modalContent(c: ViewContext) {
     case "settings":
       return `<h2 id="dialog-title">활동 설정</h2><label class="check-label"><input type="checkbox" data-setting="sound" ${s?.settings.sound ? "checked" : ""} /> 효과음 켜기</label><label class="check-label"><input type="checkbox" data-setting="reduced" ${s?.settings.reducedMotion ? "checked" : ""} /> 움직임 줄이기</label><p>소리와 움직임 없이도 모든 단서를 확인할 수 있어요.</p>`;
     case "exit-confirm":
-      return `<h2 id="dialog-title">출구를 열까요?</h2><p>아직 남은 추가 단서가 ${4 - (s?.foundBonusIds.length ?? 0)}개예요. 지금 탈출하면 ${s ? score(s) : 0}점으로 확정돼요.</p>${b("계속 탐색하기", "close-modal", "", 'class="primary"')}${b("탈출하기", "escape-confirm")}`;
+      return `<h2 id="dialog-title">우정 조각을 모두 모았어요!</h2><p>문을 열면 탈출 성공이에요. ${s ? score(s) : 0}점으로 완료해요.</p><p>추가 단서는 선택 활동이에요.${s?.foundBonusIds.length === 4 ? " 모두 찾았어요!" : ` 남은 ${4 - (s?.foundBonusIds.length ?? 0)}개를 풀지 않아도 성공이에요.`}</p>${b("문 열고 탈출하기 →", "escape-confirm", "", 'class="primary"')}${b("추가 단서 더 찾아보기", "close-modal")}`;
     case "erase":
       return `<h2 id="dialog-title">이 앱의 활동을 지울까요?</h2><p>현재 배포 경로에 저장한 진행과 설정만 지워요. 다른 앱의 저장은 지우지 않아요.</p>${b("취소", "close-modal")}${b("활동 지우기", "erase", "", 'class="danger"')}`;
     case "new-confirm":

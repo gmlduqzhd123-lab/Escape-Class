@@ -22,12 +22,16 @@ import {
   combine,
   canEscape,
   escape,
+  pickMemo,
+  pickFragment,
+  beginRequest,
   type Outcome,
 } from "./game/engine";
 import {
   runBall,
   routeArrows,
   extendPath,
+  tapRoute,
   judgeP1,
   judgeP2,
   judgeP4,
@@ -257,6 +261,7 @@ function closeModal() {
     resume();
     return;
   }
+  if (c.modal === "exit-confirm") c.selected = null;
   c.modal = null;
   render(dialogReturnFocus);
 }
@@ -403,9 +408,12 @@ function finishPuzzle(id: PuzzleId) {
     outcome(result);
     return;
   }
-  const nexts = ["O04", "O07", "O08", "O09", "O12"];
+  const hasLens = s.inventory.some((id) => id.endsWith("lens"));
+  const nexts = [hasLens ? "O04" : "O06", "O07", "O08", "O09", "O12"];
   const texts = [
-    "메모 지도가 두 번째 그림 책상을 가리켜요. 서랍이 열렸어요!",
+    hasLens
+      ? "서랍이 열렸어요! 찾은 렌즈로 암호판을 살펴봐요."
+      : "서랍이 열렸어요! 공용 도구함에서 렌즈를 집어 암호판을 살펴봐요.",
     "놀이판에 불이 들어왔어요. 네 친구에게 공을 전해요.",
     "교실 태블릿이 켜졌어요. 두 연결망을 살펴봐요.",
     "뒤편 도움 지도가 펼쳐졌어요. 어른을 찾아가요.",
@@ -701,6 +709,7 @@ async function handle(action: string, value: string) {
       document.getElementById("panel-title")?.focus({ preventScroll: true });
       window.scrollTo(0, 0);
       if (applied) say(applied.message);
+      checkDevice();
       return;
     }
     case "close-panel":
@@ -716,6 +725,66 @@ async function handle(action: string, value: string) {
       c.bonusHintLevel = 0;
       render();
       return;
+    case "memo-pick":
+      if (c.objectId === "O02" && c.device === "main") pickMemo(s, value);
+      break;
+    case "memo-remove":
+      if (
+        c.objectId === "O02" &&
+        !s.solvedPuzzleIds.includes("P1") &&
+        /^\d$/.test(value)
+      )
+        s.puzzles.p1.order.splice(Number(value), 1);
+      break;
+    case "fragment-pick":
+      if (c.objectId === "O12" && c.device === "main") pickFragment(s, value);
+      break;
+    case "fragment-remove":
+      if (c.objectId === "O12" && !s.finalCombined && /^\d$/.test(value))
+        s.puzzles.final.order.splice(Number(value), 1);
+      break;
+    case "lens-desk": {
+      const lens = s.inventory.find((id) => id.endsWith("lens"));
+      if (lens) {
+        c.selected = lens;
+        await handle("inspect", "O04");
+      }
+      return;
+    }
+    case "place-lens": {
+      if (c.objectId !== "O04") return;
+      const lens = s.inventory.find((id) => id.endsWith("lens")) ?? null;
+      const result = applyItem(s, lens, "O04");
+      if (result.ok) c.selected = null;
+      outcome(result);
+      return;
+    }
+    case "key-exit":
+      if (s.finalKeyObtained) {
+        c.selected = "final-key";
+        await handle("inspect", "O12");
+      }
+      return;
+    case "sentence-start":
+      if (c.objectId === "O09") beginRequest(s);
+      break;
+    case "bonus-code":
+      if (
+        c.objectId === "O12" &&
+        c.device === "bonus" &&
+        s.solvedPuzzleIds.includes("P5") &&
+        !s.foundBonusIds.includes("B4")
+      ) {
+        if (value === "지우기") s.puzzles.b4 = "";
+        else if (/^\d$/.test(value))
+          s.puzzles.b4 =
+            (s.puzzles.b4.length === 3 ? "" : s.puzzles.b4) + value;
+        if (s.puzzles.b4.length === 3) {
+          outcome(solveBonus(s, "B4", s.puzzles.b4));
+          return;
+        }
+      }
+      break;
     case "hold":
       if (
         (c.objectId === "O02" &&
@@ -769,6 +838,7 @@ async function handle(action: string, value: string) {
       return;
     case "take":
       takeLens(s, value as ItemId);
+      if (s.inventory.includes(value as ItemId)) c.selected = value as ItemId;
       persist();
       render();
       say("렌즈를 아래 아이템 칸에 넣었어요.");
@@ -820,12 +890,12 @@ async function handle(action: string, value: string) {
         unlocked(s, "P3") &&
         !c.running
       ) {
-        const result = extendPath(s.puzzles.p3.path, Number(value));
-        if (!result.ok) {
-          say(result.message);
+        const next = tapRoute(s.puzzles.p3.path, Number(value));
+        if (!next) {
+          say("빛나는 이웃 칸을 누르거나, 지나온 칸을 눌러 길을 고쳐요.");
           return;
         }
-        s.puzzles.p3.path.push(Number(value));
+        s.puzzles.p3.path = next;
         s.puzzles.p3.arrows = routeArrows(s.puzzles.p3.path);
         c.ballPath = [];
         c.ballIndex = -1;
@@ -864,14 +934,22 @@ async function handle(action: string, value: string) {
       }
       break;
     case "move":
-      if (!s.solvedPuzzleIds.includes("P5")) outcome(move(s, value as Place));
+      if (!s.solvedPuzzleIds.includes("P5")) {
+        outcome(move(s, value as Place));
+        const dialog = document.querySelector<HTMLElement>(".npc-dialog h4");
+        if (dialog) {
+          dialog.focus({ preventScroll: true });
+          dialog.scrollIntoView({ block: "center", behavior: "instant" });
+        }
+      }
       return;
     case "sentence-add":
       if (
         !s.solvedPuzzleIds.includes("P5") &&
         unlocked(s, "P5") &&
         ["교무실", "상담실"].includes(s.puzzles.p5.place) &&
-        ["R0", "R1", "R2"].includes(value) &&
+        s.puzzles.p5.sentence[0] === "R0" &&
+        ["R1", "R2"].includes(value) &&
         !s.puzzles.p5.sentence.includes(value)
       )
         s.puzzles.p5.sentence.push(value);

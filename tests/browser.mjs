@@ -143,15 +143,10 @@ async function play(
   await act("next-hint", "P1");
   await act("close-modal");
   // Wrong order can be taken out and placed again, without a submit button.
-  await act("hold", "P1-C2");
-  await act("p1-slot", "0");
-  await act("p1-slot", "0");
-  await act("hold", "P1-C2");
-  for (const [i, id] of ["P1-C1", "P1-C3", "P1-C5"].entries()) {
-    await act("flip", id);
-    await act("hold", id);
-    await act("p1-slot", String(i));
-  }
+  assert.equal(await page.locator(".flip-card").count(), 0);
+  await act("memo-pick", "P1-C2");
+  await act("memo-remove", "0");
+  for (const id of ["P1-C1", "P1-C3", "P1-C5"]) await act("memo-pick", id);
   assert.deepEqual((await saved(page)).solvedPuzzleIds, ["P1"]);
   await shot(page, prefix + "-02-reward");
   await reward(false);
@@ -181,7 +176,7 @@ async function play(
     await act("device", "bonus");
     await act("bonus", "B2:함께 쓰기");
   }
-  await act("select-item", "shared-lens");
+  await expect(page.locator(".pocket-item.equipped")).toBeVisible();
   await inspect("O01");
   assert.equal((await saved(page)).inventory.includes("shared-lens"), true);
   await expect(page.locator(".pocket-item.equipped")).toBeVisible();
@@ -194,9 +189,12 @@ async function play(
   for (let i = 0; i < 3; i++) await act("lens-rotate");
   for (const n of ["1", "1", "1"]) await act("code", n);
   assert.equal((await saved(page)).solvedPuzzleIds.length, 1);
-  assert.ok(
-    await page.locator(".zoom-device").evaluate((el) => el.scrollTop > 0),
-    prefix + " device scroll preserved after keypad input",
+  assert.equal(
+    await page
+      .locator(".zoom-device")
+      .evaluate((el) => el.scrollHeight > el.clientHeight + 2),
+    false,
+    prefix + " no nested scroll",
   );
   await layout(page, prefix + " lens");
   await shot(page, prefix + "-03-lens");
@@ -210,7 +208,11 @@ async function play(
   // The incomplete route can be corrected and persists through a paused reload.
   await act("path-step", "11");
   await act("path-undo");
-  await act("path-step", "0");
+  await expect(
+    page.locator('[data-action="path-step"][data-value="0"]'),
+  ).toBeDisabled();
+  await act("path-step", "11");
+  await act("path-step", "10");
   assert.deepEqual((await saved(page)).puzzles.p3.path, [10]);
   for (const cell of [11, 12, 13, 14]) await act("path-step", String(cell));
   await act("ball-run");
@@ -252,11 +254,8 @@ async function play(
   await expect(page.locator(".npc-dialog")).toContainText("지금 자리에 없어요");
   await act("move", "복도");
   await act("move", keyboard ? "상담실" : "교무실");
-  // The request must start with the help statement.
-  await act("sentence-add", "R1");
-  await act("sentence-add", "R0");
-  assert.equal((await saved(page)).solvedPuzzleIds.length, 4);
-  await act("sentence-remove", "0");
+  assert.equal(await page.locator('[data-action="sentence-add"]').count(), 0);
+  await act("sentence-start");
   await layout(page, prefix + " map");
   await shot(page, prefix + "-06-map");
   await act("sentence-add", keyboard ? "R2" : "R1");
@@ -282,29 +281,21 @@ async function play(
         " symbol lock partial input survives reopening and all four bonus clues",
     );
   }
-  // Wrong order is replaceable. Each placed piece itself rotates.
-  await act("hold", "F2");
-  await act("fragment-slot", "0");
-  await act("fragment-reset");
-  for (const [i, id] of ["F1", "F2", "F3", "F4", "F5"].entries()) {
-    await act("hold", id);
-    await act("fragment-slot", String(i));
-  }
+  // One click seats each piece upright; an occupied home removes it.
+  await act("fragment-pick", "F2");
+  await act("fragment-remove", "0");
+  for (const id of ["F1", "F2", "F3", "F4"]) await act("fragment-pick", id);
   await layout(page, prefix + " final");
   await shot(page, prefix + "-07-pieces");
-  for (const [i, rot] of [90, 180, 270, 90, 180].entries())
-    for (let j = 0; j < (360 - rot) / 90; j++)
-      await act("fragment-slot", String(i));
+  await act("fragment-pick", "F5");
   assert.equal((await saved(page)).finalCombined, true);
   assert.equal((await saved(page)).finalKeyObtained, false);
   assert.equal((await saved(page)).phase, "finalReady");
   await reward();
   assert.equal((await saved(page)).finalKeyObtained, true);
-  await act("close-panel");
-  await act("select-item", "final-key");
-  await act("inspect", "O12", page.locator(".adventure-room"));
+  await act("key-exit");
   await expect(page.getByRole("dialog")).toContainText(
-    bonusAll ? "추가 단서가 0개" : "추가 단서가 2개",
+    "추가 단서는 선택 활동이에요.",
   );
   await act("escape-confirm");
   await page.getByRole("heading", { name: "함께 열었어요!" }).waitFor();
@@ -318,7 +309,7 @@ async function play(
   await page.getByRole("heading", { name: "함께 열었어요!" }).waitFor();
   pass(
     prefix +
-      " physical piece placement and rotation, hidden key, selected key exit and frozen score",
+      " one-click upright assembly, hidden key, direct key exit and frozen score",
   );
   return d;
 }

@@ -59,6 +59,11 @@ export function extendPath(path: number[], cell: number) {
     return { ok: false, message: "공이 있는 칸의 바로 옆 칸을 눌러요." };
   return { ok: true, message: "" };
 }
+export function tapRoute(path: number[], cell: number): number[] | null {
+  const previous = path.indexOf(cell);
+  if (previous >= 0) return path.slice(0, previous + 1);
+  return extendPath(path, cell).ok ? [...path, cell] : null;
+}
 export function judgeP1(s: Progress) {
   return (
     ["P1-C1", "P1-C3", "P1-C5"].every((id) =>

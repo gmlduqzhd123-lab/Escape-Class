@@ -1441,3 +1441,257 @@
 .physical-fragments .fragment-home > small:last-child {
   font-size: 16px;
 }
+
+/* The device uses the page's normal scroll so no task is hidden in a nested pane. */
+.escape-stage.is-zoomed {
+  overflow: visible;
+}
+.zoom-device {
+  max-height: none;
+  overflow: visible;
+}
+.goal-target {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  text-align: left;
+  justify-content: flex-start;
+  font-size: inherit;
+  font-weight: inherit;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: #a2b48d;
+  text-underline-offset: 5px;
+}
+.goal-bar .goal-target + .goal-hint {
+  margin-left: auto;
+}
+.memo-slots {
+  position: sticky;
+  top: 8px;
+  z-index: 3;
+  padding: 8px 0;
+  background: #eee4c6;
+}
+.direct-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 100%;
+  min-height: 210px;
+  margin: 0 !important;
+  padding: 14px 12px;
+  text-align: left;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 500;
+  background: #fcf4da;
+  border: 1px solid #cbbd92;
+}
+.direct-card strong {
+  font-size: 17px;
+}
+.direct-card > span:not(.join-marks) {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.direct-card small {
+  margin-top: auto;
+  color: #42663a;
+  font-weight: 700;
+}
+.join-marks {
+  font-size: 23px;
+  color: #627747;
+  white-space: nowrap;
+}
+.device-feedback {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #536c45;
+  margin: 0 0 16px;
+}
+.device-feedback.needs-fix {
+  color: #8b513e;
+}
+.memo-slot small {
+  font-size: 12px;
+}
+.lens-controls {
+  text-align: center;
+  margin: 12px 0 20px;
+}
+.lens-controls button {
+  min-width: 190px;
+}
+.next-place {
+  margin: 12px 0;
+}
+.window-reading {
+  position: sticky;
+  top: 8px;
+  z-index: 3;
+  max-width: 420px;
+  margin: 16px auto;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  background: #e6efdb;
+  border: 1px solid #aabc96;
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+.window-reading span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 15px;
+}
+.window-reading strong {
+  font-size: 25px;
+  color: var(--green);
+}
+.route-progress {
+  font-size: 17px;
+  color: #57753e;
+  padding: 10px;
+  background: #edf2e1;
+  border-radius: 9px;
+}
+.route-grid .tile:disabled:not(.visited) {
+  opacity: 0.45;
+}
+.npc-dialog .sentence-cards {
+  display: grid;
+  gap: 10px;
+}
+.npc-dialog .sentence-cards button {
+  margin: 0;
+  text-align: left;
+  white-space: normal;
+}
+.spoken-line {
+  padding: 12px;
+  background: #e8eedc;
+  border-radius: 8px;
+}
+.assembly-order {
+  margin: 18px 0;
+  padding: 14px;
+  background: #e9efdd;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 16px;
+}
+.symbol-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 0;
+}
+.symbol-legend span {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 15px;
+}
+.symbol-legend strong {
+  color: #365c32;
+  font-size: 20px;
+}
+.named-symbols {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  letter-spacing: 0;
+}
+.named-symbols span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.named-symbols small {
+  font-size: 16px;
+}
+.bonus-keypad {
+  max-width: 360px;
+  margin: 20px auto;
+}
+.fragment-pool button small {
+  font-size: 13px;
+}
+.physical-fragments .fragment-home > small:last-child {
+  font-size: 12px;
+}
+.physical-fragments .fragment-home .piece-mark {
+  margin: 8px 0;
+}
+.key-found {
+  text-align: center;
+}
+.key-found .primary {
+  margin: 16px auto;
+}
+@media (max-width: 700px) {
+  .zoom-device {
+    max-height: none;
+    padding: 18px 12px;
+  }
+  .direct-card {
+    min-height: 215px;
+    padding: 12px 9px;
+  }
+  .direct-card strong {
+    font-size: 15px;
+  }
+  .direct-card > span:not(.join-marks) {
+    font-size: 15px;
+  }
+  .memo-slot {
+    min-height: 112px;
+  }
+  .memo-slot small {
+    font-size: 11px;
+  }
+  .join-marks {
+    font-size: 21px;
+  }
+  .window-reading {
+    gap: 11px;
+    padding: 10px;
+  }
+  .window-reading span {
+    font-size: 13px;
+    gap: 5px;
+  }
+  .assembly-order {
+    font-size: 14px;
+    padding: 12px 8px;
+  }
+  .physical-fragments .fragment-home > small:last-child {
+    font-size: 11px;
+  }
+  .wire span {
+    font-size: 12px;
+  }
+  .network-person {
+    font-size: 12px;
+  }
+  .help-branches .wire span {
+    font-size: 12px;
+  }
+  .route-grid .tile small {
+    font-size: 10px;
+  }
+  .symbol-legend {
+    gap: 9px;
+  }
+  .symbol-legend span {
+    font-size: 13px;
+  }
+}

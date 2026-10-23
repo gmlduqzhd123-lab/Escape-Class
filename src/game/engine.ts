@@ -20,11 +20,50 @@ import {
   recoverLegacyPath,
 } from "../puzzles/judges";
 import { OBJECTS } from "../content/data";
+import { CARDS } from "./model";
 export interface Outcome {
   ok: boolean;
   message: string;
 }
 const outcome = (ok: boolean, message: string): Outcome => ({ ok, message });
+export function pickMemo(s: Progress, id: string) {
+  if (
+    !active(s) ||
+    s.solvedPuzzleIds.includes("P1") ||
+    !CARDS.includes(id as any) ||
+    !s.discoveredClueIds.includes(id) ||
+    s.puzzles.p1.order.includes(id) ||
+    s.puzzles.p1.order.length >= 3
+  )
+    return false;
+  s.puzzles.p1.order.push(id);
+  return true;
+}
+export function pickFragment(s: Progress, id: string) {
+  if (
+    !active(s) ||
+    s.solvedPuzzleIds.length !== 5 ||
+    s.finalCombined ||
+    !/^F[1-5]$/.test(id) ||
+    s.puzzles.final.order.includes(id) ||
+    s.puzzles.final.order.length >= 5
+  )
+    return false;
+  s.puzzles.final.order.push(id);
+  s.puzzles.final.rotations[Number(id.slice(1)) - 1] = 0;
+  return true;
+}
+export function beginRequest(s: Progress) {
+  if (
+    !active(s) ||
+    !unlocked(s, "P5") ||
+    s.solvedPuzzleIds.includes("P5") ||
+    !["교무실", "상담실"].includes(s.puzzles.p5.place)
+  )
+    return false;
+  s.puzzles.p5.sentence = ["R0"];
+  return true;
+}
 export function inspect(s: Progress, id: string) {
   if (!active(s) || !OBJECTS.some((o) => o.id === id)) return;
   const clues =
@@ -35,6 +74,9 @@ export function inspect(s: Progress, id: string) {
         : [];
   for (const c of [id, ...clues])
     if (!s.discoveredClueIds.includes(c)) s.discoveredClueIds.push(c);
+  // The revised tray seats pieces upright, including pieces from earlier saves.
+  if (id === "O12" && s.solvedPuzzleIds.length === 5 && !s.finalCombined)
+    s.puzzles.final.rotations.fill(0);
   if (id === "O11" && s.finalCombined) {
     s.finalKeyObtained = true;
     if (!s.inventory.includes("final-key")) s.inventory.push("final-key");
