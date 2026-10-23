@@ -17,6 +17,7 @@ import {
   judgeP5,
   judgeFinal,
   ADJACENCY,
+  recoverLegacyPath,
 } from "../puzzles/judges";
 import { OBJECTS } from "../content/data";
 export interface Outcome {
@@ -53,7 +54,7 @@ export function applyItem(
   target: string,
 ): Outcome {
   if (!active(s) || !item || !s.inventory.includes(item))
-    return outcome(false, "가방에서 사용할 아이템을 먼저 골라요.");
+    return outcome(false, "아래 아이템 칸에서 사용할 도구를 먼저 골라요.");
   if (target === "O04" && item !== "final-key" && unlocked(s, "P2")) {
     s.puzzles.p2.lensUsed = item;
     return outcome(
@@ -64,8 +65,8 @@ export function applyItem(
   return outcome(
     false,
     item === "final-key"
-      ? "열쇠는 출구에 사용해요. 아이템은 가방에 그대로 있어요."
-      : "이곳에 쓰는 도구가 아니에요. 아이템은 가방에 그대로 있어요.",
+      ? "열쇠는 출구에 사용해요. 도구는 아이템 칸에 그대로 있어요."
+      : "이곳에 쓰는 도구가 아니에요. 도구는 아이템 칸에 그대로 있어요.",
   );
 }
 export function solve(s: Progress, id: PuzzleId): Outcome {
@@ -88,14 +89,15 @@ export function solve(s: Progress, id: PuzzleId): Outcome {
         P2: "허락된 렌즈를 사용하고 ▲ 위를 맞춘 뒤 세 창의 숫자를 입력해요.",
         P3: runBall(s.puzzles.p3.arrows).message,
         P4: "사진 전달 두 개는 차단하고, 도움은 친구를 거쳐 어른에게 이어져야 해요.",
-        P5: "도움 가능한 장소에서 R0를 먼저 놓고 R1 또는 R2를 이어 놓아요.",
+        P5: "도움 가능한 장소에서 도움이 필요하다는 말을 먼저 전하고, 이야기할 방법을 이어 골라요.",
       }[id],
     );
   s.solvedPuzzleIds.push(id);
+  if (id === "P3") s.puzzles.p3.path = recoverLegacyPath(s.puzzles.p3.arrows);
   if (id === "P5") s.phase = "finalReady";
   return outcome(
     true,
-    `${id} 해결! 우정 조각과 16점을 얻었어요. 다음 장치를 살펴봐요.`,
+    `${["듣기", "존중", "함께하기", "배려", "도움"][PUZZLES.indexOf(id)]} 조각을 찾았어요!`,
   );
 }
 export function solveBonus(s: Progress, id: BonusId, answer: string): Outcome {
@@ -107,7 +109,7 @@ export function solveBonus(s: Progress, id: BonusId, answer: string): Outcome {
   if (answer !== expected[id])
     return outcome(false, "기호와 문장을 다시 살펴봐요.");
   s.foundBonusIds.push(id);
-  return outcome(true, `${id} 추가 단서 발견! 5점을 얻었어요.`);
+  return outcome(true, "추가 단서 발견! 5점을 얻었어요.");
 }
 export function move(s: Progress, place: Place): Outcome {
   if (
@@ -126,7 +128,7 @@ export function move(s: Progress, place: Place): Outcome {
 }
 export function combine(s: Progress): Outcome {
   if (!active(s) || !judgeFinal(s))
-    return outcome(false, "다섯 조각을 칠판 순서대로 놓고 모두 0도로 맞춰요.");
+    return outcome(false, "다섯 조각을 칠판 순서대로 놓고 ▲ 위로 맞춰요.");
   s.finalCombined = true;
   return outcome(true, "지도가 완성됐어요! 창가 / 둥근 / 화분 / 받침 / 아래");
 }
@@ -144,7 +146,7 @@ export function escape(s: Progress, item: ItemId | null): Outcome {
   if (!canEscape(s, item))
     return outcome(
       false,
-      "완성된 지도로 열쇠를 찾고, 가방에서 열쇠를 선택해 출구에 사용해요.",
+      "완성된 지도로 열쇠를 찾고, 아래 아이템 칸에서 열쇠를 선택해 출구에 사용해요.",
     );
   s.exitUsed = true;
   s.frozenScore = score(s);

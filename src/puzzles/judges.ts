@@ -22,6 +22,43 @@ export const FRIENDS: Record<number, string> = {
   24: "다람쥐",
 };
 export const toIndex = (x: number, y: number) => (y - 1) * 5 + x - 1;
+export function adjacent(a: number, b: number) {
+  return (
+    Math.abs((a % 5) - (b % 5)) +
+      Math.abs(Math.floor(a / 5) - Math.floor(b / 5)) ===
+    1
+  );
+}
+export function routeArrows(path: number[]) {
+  const arrows = Array(25).fill(0);
+  path.slice(0, -1).forEach((cell, i) => {
+    const next = path[i + 1];
+    arrows[cell] =
+      next === cell + 1 ? 0 : next === cell + 5 ? 1 : next === cell - 1 ? 2 : 3;
+  });
+  return arrows;
+}
+export function recoverLegacyPath(arrows: number[]) {
+  const trace = runBall(arrows).path;
+  const path: number[] = [];
+  for (const cell of trace) {
+    if (WALLS.includes(cell) || path.includes(cell)) break;
+    path.push(cell);
+  }
+  return path.length ? path : [10];
+}
+export function extendPath(path: number[], cell: number) {
+  if (!Number.isInteger(cell) || cell < 0 || cell > 24 || WALLS.includes(cell))
+    return { ok: false, message: "벽은 지나갈 수 없어요." };
+  if (path.includes(cell))
+    return {
+      ok: false,
+      message: "같은 칸은 두 번 지날 수 없어요. 한 칸 취소로 길을 고쳐요.",
+    };
+  if (path.at(-1) === 14 || !adjacent(path.at(-1)!, cell))
+    return { ok: false, message: "공이 있는 칸의 바로 옆 칸을 눌러요." };
+  return { ok: true, message: "" };
+}
 export function judgeP1(s: Progress) {
   return (
     ["P1-C1", "P1-C3", "P1-C5"].every((id) =>

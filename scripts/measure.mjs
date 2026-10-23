@@ -1,4 +1,4 @@
-import { readdir, readFile, stat, writeFile, mkdir } from "node:fs/promises";
+import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 const files = [];
@@ -29,7 +29,11 @@ const report = {
   jsCssGzipTargetBytes: 400 * 1024,
   pass: total <= 4 * 1024 * 1024 && codeGzip <= 400 * 1024,
 };
-await mkdir("evidence", { recursive: true });
-await writeFile("evidence/performance.json", JSON.stringify(report, null, 2));
+const evidence = process.env.EVIDENCE_DIR || "work/browser-current";
+await mkdir(evidence, { recursive: true });
+await writeFile(
+  join(evidence, "performance.json"),
+  JSON.stringify(report, null, 2),
+);
 console.log(JSON.stringify(report, null, 2));
 if (!report.pass) process.exitCode = 1;

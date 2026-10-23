@@ -1,0 +1,1443 @@
+.in-game .site-header {
+  max-width: 1200px;
+  min-height: 78px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.in-game .site-header nav {
+  display: none;
+}
+.in-game .site-footer {
+  display: none;
+}
+.escape-play {
+  max-width: 1080px;
+  margin: 22px auto 0;
+  padding: 0 24px 20px;
+}
+.escape-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+.escape-hud h1 {
+  font-size: 27px;
+  margin: 0;
+}
+.escape-hud .eyebrow {
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+.escape-stats {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.escape-stats > span {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.escape-stats > span:first-child {
+  color: #9e7431;
+  font-weight: 800;
+}
+.goal-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  background: #e7eedc;
+  border: 1px solid #c9d7bc;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  font-weight: 650;
+  font-size: 18px;
+}
+.goal-bar > svg {
+  flex-shrink: 0;
+  color: #79945a;
+}
+.goal-hint {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 15px;
+  min-height: 44px;
+  background: #f9fbf1;
+}
+.escape-stage {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 8px 30px #47633908;
+  position: relative;
+  overflow: hidden;
+}
+.escape-stage > .scene-caption {
+  padding: 0 3px 12px;
+}
+.adventure-room {
+  overflow: hidden;
+  width: min(100%, calc((100dvh - 470px) * 1.579));
+  margin: auto;
+}
+.adventure-room .hotspot .object-dot {
+  width: 32px;
+  height: 32px;
+  font-size: 22px;
+  line-height: 1;
+  background: #fff9e9ed;
+  border-color: #74976c;
+}
+.adventure-room .hotspot-label {
+  opacity: 0;
+  position: absolute;
+  bottom: -27px;
+  transition: opacity 0.15s;
+  pointer-events: none;
+  font-size: 13px;
+  white-space: nowrap;
+  max-width: none;
+}
+.adventure-room .hotspot:hover .hotspot-label,
+.adventure-room .hotspot:focus-visible .hotspot-label {
+  opacity: 1;
+  display: block;
+}
+.adventure-room .clue-target .object-dot {
+  background: #f6df9f;
+  border: 3px solid #9b7836;
+  box-shadow: 0 0 0 6px #f8e7a070;
+}
+.adventure-room .device-opened .object-dot {
+  background: #e0efd5;
+  color: #3e763a;
+}
+.adventure-room .hotspot {
+  z-index: 2;
+}
+.room-legend {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.open-drawer {
+  position: absolute;
+  left: 22%;
+  top: 57%;
+  width: 18%;
+  height: 16%;
+  pointer-events: none;
+  filter: drop-shadow(0 7px 5px #3e3e3122);
+  z-index: 1;
+}
+.scene-key-found {
+  position: absolute;
+  left: 8%;
+  top: 29%;
+  font-size: 35px;
+  color: #a88529;
+  pointer-events: none;
+}
+.escape-bottom {
+  position: sticky;
+  bottom: 0;
+  background: #f8f6eef5;
+  padding: 12px 0 8px;
+  z-index: 5;
+  backdrop-filter: blur(8px);
+}
+.pocket-tray {
+  min-height: 77px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #c9d5bf;
+  background: #eef0e3;
+  border-radius: 13px;
+  padding: 10px 12px;
+  box-shadow: 0 -8px 20px #f8f6ee;
+}
+.tray-label {
+  font-size: 13px;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  letter-spacing: 0.15em;
+  color: #718565;
+  padding: 0 5px;
+}
+.empty-pocket {
+  font-size: 15px;
+  color: #7a836e;
+}
+.pocket-item {
+  min-height: 58px;
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  padding: 10px 15px;
+  flex-wrap: wrap;
+}
+.pocket-item + button {
+  margin: 0;
+}
+.pocket-item > span {
+  font-size: 15px;
+}
+.pocket-item small {
+  display: none;
+}
+.pocket-item.equipped {
+  border: 2px solid #416c3b;
+  background: #ddebcc;
+}
+.pocket-item.equipped small {
+  display: block;
+  flex-basis: 100%;
+  font-size: 10px;
+}
+.adventure-controls {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-top: 8px;
+}
+.adventure-controls button {
+  min-height: 44px;
+  font-size: 14px;
+  padding: 8px 15px;
+}
+.adventure-controls button + button {
+  margin: 0;
+}
+.tiny-fragments {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  color: #b6bea9;
+  font-size: 23px;
+}
+.tiny-fragments .found {
+  color: #668553;
+}
+.zoom-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 14px;
+  position: relative;
+  z-index: 2;
+  border-bottom: 1px solid var(--line);
+}
+.zoom-top h2 {
+  margin: 0;
+  font-size: 22px;
+  margin-left: auto;
+}
+.back-room {
+  font-size: 15px;
+  white-space: nowrap;
+  background: #f4f4e9;
+}
+.zoom-vignette {
+  height: 70px;
+  overflow: hidden;
+  margin: 16px -18px 0;
+  background: #e7eddd;
+  opacity: 0.7;
+}
+.zoom-vignette img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.8);
+}
+.zoom-device {
+  position: relative;
+  background: #fffef8;
+  max-width: 760px;
+  margin: -22px auto 0;
+  padding: 24px 28px 14px;
+  border: 1px solid #d7decb;
+  border-radius: 15px;
+  max-height: calc(100dvh - 570px);
+  min-height: 250px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #9db088 #f0f1e6;
+  scroll-padding: 12px;
+}
+.device-heading h3 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+.device-heading p {
+  font-size: 17px;
+  color: #64735f;
+  margin-bottom: 18px;
+  line-height: 1.7;
+}
+.device-tabs {
+  display: flex;
+  gap: 7px;
+  margin: 0 0 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--line);
+}
+.device-tabs button {
+  font-size: 15px;
+  flex: 1;
+  padding: 10px;
+}
+.device-tabs button + button {
+  margin: 0;
+}
+.physical-lock {
+  text-align: center;
+  padding: 30px 12px;
+}
+.physical-lock > svg {
+  color: #ab954f;
+  margin: 15px;
+}
+.physical-lock h3 {
+  margin-top: 15px;
+}
+.physical-lock p {
+  font-size: 18px;
+}
+.opened-device {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #e5efd9;
+  border: 1px solid #becfaf;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 12px 0 20px;
+  font-size: 17px;
+}
+.memo-board {
+  background: #eee4c6;
+  border: 10px solid #b19463;
+  border-radius: 9px;
+  padding: 16px;
+}
+.memo-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 15px;
+}
+.memo-slot {
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  border: 2px dashed #a0ac8c;
+  font-size: 15px;
+  background: #f9f8e9;
+  padding: 10px 6px;
+}
+.memo-slot + button {
+  margin: 0;
+}
+.memo-slot .connector {
+  font-size: 22px;
+  white-space: nowrap;
+  color: #75834c;
+}
+.can-place {
+  border: 2px dashed #6e8c4e !important;
+  background: #e9f2d7 !important;
+}
+.compact-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.compact-cards .clue-card {
+  padding: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #fcf4da;
+  border-color: #cbbd92;
+  display: block;
+}
+.pick-card {
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 13px 10px;
+  min-height: 190px;
+  height: auto;
+  background: transparent;
+  justify-content: start;
+  text-align: left;
+  font-size: 15px;
+  gap: 7px;
+  font-weight: 500;
+}
+.pick-card strong {
+  font-size: 15px;
+  text-align: center;
+  width: 100%;
+}
+.pick-card > span {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.flip-card {
+  border: 0;
+  border-top: 1px dashed #cbbc8e;
+  border-radius: 0;
+  min-height: 44px;
+  width: 100%;
+  margin: 0 !important;
+  font-size: 13px;
+  background: #f7efda;
+}
+.clue-card.held {
+  outline: 3px solid #66894f;
+  outline-offset: 1px;
+  background: #eaf0d8;
+}
+.placement-tip {
+  font-size: 16px;
+  margin: 12px 0 0;
+  color: #597841;
+}
+.revealed-clue {
+  background: #f8edc8;
+  padding: 18px;
+  border-radius: 9px;
+  margin-top: 15px;
+  font-size: 18px;
+}
+.paper-note {
+  max-width: 520px;
+  margin: 10px auto;
+  text-align: center;
+  padding: 22px;
+  background: #fbf0cf;
+  border: 1px solid #d6c18a;
+  box-shadow: 3px 5px 0 #e9dfba;
+}
+.paper-note blockquote {
+  font-size: 23px;
+  line-height: 1.9;
+  margin: 20px 0;
+}
+.paper-note p {
+  font-size: 16px;
+}
+.physical-cipher {
+  max-width: 420px;
+  margin: 15px auto;
+}
+.lens-board {
+  display: block;
+  width: 100%;
+  background: transparent;
+  padding: 0;
+  border: 0;
+}
+.lens-board .cipher-grid {
+  max-width: 310px;
+}
+.cipher-grid > span {
+  position: relative;
+  background: #fdfbf2;
+  border: 1px solid #d0c8ad;
+  min-height: 72px;
+  font-size: 32px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+.cipher-grid > span.window-cell {
+  border: 4px solid #598a82;
+  background: #e5f1e4;
+}
+.cipher-grid small {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 11px;
+}
+.covered-cell {
+  color: #8d957f;
+  background: repeating-linear-gradient(
+    45deg,
+    #d4dbc6,
+    #d4dbc6 7px,
+    #e0e5d4 7px,
+    #e0e5d4 14px
+  ) !important;
+}
+.lens-placeholder {
+  display: block;
+  padding: 22px;
+  font-size: 18px;
+  color: #6a785e;
+}
+.physical-cipher + .code-display,
+.zoom-device > .keypad {
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.route-board {
+  position: relative;
+  max-width: 470px;
+  margin: 16px auto;
+}
+.route-line {
+  position: absolute;
+  inset: 9px;
+  width: calc(100% - 18px);
+  height: calc(100% - 18px);
+  z-index: 2;
+  pointer-events: none;
+}
+.route-line polyline {
+  stroke: #708b4c;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.45;
+}
+.route-grid {
+  max-width: none;
+  margin: 0;
+  position: relative;
+}
+.route-grid .tile {
+  z-index: 1;
+  background: #f7f9ee;
+  min-height: 70px;
+  height: auto;
+  aspect-ratio: 1;
+}
+.route-grid .tile strong,
+.route-grid .tile small {
+  z-index: 3;
+}
+.route-grid .tile.visited {
+  background: #f2e0a3;
+  border: 1px solid #a08b48;
+}
+.route-grid .next-cell {
+  box-shadow: inset 0 0 0 2px #7b9c53;
+  background: #edf4dc;
+}
+.route-grid .goal {
+  background: #e2eac7;
+}
+.step-number {
+  position: absolute;
+  bottom: 4px;
+  right: 5px;
+  font-size: 10px;
+  z-index: 3;
+  color: #6f774e;
+}
+.path-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 15px 0;
+}
+.path-actions button + button {
+  margin: 0;
+}
+.path-actions button {
+  font-size: 15px;
+}
+.friends .met {
+  color: #446b32;
+}
+.physical-network {
+  padding: 18px;
+  margin: 18px 0;
+  border-radius: 12px;
+}
+.physical-network h4 {
+  font-size: 20px;
+}
+.network-chain {
+  display: grid;
+  grid-template-columns: 1fr 0.9fr 1fr 0.9fr 1fr;
+  align-items: center;
+  gap: 5px;
+}
+.network-person {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-direction: column;
+  font-size: 15px;
+  text-align: center;
+  line-height: 1.5;
+}
+.wire {
+  border: 0;
+  background: transparent;
+  padding: 7px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 64px;
+  width: 100%;
+  margin: 0 !important;
+  color: #946b50;
+}
+.wire svg {
+  width: 100%;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.wire span {
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+}
+.wire.help {
+  color: #426f42;
+}
+.wire.disconnected svg {
+  stroke-dasharray: 6 3;
+  opacity: 0.7;
+}
+.wire:focus-visible {
+  outline-offset: 1px;
+}
+.help-first {
+  grid-template-columns: 1fr 1fr 1fr;
+  max-width: 450px;
+  margin: auto;
+}
+.help-branches {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  border-top: 1px dashed #b5c8a5;
+  padding-top: 18px;
+}
+.help-branches > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.1fr;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+.help-branches strong {
+  font-size: 15px;
+}
+.school-map {
+  position: relative;
+  background: #eef0e1;
+  border: 1px solid #c5d0b6;
+  border-radius: 13px;
+  padding: 15px;
+  margin: 16px 0;
+}
+.school-map > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: #a3b68c;
+  stroke-width: 10;
+  fill: none;
+}
+.school-map .map-places {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 12px;
+  min-height: 260px;
+  margin: 0;
+  align-items: center;
+}
+.school-map .map-room {
+  min-height: 90px;
+  padding: 10px 5px;
+  opacity: 1;
+  font-size: 15px;
+  background: #fdfcf2;
+  border-color: #bac9a8;
+}
+.map-room > span {
+  font-size: 22px;
+  color: #8b9e6a;
+}
+.map-room > small {
+  font-size: 11px;
+}
+.school-map .map-room:nth-child(1) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.school-map .map-room:nth-child(2) {
+  grid-column: 2;
+  grid-row: 2;
+}
+.school-map .map-room:nth-child(3) {
+  grid-column: 2;
+  grid-row: 1;
+}
+.school-map .map-room:nth-child(4) {
+  grid-column: 3;
+  grid-row: 1;
+}
+.school-map .map-room:nth-child(5) {
+  grid-column: 3;
+  grid-row: 2;
+}
+.school-map .map-room.current {
+  background: #dfeccd;
+  border: 2px solid #658d49;
+}
+.school-map .map-room:disabled:not(.current) {
+  color: #727b65;
+  background: #efefe4;
+  border-style: dashed;
+}
+.npc-dialog {
+  padding: 22px;
+  background: #f9f0d7;
+  border: 1px solid #d9c794;
+  border-radius: 14px;
+  margin: 20px 0;
+}
+.npc-dialog h4 {
+  font-size: 20px;
+}
+.npc-face {
+  font-size: 42px;
+}
+.spoken-sentences {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+.spoken-sentences button {
+  text-align: left;
+  justify-content: start;
+  font-size: 16px;
+  background: #e6eed9;
+  min-height: 52px;
+}
+.npc-dialog .sentence-cards button {
+  font-size: 17px;
+  min-height: 52px;
+}
+.map-note {
+  font-size: 16px;
+}
+.map-legend {
+  font-size: 14px;
+}
+.map-legend summary {
+  padding: 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.physical-fragments {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+}
+.physical-fragments .fragment-home {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 4px;
+  min-height: 140px;
+  background: #f9f4de;
+  border: 2px dashed #bac39d;
+  font-size: 15px;
+  min-width: 0;
+  margin: 0;
+}
+.fragment-home small {
+  font-size: 10px;
+}
+.fragment-home strong {
+  font-size: 16px;
+}
+.fragment-home .piece-mark {
+  margin: 10px 0;
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+.empty-piece {
+  font-size: 35px;
+  color: #b5bb9c;
+}
+.fragment-pool .held {
+  outline: 3px solid #7b9a56;
+  background: #e8f0d8;
+}
+.treasure-map {
+  border: 1px solid #c8b77b;
+  background: #f7edc8;
+  border-radius: 12px;
+  text-align: center;
+  padding: 22px;
+  margin: 20px 0;
+}
+.treasure-map > span {
+  display: block;
+  font-size: 13px;
+  color: #99824a;
+}
+.treasure-map strong {
+  display: block;
+  font-size: 24px;
+  margin: 15px 0;
+}
+.door-target {
+  border-top: 1px dashed #cad3bc;
+  margin: 24px 0 0;
+  padding-top: 20px;
+  text-align: center;
+}
+.door-keyhole {
+  min-height: 85px;
+  min-width: 220px;
+  background: #e9d8ac;
+  border: 5px solid #b99a64;
+}
+.door-target p {
+  font-size: 15px;
+  margin-top: 10px;
+}
+.toolbox-open {
+  background: #e6d4ad;
+  border: 10px solid #b39760;
+  border-radius: 8px;
+  padding: 30px;
+  max-width: 380px;
+  margin: 25px auto;
+}
+.collect-object {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #f8efd6;
+  min-height: 180px;
+}
+.big-lens {
+  font-size: 76px;
+  color: #5d8780;
+  line-height: 1.4;
+}
+.pot-base {
+  text-align: center;
+  padding: 30px;
+  font-size: 80px;
+  color: #80965b;
+}
+.pot-base p {
+  font-size: 18px;
+  color: var(--green);
+}
+.symbol-choices {
+  display: flex;
+  gap: 9px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.symbol-choices button {
+  display: flex;
+  flex-direction: column;
+  min-width: 78px;
+  min-height: 85px;
+  margin: 0;
+}
+.symbol-choices strong {
+  font-size: 36px;
+}
+.symbol-choices span {
+  font-size: 15px;
+}
+.picture-compare > div {
+  text-align: center;
+  font-size: 42px;
+  letter-spacing: 10px;
+  padding: 20px 0;
+}
+.picture-compare > div + div {
+  border-top: 1px dashed #cdbc8b;
+}
+.label-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.label-options button {
+  min-height: 90px;
+  flex: 1;
+}
+.invitation-slots {
+  display: grid;
+  gap: 9px;
+  margin: 18px 0;
+  padding: 14px;
+  background: #e8eddb;
+  border-radius: 10px;
+}
+.invitation-paper {
+  justify-content: start;
+  text-align: left;
+  display: block;
+  background: #fff7df;
+  margin: 0 !important;
+}
+.invitation-paper small {
+  display: block;
+  font-size: 15px;
+  color: #8a7544;
+}
+.symbol-lock {
+  font-size: 50px;
+  text-align: center;
+  padding: 20px;
+  letter-spacing: 15px;
+  background: #e6dcc2;
+  border-radius: 10px;
+  margin: 20px 0;
+}
+.object-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.object-picker button {
+  font-size: 16px;
+  min-height: 58px;
+  margin: 0;
+}
+.reward-piece {
+  display: grid;
+  place-items: center;
+  background: #f3e4ae;
+  color: #9a7933;
+  border-radius: 50%;
+  width: 130px;
+  height: 130px;
+  margin: 25px auto;
+}
+.in-game .toast {
+  bottom: 155px;
+}
+.in-game dialog .hint-step p {
+  font-size: 18px;
+}
+.in-game .zoom-device button:disabled {
+  opacity: 0.8;
+}
+.in-game .zoom-device h3:focus-visible {
+  outline: none;
+}
+@media (max-width: 700px) {
+  .in-game .site-header {
+    min-height: 66px;
+    padding: 12px 18px;
+  }
+  .escape-play {
+    padding: 0 12px 10px;
+    margin-top: 14px;
+  }
+  .escape-hud {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .escape-hud h1 {
+    font-size: 22px;
+  }
+  .escape-hud .eyebrow {
+    font-size: 10px;
+  }
+  .escape-stats {
+    gap: 8px;
+    font-size: 11px;
+  }
+  .escape-stats > span:nth-child(2) {
+    display: none;
+  }
+  .escape-stats > span:nth-child(3) svg {
+    display: none;
+  }
+  .escape-stats button {
+    width: 44px;
+    min-width: 44px;
+  }
+  .goal-bar {
+    font-size: 16px;
+    padding: 10px;
+    gap: 8px;
+    margin-bottom: 12px;
+    min-height: 70px;
+  }
+  .goal-bar > svg {
+    width: 18px;
+  }
+  .goal-hint {
+    font-size: 13px;
+    padding: 8px;
+    gap: 3px;
+  }
+  .goal-hint svg {
+    width: 17px;
+  }
+  .escape-stage {
+    padding: 10px;
+    border-radius: 14px;
+  }
+  .escape-stage > .scene-caption {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .escape-stage > .scene-caption > span:last-child {
+    display: none;
+  }
+  .adventure-room .hotspot-label {
+    display: none;
+  }
+  .adventure-room .hotspot .object-dot {
+    width: 28px;
+    height: 28px;
+    font-size: 21px;
+  }
+  .adventure-room .hotspot:hover .hotspot-label,
+  .adventure-room .hotspot:focus-visible .hotspot-label {
+    display: none;
+  }
+  .room-legend {
+    font-size: 12px;
+    margin-top: 10px;
+    gap: 18px;
+  }
+  .escape-bottom {
+    padding-top: 8px;
+  }
+  .pocket-tray {
+    min-height: 70px;
+    padding: 8px;
+    gap: 7px;
+  }
+  .tray-label {
+    font-size: 11px;
+    padding: 0 2px;
+  }
+  .empty-pocket {
+    font-size: 13px;
+  }
+  .pocket-item {
+    padding: 7px 8px;
+    min-height: 52px;
+    gap: 5px;
+    max-width: 110px;
+    flex: 1;
+  }
+  .pocket-item > svg {
+    width: 22px;
+  }
+  .pocket-item > span {
+    font-size: 12px;
+  }
+  .pocket-item.equipped small {
+    font-size: 9px;
+    line-height: 1.3;
+  }
+  .adventure-controls {
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .adventure-controls button {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  .adventure-controls button > svg {
+    width: 17px;
+  }
+  .tiny-fragments {
+    gap: 4px;
+    font-size: 16px;
+  }
+  .zoom-top {
+    gap: 6px;
+    padding-bottom: 10px;
+  }
+  .zoom-top h2 {
+    font-size: 16px;
+    line-height: 1.5;
+    word-break: keep-all;
+    text-align: right;
+  }
+  .back-room {
+    font-size: 13px;
+    padding: 9px 10px;
+  }
+  .zoom-vignette {
+    height: 48px;
+    margin: 10px -10px 0;
+  }
+  .zoom-device {
+    margin-top: -14px;
+    padding: 18px 12px 14px;
+    border-radius: 11px;
+    max-height: calc(100dvh - 520px);
+    min-height: 230px;
+  }
+  .device-heading h3 {
+    font-size: 22px;
+  }
+  .device-heading p {
+    font-size: 16px;
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .device-tabs {
+    gap: 5px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+  .device-tabs button {
+    font-size: 13px;
+    padding: 9px 5px;
+  }
+  .memo-board {
+    padding: 9px;
+    border-width: 6px;
+  }
+  .memo-slots {
+    gap: 5px;
+    margin-bottom: 12px;
+  }
+  .memo-slot {
+    min-height: 92px;
+    font-size: 13px;
+    padding: 8px 3px;
+  }
+  .memo-slot .connector {
+    font-size: 16px;
+  }
+  .memo-slot strong {
+    font-size: 12px;
+  }
+  .compact-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+  .pick-card {
+    padding: 10px 7px;
+    min-height: 185px;
+  }
+  .pick-card strong {
+    font-size: 14px;
+  }
+  .pick-card > span {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .flip-card {
+    font-size: 12px;
+    padding: 6px;
+  }
+  .paper-note {
+    padding: 18px 12px;
+  }
+  .paper-note blockquote {
+    font-size: 21px;
+  }
+  .physical-cipher {
+    padding: 10px;
+    margin: 10px 0;
+  }
+  .lens-indicator {
+    gap: 15px;
+  }
+  .lens-indicator span:last-child {
+    font-size: 13px;
+  }
+  .cipher-grid > span {
+    min-height: 61px;
+    font-size: 29px;
+  }
+  .cipher-grid small {
+    font-size: 10px;
+  }
+  .lens-placeholder {
+    padding: 14px;
+    font-size: 16px;
+  }
+  .zoom-device .keypad button {
+    font-size: 20px;
+    min-height: 46px;
+  }
+  .code-display {
+    font-size: 28px;
+    padding: 8px;
+  }
+  .route-grid .tile,
+  .route-grid .wall {
+    height: auto;
+    aspect-ratio: 1;
+    min-height: 45px;
+    padding: 4px 1px;
+  }
+  .route-grid .tile strong {
+    font-size: 25px;
+  }
+  .route-grid .tile small {
+    font-size: 9px;
+  }
+  .route-board {
+    margin: 13px 0;
+  }
+  .route-line {
+    inset: 9px;
+  }
+  .friends {
+    gap: 3px;
+  }
+  .friends span {
+    font-size: 10px;
+  }
+  .friends svg {
+    width: 27px;
+  }
+  .path-actions {
+    gap: 5px;
+    margin: 12px 0;
+  }
+  .path-actions button {
+    font-size: 13px;
+    padding: 8px;
+    min-height: 44px;
+  }
+  .physical-network {
+    padding: 12px 8px;
+    margin: 15px 0;
+  }
+  .physical-network h4 {
+    font-size: 18px;
+  }
+  .network-chain {
+    gap: 2px;
+    grid-template-columns: 1fr 0.8fr 1fr 0.8fr 1fr;
+  }
+  .network-person {
+    font-size: 12px;
+    gap: 4px;
+  }
+  .network-person svg {
+    width: 35px;
+  }
+  .wire {
+    min-height: 70px;
+  }
+  .wire span {
+    font-size: 10px;
+  }
+  .help-first {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .help-branches > div {
+    font-size: 11px;
+    gap: 5px;
+  }
+  .help-branches strong {
+    font-size: 12px;
+  }
+  .help-branches .wire span {
+    font-size: 10px;
+  }
+  .school-map {
+    padding: 10px;
+    margin: 12px 0;
+  }
+  .school-map .map-places {
+    gap: 14px 7px;
+    min-height: 218px;
+  }
+  .school-map .map-room {
+    font-size: 14px;
+    min-height: 85px;
+    padding: 8px 2px;
+  }
+  .map-room strong {
+    font-size: 13px;
+  }
+  .map-room > small {
+    font-size: 10px;
+  }
+  .npc-dialog {
+    padding: 15px 12px;
+  }
+  .npc-dialog h4 {
+    font-size: 18px;
+  }
+  .npc-dialog .sentence-cards button {
+    font-size: 16px;
+  }
+  .spoken-sentences button {
+    font-size: 15px;
+  }
+  .physical-fragments {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    margin: 16px -3px;
+  }
+  .physical-fragments .fragment-home {
+    min-height: 118px;
+    padding: 9px 2px;
+    gap: 4px;
+  }
+  .fragment-home small {
+    font-size: 9px;
+  }
+  .fragment-home strong {
+    font-size: 12px;
+    word-break: keep-all;
+  }
+  .fragment-home .piece-mark {
+    font-size: 10px;
+    margin: 12px 0;
+  }
+  .physical-fragments .fragment-home > small:last-child {
+    font-size: 8px;
+  }
+  .fragment-pool {
+    gap: 5px;
+  }
+  .fragment-pool button {
+    min-width: 70px;
+    flex-grow: 0;
+  }
+  .treasure-map {
+    padding: 17px 10px;
+  }
+  .treasure-map strong {
+    font-size: 21px;
+  }
+  .toolbox-open {
+    padding: 18px;
+    border-width: 8px;
+  }
+  .collect-object {
+    min-height: 150px;
+  }
+  .big-lens {
+    font-size: 70px;
+  }
+  .label-options {
+    flex-direction: column;
+  }
+  .label-options button {
+    min-height: 64px;
+    font-size: 17px;
+  }
+  .symbol-choices {
+    gap: 6px;
+  }
+  .symbol-choices button {
+    min-width: 74px;
+    min-height: 80px;
+    flex: 1;
+  }
+  .picture-compare > div {
+    font-size: 33px;
+    letter-spacing: 8px;
+  }
+  .symbol-lock {
+    font-size: 40px;
+    padding: 16px;
+  }
+  .zoom-device .notice {
+    font-size: 16px !important;
+    padding: 12px;
+  }
+  .zoom-device > .muted {
+    font-size: 14px;
+  }
+  .object-picker {
+    gap: 8px;
+  }
+  .object-picker button {
+    font-size: 15px;
+  }
+  .in-game .toast {
+    bottom: 155px;
+    font-size: 14px;
+  }
+  .in-game dialog p {
+    font-size: 18px;
+  }
+}
+@media (max-height: 720px) {
+  .zoom-device {
+    max-height: 300px;
+  }
+  .adventure-room {
+    width: 100%;
+  }
+  .in-game .toast {
+    bottom: 145px;
+  }
+}
+
+.photo-network .wire {
+  min-width: 44px;
+}
+.physical-fragments .fragment-home {
+  min-width: 44px;
+}
+.in-game .site-header {
+  flex-shrink: 0;
+}
+
+.device-scroll-cue {
+  font-size: 12px;
+  text-align: center;
+  color: #687a59;
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+.device-scroll-cue[hidden] {
+  display: none;
+}
+.network-person {
+  word-break: keep-all;
+}
+.fragment-home .piece-mark {
+  font-size: 22px;
+}
+.physical-fragments .fragment-home > small:last-child {
+  font-size: 16px;
+}

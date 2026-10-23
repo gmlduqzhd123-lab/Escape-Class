@@ -1,3 +1,4 @@
+import type { Progress } from "../game/model";
 import { asset } from "../ranking/service";
 import { OBJECTS } from "../content/data";
 export const esc = (v: unknown) =>
@@ -42,8 +43,24 @@ export function animal(name: string, size = 58) {
         : '<circle cx="15" cy="22" r="10"/><circle cx="49" cy="22" r="10"/>';
   return `<svg width="${size}" height="${size}" viewBox="0 0 64 70" role="img" aria-label="${name}"><g fill="${colors[name] ?? colors.토끼}" stroke="#695447" stroke-width="1.5">${ears}<ellipse cx="32" cy="43" rx="25" ry="24"/></g><ellipse cx="32" cy="51" rx="14" ry="10" fill="#fff5df"/><circle cx="23" cy="40" r="2.4"/><circle cx="41" cy="40" r="2.4"/><path d="m29 49 3 3 3-3m-3 3v4" fill="none" stroke="#554337" stroke-width="2"/><circle cx="15" cy="49" r="4" fill="#e8a29a"/><circle cx="49" cy="49" r="4" fill="#e8a29a"/></svg>`;
 }
-export function room(interactive = false, current: string | null = null) {
-  return `<div class="room ${interactive ? "interactive-room" : ""}"><img src="${asset("assets/classroom.svg")}" alt="나무 책상, 칠판, 게시판과 햇살이 비치는 가상 교실" width="1200" height="760" />${interactive ? OBJECTS.map((o) => button(`<span class="object-dot">${o.id.slice(1)}</span><span class="hotspot-label">${o.name}</span>`, "inspect", o.id, `class="hotspot ${current === o.id ? "selected" : ""}" style="left:${o.x}%;top:${o.y}%" aria-label="${o.name} 조사하기"`)).join("") : ""}</div>`;
+export function room(
+  interactive = false,
+  current: string | null = null,
+  s?: Progress,
+) {
+  const opened = (id: string) =>
+    !!s &&
+    (
+      {
+        O04: s.solvedPuzzleIds.includes("P1"),
+        O07: s.solvedPuzzleIds.includes("P2"),
+        O08: s.solvedPuzzleIds.includes("P3"),
+        O09: s.solvedPuzzleIds.includes("P4"),
+        O12: s.solvedPuzzleIds.includes("P5"),
+        O11: s.finalCombined,
+      } as Record<string, boolean>
+    )[id];
+  return `<div class="room ${interactive ? "interactive-room adventure-room" : ""}"><img src="${asset("assets/classroom.svg")}" alt="나무 책상과 햇살이 비치는 교실. 물건을 눌러 살펴볼 수 있어요." width="1200" height="760"/>${interactive ? OBJECTS.map((o) => button(`<span class="object-dot">${opened(o.id) ? "✓" : "◎"}</span><span class="hotspot-label">${o.name}</span>`, "inspect", o.id, `class="hotspot ${current === o.id ? "clue-target" : ""} ${opened(o.id) ? "device-opened" : ""}" style="left:${o.x}%;top:${o.y}%" aria-label="${o.name} 살펴보기"`)).join("") : ""}${interactive && s?.solvedPuzzleIds.includes("P1") ? '<svg class="open-drawer" viewBox="0 0 180 110" data-scene-unlocked="drawer" aria-label="그림 책상 서랍이 열렸어요"><path d="M15 12h145l-10 80H25Z" fill="#866b44"/><path d="M25 22h125l-8 51H33Z" fill="#f4e8bc"/><path d="M15 65h145v30H15Z" fill="#c99f62" stroke="#98703e" stroke-width="3"/><path d="M70 77h36" stroke="#80613b" stroke-width="5"/><path d="M50 37h80m-80 12h80" stroke="#7d9b77" stroke-width="4"/></svg>' : ""}${interactive && s?.finalKeyObtained ? '<span class="scene-key-found" aria-label="화분의 열쇠 발견">⌕</span>' : ""}</div>`;
 }
 export function time(ms: number) {
   const sec = Math.floor(ms / 1000);

@@ -41,7 +41,7 @@ export interface Progress {
       rotation: number;
       code: string;
     };
-    p3: { arrows: number[] };
+    p3: { arrows: number[]; path: number[] };
     p4: {
       "photo-1": boolean;
       "photo-2": boolean;
@@ -91,7 +91,7 @@ export function createProgress(
     puzzles: {
       p1: { order: [], flipped: [] },
       p2: { lensUsed: null, rotation: 90, code: "" },
-      p3: { arrows: Array(25).fill(0) },
+      p3: { arrows: Array(25).fill(0), path: [10] },
       p4: {
         "photo-1": true,
         "photo-2": true,

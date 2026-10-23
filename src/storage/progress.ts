@@ -19,6 +19,9 @@ import {
   judgeP4,
   judgeP5,
   judgeFinal,
+  recoverLegacyPath,
+  adjacent,
+  WALLS,
 } from "../puzzles/judges";
 export const saveKey = (base: string) => `classroom-escape:${base}:progress:v1`;
 export const SAVE_WARNING =
@@ -28,7 +31,7 @@ export function validateProgress(
   config: GameConfig = PRACTICE_CONFIG,
   schools: School[] | null = null,
 ): Progress {
-  const o = exact(v, [
+  const o = exact(structuredClone(v), [
     "schemaVersion",
     "episodeId",
     "difficultyId",
@@ -99,12 +102,56 @@ export function validateProgress(
       /^\d{0,3}$/.test(p2.code),
     "암호판 조작 값 오류예요.",
   );
-  const p3 = exact(p.p3, ["arrows"]);
+  // Old saves keep their arrows and completion record; only the route UI is derived.
+  const legacy = object(p.p3);
+  if (
+    !Object.hasOwn(legacy, "path") &&
+    Array.isArray(legacy.arrows) &&
+    legacy.arrows.length === 25 &&
+    legacy.arrows.every((x) => Number.isInteger(x) && x >= 0 && x <= 3)
+  )
+    legacy.path = (o.solvedPuzzleIds as string[]).includes("P2")
+      ? recoverLegacyPath(legacy.arrows as number[])
+      : [10];
+  const p3 = exact(p.p3, ["arrows", "path"]);
   assert(
     Array.isArray(p3.arrows) &&
       p3.arrows.length === 25 &&
       p3.arrows.every((x) => Number.isInteger(x) && x >= 0 && x <= 3),
     "화살표 배열 오류예요.",
+  );
+  assert(
+    Array.isArray(p3.path) &&
+      p3.path.length >= 1 &&
+      p3.path.length <= 25 &&
+      p3.path[0] === 10 &&
+      new Set(p3.path).size === p3.path.length &&
+      p3.path.every(
+        (cell, i, path) =>
+          Number.isInteger(cell) &&
+          cell >= 0 &&
+          cell < 25 &&
+          !WALLS.includes(cell) &&
+          (i === 0 || adjacent(path[i - 1], cell)) &&
+          (cell !== 14 || i === path.length - 1),
+      ),
+    "공 경로의 칸·순서 오류예요.",
+  );
+  assert(
+    (p3.path as number[]).slice(0, -1).every((cell, i) => {
+      const next = (p3.path as number[])[i + 1];
+      return (
+        (p3.arrows as number[])[cell] ===
+        (next === cell + 1
+          ? 0
+          : next === cell + 5
+            ? 1
+            : next === cell - 1
+              ? 2
+              : 3)
+      );
+    }),
+    "공 경로와 화살표가 일치하지 않아요.",
   );
   const p4 = exact(p.p4, ["photo-1", "photo-2", "help-1", "help-2", "help-3"]);
   assert(
@@ -177,7 +224,9 @@ export function validateProgress(
     "잠긴 암호판을 조작한 저장이에요.",
   );
   assert(
-    unlocked(s, "P3") || s.puzzles.p3.arrows.every((x) => x === 0),
+    unlocked(s, "P3") ||
+      (s.puzzles.p3.arrows.every((x) => x === 0) &&
+        s.puzzles.p3.path.join(",") === "10"),
     "잠긴 놀이판을 조작한 저장이에요.",
   );
   assert(

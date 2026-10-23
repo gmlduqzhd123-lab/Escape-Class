@@ -1,4 +1,5 @@
 import "./style.css";
+import "./ui/experience.css";
 import fontUrl from "./assets/classroom-font.woff2?url";
 import {
   createProgress,
@@ -23,7 +24,17 @@ import {
   escape,
   type Outcome,
 } from "./game/engine";
-import { runBall, WALLS } from "./puzzles/judges";
+import {
+  runBall,
+  routeArrows,
+  extendPath,
+  judgeP1,
+  judgeP2,
+  judgeP4,
+  judgeP5,
+  judgeFinal,
+} from "./puzzles/judges";
+import { FRAGMENTS } from "./content/data";
 import {
   saveKey,
   loadProgress,
@@ -72,6 +83,10 @@ try {
   storage = window.localStorage;
 } catch {}
 const c: ViewContext = {
+  held: null,
+  device: "main",
+  bonusHintLevel: 0,
+  reward: null,
   state: null,
   config: null,
   schools: [],
@@ -160,6 +175,9 @@ function render(focusKey?: string) {
   const focus = focusKey ?? a?.dataset.focus;
   const scroll = window.scrollY;
   const dialogScroll = document.querySelector("dialog")?.scrollTop ?? 0;
+  const previousDevice = document.querySelector<HTMLElement>(".zoom-device");
+  const deviceKey = previousDevice?.dataset.device;
+  const deviceScroll = previousDevice?.scrollTop ?? 0;
   const current = route();
   let content = "";
   if (c.loading)
@@ -187,7 +205,23 @@ function render(focusKey?: string) {
     "reduce-motion",
     c.state?.settings.reducedMotion ?? c.setupReduced,
   );
+  document.body.classList.toggle("in-game", current === "/play");
   root.innerHTML = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal ? `<dialog id="game-dialog" aria-labelledby="dialog-title">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${modalContent(c)}</dialog>` : ""}`;
+  const device = document.querySelector<HTMLElement>(".zoom-device");
+  if (device && device.dataset.device === deviceKey)
+    device.scrollTop = deviceScroll;
+  const scrollCue = document.querySelector<HTMLElement>(".device-scroll-cue");
+  if (device && scrollCue) {
+    const updateCue = () => {
+      scrollCue.hidden = device.scrollHeight <= device.clientHeight + 2;
+      scrollCue.textContent =
+        device.scrollTop + device.clientHeight < device.scrollHeight - 8
+          ? "↓ 아래에도 장치가 있어요 · 위아래로 움직여 살펴봐요"
+          : "↑ 위쪽 단서를 다시 살펴볼 수 있어요";
+    };
+    updateCue();
+    device.addEventListener("scroll", updateCue, { passive: true });
+  }
   const dialog = document.querySelector<HTMLDialogElement>("#game-dialog");
   if (dialog) {
     dialog.showModal();
@@ -212,6 +246,7 @@ function render(focusKey?: string) {
   window.scrollTo({ top: scroll, behavior: "instant" });
 }
 function openModal(name: string) {
+  if (name === "hint") c.bonusHintLevel = 0;
   dialogReturnFocus =
     (document.activeElement as HTMLElement)?.dataset.focus ?? "";
   c.modal = name;
@@ -334,6 +369,10 @@ async function run() {
     c.running
   )
     return;
+  if (s.puzzles.p3.path.at(-1) !== 14) {
+    say("먼저 공의 길을 골대까지 이어요.");
+    return;
+  }
   const result = runBall(s.puzzles.p3.arrows);
   c.running = true;
   c.ballPath = result.path;
@@ -353,7 +392,71 @@ async function run() {
     }
   } else c.ballIndex = result.path.length - 1;
   c.running = false;
-  outcome(result.ok ? solve(s, "P3") : { ok: false, message: result.message });
+  if (result.ok) finishPuzzle("P3");
+  else outcome({ ok: false, message: result.message });
+}
+function finishPuzzle(id: PuzzleId) {
+  const s = c.state!;
+  if (s.solvedPuzzleIds.includes(id)) return;
+  const result = solve(s, id);
+  if (!result.ok) {
+    outcome(result);
+    return;
+  }
+  const nexts = ["O04", "O07", "O08", "O09", "O12"];
+  const texts = [
+    "메모 지도가 두 번째 그림 책상을 가리켜요. 서랍이 열렸어요!",
+    "놀이판에 불이 들어왔어요. 네 친구에게 공을 전해요.",
+    "교실 태블릿이 켜졌어요. 두 연결망을 살펴봐요.",
+    "뒤편 도움 지도가 펼쳐졌어요. 어른을 찾아가요.",
+    "우정 조각 다섯 개를 모았어요. 출구의 조합판이 열렸어요.",
+  ];
+  c.held = null;
+  c.selected = null;
+  c.reward = {
+    title: FRAGMENTS[PUZZLES.indexOf(id)] + " 조각을 찾았어요!",
+    text: texts[PUZZLES.indexOf(id)],
+    next: nexts[PUZZLES.indexOf(id)],
+  };
+  persist();
+  openModal("reward");
+  sound();
+}
+function checkDevice() {
+  const s = c.state!;
+  if (
+    c.objectId === "O02" &&
+    c.device === "main" &&
+    s.puzzles.p1.order.length === 3
+  ) {
+    if (judgeP1(s)) finishPuzzle("P1");
+    else say("맞닿는 기호와 토끼가 직접 한 말을 다시 살펴봐요.");
+  }
+  if (c.objectId === "O08" && judgeP4(s.puzzles.p4)) finishPuzzle("P4");
+  if (c.objectId === "O09" && judgeP5(s.puzzles.p5)) finishPuzzle("P5");
+  if (c.objectId === "O12" && judgeFinal(s) && !s.finalCombined) {
+    combine(s);
+    c.reward = {
+      title: "열쇠가 숨겨진 지도를 완성했어요!",
+      text: "창가 / 둥근 / 화분 / 받침 / 아래",
+      next: "O11",
+    };
+    persist();
+    openModal("reward");
+    sound();
+  }
+  if (
+    c.device === "bonus" &&
+    c.objectId === "O02" &&
+    s.puzzles.b3.length === 3 &&
+    !s.foundBonusIds.includes("B3")
+  ) {
+    const result = solveBonus(s, "B3", s.puzzles.b3.join(","));
+    if (result.ok) say("초대장 속 추가 단서를 찾았어요! 5점");
+    else say("문장 사이의 원과 삼각형을 다시 맞춰 봐요.");
+    persist();
+    render();
+  }
 }
 async function handle(action: string, value: string) {
   tick();
@@ -416,6 +519,9 @@ async function handle(action: string, value: string) {
       c.state.settings = { sound: c.setupSound, reducedMotion: c.setupReduced };
       c.selected = null;
       c.objectId = null;
+      c.held = null;
+      c.device = "main";
+      c.reward = null;
       c.ballPath = [];
       c.reflection = null;
       c.modal = null;
@@ -434,8 +540,25 @@ async function handle(action: string, value: string) {
       go("/");
       return;
     case "modal":
-      if (["bag", "notes", "hint", "settings"].includes(value))
+      if (["bag", "notes", "hint", "settings", "objects"].includes(value))
         openModal(value);
+      return;
+    case "follow-clue":
+      if (!s || !active(s)) return;
+      c.modal = null;
+      c.reward = null;
+      await handle("inspect", value);
+      return;
+    case "reward-room":
+      c.modal = null;
+      c.reward = null;
+      c.objectId = null;
+      c.held = null;
+      render();
+      document
+        .querySelector<HTMLElement>(".hotspot")
+        ?.focus({ preventScroll: true });
+      window.scrollTo(0, 0);
       return;
     case "close-modal":
       closeModal();
@@ -553,31 +676,91 @@ async function handle(action: string, value: string) {
   }
   if (!s || !active(s) || route() !== "/play") return;
   switch (action) {
-    case "inspect":
-      panelReturnFocus =
-        (document.activeElement as HTMLElement)?.dataset.focus ?? "";
+    case "inspect": {
+      panelReturnFocus = "inspect:" + value;
+      c.modal = null;
+      c.held = null;
+      c.device = "main";
+      c.bonusHintLevel = 0;
       inspect(s, value);
       c.objectId = value;
+      if (
+        c.selected === "final-key" &&
+        value === "O12" &&
+        canEscape(s, c.selected)
+      ) {
+        persist();
+        openModal("exit-confirm");
+        return;
+      }
+      const selected = c.selected;
+      const applied = selected ? applyItem(s, selected, value) : null;
+      if (applied?.ok) c.selected = null;
       persist();
       render();
-      document
-        .getElementById("panel-title")
-        ?.focus({ preventScroll: innerWidth >= 900 });
-      if (innerWidth < 900)
-        document
-          .getElementById("inspection")
-          ?.scrollIntoView({ block: "start" });
+      document.getElementById("panel-title")?.focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+      if (applied) say(applied.message);
       return;
+    }
     case "close-panel":
       c.objectId = null;
+      c.held = null;
+      c.device = "main";
       render(panelReturnFocus);
+      window.scrollTo(0, 0);
       return;
+    case "device":
+      c.device = value === "bonus" ? "bonus" : "main";
+      c.held = null;
+      c.bonusHintLevel = 0;
+      render();
+      return;
+    case "hold":
+      if (
+        (c.objectId === "O02" &&
+          s.discoveredClueIds.includes(value) &&
+          !s.solvedPuzzleIds.includes("P1")) ||
+        (c.objectId === "O12" &&
+          s.solvedPuzzleIds.length === 5 &&
+          !s.finalCombined &&
+          /^F[1-5]$/.test(value))
+      )
+        c.held = c.held === value ? null : value;
+      render();
+      document
+        .querySelector<HTMLButtonElement>(
+          `[data-action="${c.objectId === "O02" ? "p1-slot" : "fragment-slot"}"]:not(:disabled)`,
+        )
+        ?.focus();
+      return;
+    case "p1-slot": {
+      if (s.solvedPuzzleIds.includes("P1")) return;
+      const index = Number(value),
+        order = s.puzzles.p1.order;
+      if (
+        c.held &&
+        s.discoveredClueIds.includes(c.held) &&
+        !order.includes(c.held) &&
+        index >= 0 &&
+        index <= order.length &&
+        index < 3
+      ) {
+        order[index] = c.held;
+        c.held = null;
+      } else if (!c.held && order[index]) c.held = order.splice(index, 1)[0];
+      break;
+    }
     case "select-item":
       if (s.inventory.includes(value as ItemId)) {
-        c.selected = value as ItemId;
+        c.selected = c.selected === value ? null : (value as ItemId);
         c.modal = null;
-        render(dialogReturnFocus);
-        say("아이템을 선택했어요. 조사 패널에서 사용해요.");
+        render("select-item:" + value);
+        say(
+          c.selected
+            ? "도구를 골랐어요. 사용할 물건을 눌러요."
+            : "도구 선택을 해제했어요.",
+        );
       }
       return;
     case "deselect":
@@ -588,11 +771,14 @@ async function handle(action: string, value: string) {
       takeLens(s, value as ItemId);
       persist();
       render();
-      say("렌즈를 가방에 넣었어요.");
+      say("렌즈를 아래 아이템 칸에 넣었어요.");
       return;
-    case "apply":
-      outcome(applyItem(s, c.selected, value));
+    case "apply": {
+      const result = applyItem(s, c.selected, value);
+      if (result.ok) c.selected = null;
+      outcome(result);
       return;
+    }
     case "flip":
       if (
         !s.solvedPuzzleIds.includes("P1") &&
@@ -604,23 +790,6 @@ async function handle(action: string, value: string) {
           : s.puzzles.p1.flipped.splice(i, 1);
       }
       break;
-    case "p1-add":
-      if (
-        !s.solvedPuzzleIds.includes("P1") &&
-        s.discoveredClueIds.includes(value) &&
-        !s.puzzles.p1.order.includes(value) &&
-        s.puzzles.p1.order.length < 3
-      )
-        s.puzzles.p1.order.push(value);
-      break;
-    case "p1-remove":
-      if (!s.solvedPuzzleIds.includes("P1"))
-        s.puzzles.p1.order.splice(Number(value), 1);
-      break;
-    case "solve":
-      if (PUZZLES.includes(value as PuzzleId))
-        outcome(solve(s, value as PuzzleId));
-      return;
     case "lens-rotate":
       if (
         !s.solvedPuzzleIds.includes("P2") &&
@@ -630,24 +799,53 @@ async function handle(action: string, value: string) {
         s.puzzles.p2.rotation = (s.puzzles.p2.rotation + 90) % 360;
       break;
     case "code":
-      if (!s.solvedPuzzleIds.includes("P2") && unlocked(s, "P2")) {
+      if (
+        !s.solvedPuzzleIds.includes("P2") &&
+        unlocked(s, "P2") &&
+        s.puzzles.p2.lensUsed &&
+        s.puzzles.p2.rotation === 0
+      ) {
         if (value === "지우기") s.puzzles.p2.code = "";
-        else if (/^\d$/.test(value) && s.puzzles.p2.code.length < 3)
+        else if (/^\d$/.test(value)) {
+          if (s.puzzles.p2.code.length === 3) s.puzzles.p2.code = "";
           s.puzzles.p2.code += value;
+        }
+        if (s.puzzles.p2.code.length === 3 && !judgeP2(s))
+          say("잠금장치가 열리지 않았어요. 창 번호 순서로 다시 읽어 봐요.");
       }
       break;
-    case "arrow":
+    case "path-step":
       if (
         !s.solvedPuzzleIds.includes("P3") &&
         unlocked(s, "P3") &&
-        !c.running &&
-        !WALLS.includes(Number(value)) &&
-        Number(value) !== 14 &&
-        Number(value) >= 0 &&
-        Number(value) < 25
+        !c.running
       ) {
-        const i = Number(value);
-        s.puzzles.p3.arrows[i] = (s.puzzles.p3.arrows[i] + 1) % 4;
+        const result = extendPath(s.puzzles.p3.path, Number(value));
+        if (!result.ok) {
+          say(result.message);
+          return;
+        }
+        s.puzzles.p3.path.push(Number(value));
+        s.puzzles.p3.arrows = routeArrows(s.puzzles.p3.path);
+        c.ballPath = [];
+        c.ballIndex = -1;
+      }
+      break;
+    case "path-undo":
+    case "path-reset":
+      if (
+        !s.solvedPuzzleIds.includes("P3") &&
+        unlocked(s, "P3") &&
+        !c.running
+      ) {
+        s.puzzles.p3.path =
+          action === "path-reset"
+            ? [10]
+            : s.puzzles.p3.path.slice(
+                0,
+                Math.max(1, s.puzzles.p3.path.length - 1),
+              );
+        s.puzzles.p3.arrows = routeArrows(s.puzzles.p3.path);
         c.ballPath = [];
         c.ballIndex = -1;
       }
@@ -682,53 +880,52 @@ async function handle(action: string, value: string) {
       if (!s.solvedPuzzleIds.includes("P5"))
         s.puzzles.p5.sentence.splice(Number(value), 1);
       break;
-    case "fragment-add":
+    case "fragment-slot": {
+      if (s.solvedPuzzleIds.length !== 5 || s.finalCombined) return;
+      const index = Number(value),
+        order = s.puzzles.final.order;
       if (
-        s.solvedPuzzleIds.length === 5 &&
-        !s.finalCombined &&
-        /^F[1-5]$/.test(value) &&
-        !s.puzzles.final.order.includes(value)
-      )
-        s.puzzles.final.order.push(value);
+        c.held &&
+        /^F[1-5]$/.test(c.held) &&
+        !order.includes(c.held) &&
+        index >= 0 &&
+        index <= order.length &&
+        index < 5
+      ) {
+        order[index] = c.held;
+        c.held = null;
+      } else if (!c.held && order[index]) {
+        const n = Number(order[index].slice(1)) - 1;
+        s.puzzles.final.rotations[n] =
+          (s.puzzles.final.rotations[n] + 90) % 360;
+      }
       break;
-    case "fragment-remove":
-      if (!s.finalCombined) s.puzzles.final.order.splice(Number(value), 1);
+    }
+    case "fragment-reset":
+      if (!s.finalCombined) {
+        s.puzzles.final.order = [];
+        c.held = null;
+      }
       break;
-    case "fragment-rotate":
-      if (
-        s.solvedPuzzleIds.length === 5 &&
-        !s.finalCombined &&
-        Number(value) >= 0 &&
-        Number(value) < 5
-      )
-        s.puzzles.final.rotations[Number(value)] =
-          (s.puzzles.final.rotations[Number(value)] + 90) % 360;
-      break;
-    case "combine":
-      outcome(combine(s));
-      return;
     case "use-exit":
       if (canEscape(s, c.selected)) openModal("exit-confirm");
-      else
-        say(
-          "마지막 조합을 완성하고 화분에서 열쇠를 찾아, 가방에서 선택한 뒤 사용해요.",
-        );
+      else say("열쇠를 아래 아이템 칸에서 고른 뒤 출구에 사용해요.");
       return;
     case "escape-confirm": {
-      const o = escape(s, c.selected);
+      const result = escape(s, c.selected);
       c.modal = null;
       persist();
-      if (o.ok) {
+      if (result.ok) {
         go("/result");
         sound();
       }
       render();
-      say(o.message);
+      say(result.message);
       return;
     }
     case "bonus": {
-      const colon = value.indexOf(":");
-      const id = value.slice(0, colon);
+      const colon = value.indexOf(":"),
+        id = value.slice(0, colon);
       if (["B1", "B2", "B3", "B4"].includes(id))
         outcome(solveBonus(s, id as any, value.slice(colon + 1)));
       return;
@@ -741,15 +938,20 @@ async function handle(action: string, value: string) {
       )
         s.puzzles.b3.push(value);
       break;
-    case "invite-reset":
-      if (!s.foundBonusIds.includes("B3")) s.puzzles.b3 = [];
+    case "invite-remove":
+      if (!s.foundBonusIds.includes("B3"))
+        s.puzzles.b3.splice(Number(value), 1);
       break;
     case "next-hint":
       if (Object.hasOwn(s.hints, value) && s.hints[value] < 3) s.hints[value]++;
+      else if (/^B[1-4]$/.test(value))
+        c.bonusHintLevel = Math.min(3, c.bonusHintLevel + 1);
       break;
   }
   persist();
   render();
+  if (c.objectId === "O04" && judgeP2(s)) finishPuzzle("P2");
+  checkDevice();
 }
 root.addEventListener("click", (event) => {
   if ((event.target as Element).closest("a.skip-link")) {
@@ -865,7 +1067,7 @@ async function importFiles(files: FileList | null) {
 window.addEventListener("hashchange", () => {
   tick();
   c.running = false;
-  if (route() !== "/play" && c.modal === "pause") c.modal = null;
+  if (route() !== "/play") c.modal = null;
   if (route() === "/play" && c.state?.paused) c.modal = "pause";
   render();
   document
@@ -881,6 +1083,8 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !c.modal && route() === "/play" && c.objectId) {
     event.preventDefault();
     c.objectId = null;
+    c.held = null;
+    c.device = "main";
     render(panelReturnFocus);
   }
 });

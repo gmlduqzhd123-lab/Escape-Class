@@ -27,7 +27,13 @@ import {
   judgeP2,
   SUCCESS_PATH,
   toIndex,
+  adjacent,
+  extendPath,
+  routeArrows,
+  recoverLegacyPath,
 } from "../src/puzzles/judges";
+import { objective, hintTarget } from "../src/ui/experience";
+import type { ViewContext } from "../src/ui/views";
 import {
   validateProgress,
   loadProgress,
@@ -554,4 +560,109 @@ test("closed last-round leaderboard is readable but cannot be aggregated", () =>
   const f = { ...emptyRanking(closed), records: [] };
   assert.ok(validateRanking(f, closed, schools));
   assert.throws(() => validateRanking(f, closed, schools, true));
+});
+
+test("route controls reject row wrapping, walls, repeated cells and jumps", () => {
+  assert.equal(adjacent(4, 5), false);
+  assert.equal(extendPath([10], 5).ok, true);
+  for (const cell of [6, 10, 0, 25, NaN, 2.5])
+    assert.equal(extendPath([10], cell).ok, false);
+  assert.equal(extendPath([10, 11, 12, 13, 14], 19).ok, false);
+});
+test("selected route drives the existing ball judge and meets every friend", () => {
+  const path = SUCCESS_PATH.map(([x, y]) => toIndex(x, y));
+  for (let i = 1; i < path.length; i++)
+    assert.equal(extendPath(path.slice(0, i), path[i]).ok, true);
+  const result = runBall(routeArrows(path));
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.path, path);
+  assert.equal(result.met.length, 4);
+  assert.equal(runBall(routeArrows([10, 11, 12, 13, 14])).ok, false);
+});
+test("partial route restores exactly; inconsistent or impossible path is rejected", () => {
+  const s = fresh();
+  p2(s);
+  s.puzzles.p3.path = [10, 5, 0];
+  s.puzzles.p3.arrows = routeArrows(s.puzzles.p3.path);
+  assert.deepEqual(
+    validateProgress(s, config, schools).puzzles.p3.path,
+    [10, 5, 0],
+  );
+  for (const path of [
+    [10, 0],
+    [10, 11, 6],
+    [10, 5, 10],
+    [10, 11, 12, 13, 14, 19],
+  ]) {
+    const invalid = structuredClone(s);
+    invalid.puzzles.p3.path = path;
+    assert.throws(() => validateProgress(invalid, config, schools));
+  }
+  s.puzzles.p3.arrows[10] = 0;
+  assert.throws(() => validateProgress(s, config, schools));
+});
+test("legacy arrow-only saves migrate without mutating the supplied data", () => {
+  for (const stage of ["locked", "partial", "completed", "escaped"]) {
+    const s = fresh();
+    if (stage === "partial") {
+      p2(s);
+      s.puzzles.p3.arrows = routeArrows([10, 5, 0]);
+    }
+    if (stage === "completed") p3(s);
+    if (stage === "escaped") finish(s);
+    const old = structuredClone(s) as any;
+    delete old.puzzles.p3.path;
+    const migrated = validateProgress(old, config, schools);
+    assert.equal(Object.hasOwn(old.puzzles.p3, "path"), false);
+    assert.deepEqual(migrated.solvedPuzzleIds, s.solvedPuzzleIds);
+    assert.equal(migrated.phase, s.phase);
+    assert.deepEqual(
+      migrated.puzzles.p3.path,
+      stage === "locked" ? [10] : recoverLegacyPath(s.puzzles.p3.arrows),
+    );
+  }
+});
+test("legacy invalid routes are truncated at walls or a repeated cell", () => {
+  const arrows = Array(25).fill(0);
+  arrows[10] = 3;
+  arrows[5] = 0;
+  assert.deepEqual(recoverLegacyPath(arrows), [10, 5]);
+  arrows[5] = 1;
+  assert.deepEqual(recoverLegacyPath(arrows), [10, 5]);
+});
+test("current objective follows discovery, tool use and the hidden key", () => {
+  const s = fresh();
+  assert.equal(objective(s)[1], "O02");
+  inspect(s, "O02");
+  assert.equal(objective(s)[1], "O03");
+  inspect(s, "O03");
+  assert.equal(objective(s)[1], "O02");
+  p1(s);
+  assert.equal(objective(s)[1], "O06");
+  takeLens(s, "shared-lens");
+  assert.equal(objective(s)[1], "O04");
+  const end = fresh();
+  all(end);
+  assert.equal(objective(end)[1], "O12");
+  end.puzzles.final.order = ["F1", "F2", "F3", "F4", "F5"];
+  end.puzzles.final.rotations = [0, 0, 0, 0, 0];
+  combine(end);
+  assert.equal(objective(end)[1], "O11");
+  inspect(end, "O11");
+  assert.equal(objective(end)[1], "O12");
+});
+test("hints follow the inspected device, including optional bonus devices", () => {
+  for (const [objectId, device, expected] of [
+    ["O04", "main", "P2"],
+    ["O08", "main", "P4"],
+    ["O09", "main", "P5"],
+    ["O02", "bonus", "B3"],
+    ["O06", "bonus", "B2"],
+    ["O12", "bonus", "B4"],
+    ["O10", "main", "B1"],
+  ])
+    assert.equal(
+      hintTarget({ state: fresh(), objectId, device } as ViewContext),
+      expected,
+    );
 });
