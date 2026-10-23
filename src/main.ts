@@ -1030,6 +1030,10 @@ async function handle(action: string, value: string) {
   render();
   if (c.objectId === "O04" && judgeP2(s)) finishPuzzle("P2");
   checkDevice();
+  if (action === "sentence-start")
+    document
+      .querySelector<HTMLElement>(".npc-dialog h4")
+      ?.focus({ preventScroll: true });
 }
 root.addEventListener("click", (event) => {
   if ((event.target as Element).closest("a.skip-link")) {
