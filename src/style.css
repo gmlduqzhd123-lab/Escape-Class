@@ -2460,3 +2460,24 @@ dialog .bag-item {
   opacity: 1;
   pointer-events: auto;
 }
+
+/* 📲 앱 설치 · 📱 QR (엽쌤 앱 공통 상단 버튼) */
+.ys-key { display: flex; gap: 8px; flex-shrink: 0; }
+.ys-chip { display: inline-block; min-height: 44px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--green); font: inherit; font-size: 14px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.ys-chip:hover { background: #f3f7ef; }
+.site-footer .ys-credit { flex-basis: 100%; margin: 0; font-size: 13px; }
+.site-footer { flex-wrap: wrap; }
+/* 휴대폰: 맨 윗줄 = 교실 탈출 + 설치·QR, 둘째 줄 = 수업 안내·순위 */
+@media (max-width: 650px) {
+  .site-header .brand { order: 1; }
+  .site-header .ys-key { order: 2; margin-left: auto; gap: 5px; }
+  .site-header nav { order: 3; flex-basis: 100%; }
+  .ys-chip { min-height: 44px; padding: 6px 10px; font-size: 13px; }
+  .ys-wide { display: none; }
+}
+@media print { .ys-key, .ys-credit { display: none; } }
+@media (max-width: 360px) {
+  .site-header { padding-left: 14px; padding-right: 14px; }
+  .site-header .ys-key { gap: 4px; }
+  .ys-chip { padding: 6px 8px; font-size: 12.5px; }
+}

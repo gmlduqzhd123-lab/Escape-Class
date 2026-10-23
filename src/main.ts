@@ -1,5 +1,10 @@
 import "./style.css";
 import "./ui/experience.css";
+
+// 홈 화면 설치·오프라인 열기 (배포판에서만)
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  addEventListener("load", () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {}));
+}
 import fontUrl from "./assets/classroom-font.woff2?url";
 import {
   createProgress,
