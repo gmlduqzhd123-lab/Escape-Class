@@ -91,6 +91,7 @@ import {
   type ViewContext,
 } from "./ui/views";
 import { button as b, esc, icon, time } from "./ui/helpers";
+import { objective } from "./ui/experience";
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
 const key = saveKey(deploymentBase());
@@ -163,6 +164,7 @@ function syncScene() {
   const s = c.state;
   if (s)
     classroom?.setState({
+      objectiveId: objective(s)[1],
       solvedPuzzleIds: s.solvedPuzzleIds,
       finalCombined: s.finalCombined,
       finalKeyObtained: s.finalKeyObtained,

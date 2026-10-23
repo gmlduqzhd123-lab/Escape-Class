@@ -3,6 +3,7 @@ import { OBJECTS } from "../content/data";
 import "./classroom.css";
 
 export interface ClassroomState {
+  objectiveId?: string;
   solvedPuzzleIds: string[];
   finalCombined: boolean;
   finalKeyObtained: boolean;
@@ -54,7 +55,7 @@ const STOPS: Record<string, Stop> = {
     links: ["middle", "plant", "door"],
   },
   plant: { name: "창가", x: -3.65, z: -3.75, links: ["front"] },
-  door: { name: "출구 앞", x: 3.65, z: -3.75, links: ["front"] },
+  door: { name: "게시판·출구 앞", x: 3.65, z: -3.75, links: ["front"] },
   basket: { name: "바구니 옆", x: -3.5, z: -0.9, links: ["middle"] },
   tools: { name: "도구함 앞", x: 3.5, z: -0.9, links: ["middle", "lockers"] },
   lockers: { name: "사물함 앞", x: 3.5, z: 1.4, links: ["tools"] },
@@ -115,7 +116,7 @@ export function createClassroomScene(
     <button type="button" data-scene-place="plant" aria-label="창가로 이동">창가로</button>
     <button type="button" data-scene-place="back" aria-label="교실 뒤편으로 이동">교실 뒤편으로</button>
   </div>
-  <p class="classroom-3d-instruction" aria-live="polite">물건 이름을 눌러 살펴봐요. 바닥의 발자국을 누르면 이동해요.</p>`;
+  <p class="classroom-3d-instruction" aria-live="polite">물건이나 이름표를 누르면 가까이 가서 살펴봐요.</p>`;
   const stage = host.querySelector<HTMLElement>(".classroom-3d-stage")!;
   const labels = host.querySelector<HTMLElement>(".classroom-3d-labels")!;
   const instruction = host.querySelector<HTMLElement>(
@@ -736,7 +737,7 @@ export function createClassroomScene(
     button.dataset.sceneObject = object.id;
     button.dataset.focus = `inspect:${object.id}`;
     button.setAttribute("aria-label", `${object.name} 살펴보기`);
-    button.innerHTML = `<span class="classroom-object-dot" aria-hidden="true">◎</span><span>${object.name}</span>`;
+    button.innerHTML = `<span class="classroom-object-dot" aria-hidden="true">◎</span><span>${object.name}</span><small class="classroom-object-next" aria-hidden="true" hidden>다음</small>`;
     labels.append(button);
     button.addEventListener("click", () => focusObject(object.id));
     objects.push({
@@ -754,6 +755,18 @@ export function createClassroomScene(
     button: HTMLButtonElement;
     ring: THREE.Mesh;
   }[] = [];
+  const stopLabels: Record<string, string> = {
+    front: "칠판 앞",
+    middle: "가운데 통로",
+    center: "가운데",
+    back: "교실 뒤편",
+    plant: "창가",
+    door: "게시판·출구",
+    basket: "바구니 옆",
+    tools: "도구함 앞",
+    desk: "그림 책상 앞",
+    books: "책장 앞",
+  };
   for (const id of [
     "front",
     "middle",
@@ -784,7 +797,7 @@ export function createClassroomScene(
     button.className = "classroom-move-label";
     button.setAttribute("aria-label", `${stop.name} 이동`);
     button.title = `${stop.name} 이동`;
-    button.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="8" cy="8" rx="3" ry="5" transform="rotate(-18 8 8)"/><ellipse cx="16" cy="15" rx="3" ry="5" transform="rotate(18 16 15)"/></svg><span>이동</span>`;
+    button.innerHTML = `<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="8" cy="8" rx="3" ry="5" transform="rotate(-18 8 8)"/><ellipse cx="16" cy="15" rx="3" ry="5" transform="rotate(18 16 15)"/></svg><span>${stopLabels[id]}<small>가기</small></span>`;
     labels.append(button);
     button.addEventListener("click", () => navigate(id));
     moveMarkers.push({
@@ -855,6 +868,11 @@ export function createClassroomScene(
     };
   }
   function positionLabels() {
+    if (moving) {
+      for (const object of objects) object.button.hidden = true;
+      for (const marker of moveMarkers) marker.button.hidden = true;
+      return;
+    }
     const occupied: { x: number; y: number; w: number; h: number }[] = [];
     const width = stage.clientWidth;
     const candidates = objects
@@ -863,10 +881,39 @@ export function createClassroomScene(
         point: screenPoint(object.anchor),
         distance: camera.position.distanceTo(object.anchor),
       }))
-      .sort((a, b) => a.distance - b.distance);
+      .sort(
+        (a, b) =>
+          Number(b.object.id === state.objectiveId) -
+            Number(a.object.id === state.objectiveId) ||
+          a.distance - b.distance,
+      );
+    // Measure visible candidates together before positioning. Hidden labels
+    // can change width when the next-object badge appears; measuring them
+    // avoids narrow-screen clips without laying out off-screen objects.
+    const labelButtons = [
+      ...candidates
+        .filter(({ point, distance }) => point.visible && distance > 0.4)
+        .map(({ object }) => object.button),
+      ...moveMarkers
+        .filter((marker) => {
+          const point = screenPoint(marker.point);
+          return (
+            point.floorVisible &&
+            point.y >= 80 &&
+            marker.id !== currentStop &&
+            STOPS[currentStop].links.includes(marker.id) &&
+            camera.position.distanceTo(marker.point) <= 7
+          );
+        })
+        .map((marker) => marker.button),
+    ];
+    for (const button of labelButtons) button.hidden = false;
+    const buttonWidths = new Map(
+      labelButtons.map((button) => [button, button.offsetWidth]),
+    );
     for (const { object, point, distance } of candidates) {
       const buttonWidth = Math.min(
-        object.button.offsetWidth || 148,
+        buttonWidths.get(object.button) || 148,
         width - 20,
       );
       const x = Math.max(
@@ -889,13 +936,20 @@ export function createClassroomScene(
     }
     for (const marker of moveMarkers) {
       const point = screenPoint(marker.point);
-      const markerX = Math.max(32, Math.min(width - 32, point.x));
+      const markerWidth = Math.min(
+        buttonWidths.get(marker.button) || 96,
+        width - 16,
+      );
+      const markerX = Math.max(
+        markerWidth / 2 + 8,
+        Math.min(width - markerWidth / 2 - 8, point.x),
+      );
       const markerY = Math.min(stage.clientHeight - 32, point.y);
       const distance = camera.position.distanceTo(marker.point);
       const neighbor = STOPS[currentStop].links.includes(marker.id);
       const overlaps = occupied.some(
         (box) =>
-          Math.abs(box.x - markerX) < box.w / 2 + 30 &&
+          Math.abs(box.x - markerX) < (box.w + markerWidth) / 2 + 8 &&
           Math.abs(box.y - markerY) < 52,
       );
       marker.button.hidden =
@@ -910,7 +964,7 @@ export function createClassroomScene(
       if (!marker.button.hidden) {
         marker.button.style.left = `${markerX}px`;
         marker.button.style.top = `${markerY}px`;
-        occupied.push({ x: markerX, y: markerY, w: 60, h: 52 });
+        occupied.push({ x: markerX, y: markerY, w: markerWidth, h: 52 });
       }
     }
   }
@@ -926,10 +980,17 @@ export function createClassroomScene(
         button.disabled = value;
       });
   }
-  function cancelJourney() {
+  function cancelJourney(restoreStop = false) {
     journey += 1;
     tween = null;
     setMoving(false);
+    if (restoreStop) {
+      // A modal may interrupt a walk halfway through an aisle. Return to its
+      // last safe stop so the position, place name, and next route agree.
+      camera.position.set(STOPS[currentStop].x, 1.8, STOPS[currentStop].z);
+    }
+    location.textContent = STOPS[currentStop].name;
+    instruction.textContent = "물건이나 이름표를 누르면 가까이 가서 살펴봐요.";
   }
   function route(from: string, to: string) {
     const queue: string[][] = [[from]];
@@ -985,9 +1046,15 @@ export function createClassroomScene(
     const token = journey;
     const path = route(currentStop, id);
     setMoving(true);
+    const destinationName = object
+      ? OBJECTS.find((item) => item.id === object.id)!.name
+      : STOPS[id].name;
+    movingLabel.textContent = object
+      ? `${destinationName} 살펴보러 가요…`
+      : `${destinationName}까지 가고 있어요…`;
     instruction.textContent = object
-      ? `${OBJECTS.find((item) => item.id === object.id)!.name} · 가까이 가고 있어요.`
-      : `${STOPS[id].name} · 이동하고 있어요.`;
+      ? `${destinationName}에 도착하면 바로 살펴봐요.`
+      : `${destinationName}에 도착하면 주변을 둘러봐요.`;
     const finish = () => {
       if (token !== journey || !active || disposed) return;
       currentStop = id;
@@ -1008,7 +1075,7 @@ export function createClassroomScene(
         if (token !== journey || !active || disposed) return;
         setMoving(false);
         instruction.textContent =
-          "물건 이름을 눌러 살펴봐요. 바닥의 발자국을 누르면 이동해요.";
+          "물건이나 이름표를 누르면 가까이 가서 살펴봐요.";
         requestDraw();
         if (object) options.onInspect(object.id);
       });
@@ -1053,12 +1120,16 @@ export function createClassroomScene(
       "[data-scene-place]",
     )?.dataset.scenePlace;
     if (place) {
+      const nextObject = objects.find(
+        (object) => object.id === state.objectiveId && object.stop === place,
+      );
       const lookAt =
-        place === "front"
+        nextObject?.look ??
+        (place === "front"
           ? new THREE.Vector3(-0.7, 2.05, -5.2)
           : place === "plant"
             ? new THREE.Vector3(-4.7, 1.8, -3.8)
-            : new THREE.Vector3(2.4, 2, 5.3);
+            : new THREE.Vector3(2.4, 2, 5.3));
       navigate(place, undefined, false, lookAt);
       return;
     }
@@ -1079,9 +1150,16 @@ export function createClassroomScene(
     lastY: number;
     dragging: boolean;
     vertical: boolean;
+    fromLabel: boolean;
   } | null = null;
+  let suppressGestureClick = false;
   const pointerDown = (event: PointerEvent) => {
-    if (!active || moving || event.button !== 0) return;
+    if (!active || moving || event.button !== 0 || !event.isPrimary) return;
+    releasePointer();
+    suppressGestureClick = false;
+    const fromLabel = !!(event.target as Element).closest(
+      ".classroom-object-label, .classroom-move-label",
+    );
     pointer = {
       id: event.pointerId,
       x: event.clientX,
@@ -1090,7 +1168,11 @@ export function createClassroomScene(
       lastY: event.clientY,
       dragging: false,
       vertical: false,
+      fromLabel,
     };
+    // Capture empty-scene presses immediately so releasing outside the canvas
+    // cannot leave a stale pointer or select an off-screen object.
+    if (!fromLabel) stage.setPointerCapture(event.pointerId);
   };
   const pointerMove = (event: PointerEvent) => {
     if (!pointer || event.pointerId !== pointer.id || !active || moving) return;
@@ -1101,7 +1183,7 @@ export function createClassroomScene(
         event.pointerType === "touch" && Math.abs(dy) > Math.abs(dx);
       pointer.dragging = !pointer.vertical;
       if (pointer.dragging) {
-        canvas.setPointerCapture(event.pointerId);
+        stage.setPointerCapture(event.pointerId);
         tween = null;
         canvas.classList.add("dragging");
       }
@@ -1119,20 +1201,29 @@ export function createClassroomScene(
     pointer.lastY = event.clientY;
   };
   const releasePointer = () => {
-    if (pointer && canvas.hasPointerCapture(pointer.id))
-      canvas.releasePointerCapture(pointer.id);
+    if (pointer && stage.hasPointerCapture(pointer.id))
+      stage.releasePointerCapture(pointer.id);
     pointer = null;
     canvas.classList.remove("dragging");
   };
   const pointerUp = (event: PointerEvent) => {
     if (!pointer || pointer.id !== event.pointerId) return;
+    const fromLabel = pointer.fromLabel;
     const clicked =
       !pointer.dragging &&
       !pointer.vertical &&
       Math.hypot(event.clientX - pointer.x, event.clientY - pointer.y) < 9;
+    suppressGestureClick = !clicked;
     releasePointer();
-    if (!clicked || !active || moving) return;
+    if (!clicked || fromLabel || !active || moving) return;
     const rect = canvas.getBoundingClientRect();
+    if (
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom
+    )
+      return;
     raycaster.setFromCamera(
       new THREE.Vector2(
         ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -1152,10 +1243,28 @@ export function createClassroomScene(
       if (parent?.userData.objectId) focusObject(parent.userData.objectId);
     }
   };
-  canvas.addEventListener("pointerdown", pointerDown);
-  canvas.addEventListener("pointermove", pointerMove);
-  canvas.addEventListener("pointerup", pointerUp);
-  canvas.addEventListener("pointercancel", releasePointer);
+  const suppressDraggedLabelClick = (event: MouseEvent) => {
+    if (suppressGestureClick && event.detail > 0) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      suppressGestureClick = false;
+    }
+  };
+  const pointerCancel = (event: PointerEvent) => {
+    if (event.pointerId === pointer?.id) releasePointer();
+  };
+  const lostPointerCapture = (event: PointerEvent) => {
+    // Touch labels initially hold implicit capture. When a drag transfers it
+    // to the stage, the label's bubbling loss must not cancel the new capture.
+    if (event.target === stage && event.pointerId === pointer?.id)
+      releasePointer();
+  };
+  stage.addEventListener("pointerdown", pointerDown);
+  stage.addEventListener("pointermove", pointerMove);
+  stage.addEventListener("pointerup", pointerUp);
+  stage.addEventListener("pointercancel", pointerCancel);
+  stage.addEventListener("lostpointercapture", lostPointerCapture);
+  stage.addEventListener("click", suppressDraggedLabelClick, true);
   const onContextLost = (event: Event) => {
     event.preventDefault();
     cancelJourney();
@@ -1191,7 +1300,7 @@ export function createClassroomScene(
     const wasActive = active;
     active = next.active;
     if (!active) {
-      cancelJourney();
+      cancelJourney(true);
       releasePointer();
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
@@ -1207,6 +1316,11 @@ export function createClassroomScene(
       O11: state.finalKeyObtained,
     };
     for (const object of objects) {
+      const next = object.id === state.objectiveId;
+      object.button.classList.toggle("classroom-object-objective", next);
+      object.button.querySelector<HTMLElement>(
+        ".classroom-object-next",
+      )!.hidden = !next;
       object.button.classList.toggle(
         "classroom-object-solved",
         !!solved[object.id],
@@ -1226,10 +1340,12 @@ export function createClassroomScene(
     observer.disconnect();
     document.removeEventListener("visibilitychange", onVisibility);
     host.removeEventListener("click", onControlClick);
-    canvas.removeEventListener("pointerdown", pointerDown);
-    canvas.removeEventListener("pointermove", pointerMove);
-    canvas.removeEventListener("pointerup", pointerUp);
-    canvas.removeEventListener("pointercancel", releasePointer);
+    stage.removeEventListener("pointerdown", pointerDown);
+    stage.removeEventListener("pointermove", pointerMove);
+    stage.removeEventListener("pointerup", pointerUp);
+    stage.removeEventListener("pointercancel", pointerCancel);
+    stage.removeEventListener("lostpointercapture", lostPointerCapture);
+    stage.removeEventListener("click", suppressDraggedLabelClick, true);
     canvas.removeEventListener("webglcontextlost", onContextLost);
     for (const geometry of geometries) geometry.dispose();
     for (const material of materials) material.dispose();

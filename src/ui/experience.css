@@ -940,6 +940,21 @@
   font-size: 16px;
   min-height: 58px;
   margin: 0;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.4;
+}
+.object-picker button small {
+  color: #5f7250;
+  font-size: 12px;
+  font-weight: 500;
+}
+.object-picker .next-object {
+  border: 2px solid #6a8850;
+  background: #e7eedc;
+}
+.object-picker .next-object small strong {
+  color: #365c32;
 }
 .reward-piece {
   display: grid;
@@ -1456,14 +1471,25 @@
   padding: 4px 0;
   text-align: left;
   justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 2px 10px;
   font-size: inherit;
   font-weight: inherit;
   border: 0;
   background: transparent;
   color: inherit;
-  text-decoration: underline;
-  text-decoration-color: #a2b48d;
-  text-underline-offset: 5px;
+  line-height: 1.45;
+}
+.goal-destination {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #365c32;
+  background: #f9fbf1;
+  border: 1px solid #b9cba5;
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-weight: 750;
+  text-wrap: balance;
 }
 .goal-bar .goal-target + .goal-hint {
   margin-left: auto;

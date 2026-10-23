@@ -1,4 +1,4 @@
-import { renderPlay, hintTarget } from "./experience";
+import { renderPlay, hintTarget, objective } from "./experience";
 import {
   score,
   PUZZLES,
@@ -69,7 +69,7 @@ export function schoolOptions(
   return `${b(`학교 없이 체험 ${c.setupSchool === null ? "✓ 선택됨" : ""}`, "choose-school", "", `aria-pressed="${c.setupSchool === null}"`)}${matches.map((s) => b(`${esc(s.name)} ${c.setupSchool === s.schoolId ? "✓ 선택됨" : ""}`, "choose-school", s.schoolId, `aria-pressed="${c.setupSchool === s.schoolId}"`)).join("")}${!c.schools.length ? '<p class="muted">아직 등록된 학교가 없어요. 학교 없이 체험을 선택해 주세요.</p>' : !matches.length ? "<p>검색 결과가 없어요.</p>" : ""}`;
 }
 export function intro(c: ViewContext) {
-  return `<main id="main" class="narrow"><span class="eyebrow">모험의 시작 · 2 / 2</span><h1>우정 열쇠가 사라졌어요!</h1><div class="story-characters">${["토끼", "곰", "여우", "다람쥐"].map((n) => animal(n, 80)).join("")}</div><div class="surface"><p>친구사랑 축제의 마지막 활동은 가상 교실 방탈출 챌린지!</p><p>교실의 장치를 풀면 다섯 개의 우정 조각을 얻을 수 있어요. 조각을 연결해 마지막 열쇠가 숨겨진 곳을 찾아요.</p><p><strong>진짜 교실 문은 잠그지 않아요.</strong> 언제든 쉬거나 어른에게 도움을 요청할 수 있어요.</p></div><div class="instructions"><div>${icon("note", 32)}<h2>둘러보기</h2><p>좌우 버튼으로 교실을 둘러봐요. 화면을 밀어도 좋아요.</p></div><div>${icon("bag", 32)}<h2>이동하기</h2><p>바닥 표시를 누르면 그곳으로 이동해요. 가운데로 언제든 돌아와요.</p></div><div>${icon("hint", 32)}<h2>살펴보기</h2><p>물건을 누르면 가까이 살펴봐요. 막히면 위쪽 목표나 힌트를 눌러요.</p></div></div><p>타이머는 아직 멈춰 있어요. 화면 줄이기 버튼으로 언제든 전체화면을 나갈 수 있어요. 역할을 돌아가며 맡아 봐요: 관찰하기 · 단서 읽기 · 이유 설명하기 · 기기 조작하기.</p>${b("전체화면으로 게임 시작 →", "start", "", 'class="primary large"')}</main>`;
+  return `<main id="main" class="narrow"><span class="eyebrow">모험의 시작 · 2 / 2</span><h1>우정 열쇠가 사라졌어요!</h1><div class="story-characters">${["토끼", "곰", "여우", "다람쥐"].map((n) => animal(n, 80)).join("")}</div><div class="surface"><p>친구사랑 축제의 마지막 활동은 가상 교실 방탈출 챌린지!</p><p>교실의 장치를 풀면 다섯 개의 우정 조각을 얻을 수 있어요. 조각을 연결해 마지막 열쇠가 숨겨진 곳을 찾아요.</p><p><strong>진짜 교실 문은 잠그지 않아요.</strong> 언제든 쉬거나 어른에게 도움을 요청할 수 있어요.</p></div><div class="instructions"><div>${icon("note", 32)}<h2>둘러보기</h2><p>좌우 버튼으로 교실을 둘러봐요. 화면을 밀어도 좋아요.</p></div><div>${icon("bag", 32)}<h2>이동하기</h2><p>바닥 표시를 누르면 그곳으로 이동해요. 가운데로 언제든 돌아와요.</p></div><div>${icon("hint", 32)}<h2>살펴보기</h2><p>물건이나 이름을 눌러 살펴봐요. 못 찾겠으면 ‘다음’ 표시나 위쪽 ‘살펴보기’를 눌러요.</p></div></div><p>타이머는 아직 멈춰 있어요. 화면 줄이기 버튼으로 언제든 전체화면을 나갈 수 있어요. 역할을 돌아가며 맡아 봐요: 관찰하기 · 단서 읽기 · 이유 설명하기 · 기기 조작하기.</p>${b("전체화면으로 게임 시작 →", "start", "", 'class="primary large"')}</main>`;
 }
 export function play(c: ViewContext) {
   return renderPlay(c);
@@ -103,8 +103,25 @@ export function modalContent(c: ViewContext) {
   switch (c.modal) {
     case "reward":
       return `<h2 id="dialog-title">${esc(c.reward?.title)}</h2><div class="reward-piece">${icon("key", 70)}</div><p>${esc(c.reward?.text)}</p>${b(`${OBJECTS.find((o) => o.id === c.reward?.next)?.name ?? "다음 단서"} 살펴보기 →`, "follow-clue", c.reward?.next ?? "", 'class="primary"')}${b("교실로 돌아가기", "reward-room")}`;
-    case "objects":
-      return `<h2 id="dialog-title">교실 물건 목록</h2><p>목록에서도 모든 물건을 살펴볼 수 있어요.</p><div class="object-picker">${OBJECTS.map((o) => b(`${o.name}${s?.discoveredClueIds.includes(o.id) ? " ✓" : ""}`, "inspect", o.id)).join("")}</div>`;
+    case "objects": {
+      const target = s ? objective(s)[1] : null;
+      const ordered = [
+        ...OBJECTS.filter((o) => o.id === target),
+        ...OBJECTS.filter((o) => o.id !== target),
+      ];
+      return `<h2 id="dialog-title">교실 물건 목록</h2><p>이름을 누르면 가까이 가서 살펴봐요. ‘다음’ 표시부터 찾아보세요.</p><div class="object-picker">${ordered
+        .map((o) => {
+          const next = o.id === target;
+          const visited = s?.discoveredClueIds.includes(o.id);
+          return b(
+            `<span>${o.name}</span><small>${next ? "<strong>다음</strong> · " : visited ? "살펴봄 · " : ""}${visited ? "다시 보기" : "살펴보기"} →</small>`,
+            "inspect",
+            o.id,
+            `class="${next ? "next-object" : ""}" aria-label="${o.name}${next ? " · 다음 물건" : ""} · ${visited ? "다시 살펴보기" : "살펴보기"}"`,
+          );
+        })
+        .join("")}</div>`;
+    }
     case "bag":
       return `<h2 id="dialog-title">가방</h2><p>아래 아이템 칸에서 도구를 선택하고 사용할 물건을 눌러요.</p>${!s?.inventory.length ? "<p>아직 아이템이 없어요. 사물함이나 공용 도구함을 살펴봐요.</p>" : s.inventory.map((id) => b(`${icon(id === "final-key" ? "key" : "bag")} ${id === "final-key" ? "마지막 열쇠" : id === "shared-lens" ? "공용 렌즈" : "허락받은 렌즈"} ${c.selected === id ? "✓ 선택됨" : ""}`, "select-item", id, 'class="bag-item"')).join("")}`;
     case "notes":

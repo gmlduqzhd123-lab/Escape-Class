@@ -13,6 +13,7 @@
   border: 1px solid #d2d9c9;
   border-radius: 15px;
   background: #f2eedf;
+  touch-action: pan-y;
 }
 .classroom-3d-canvas {
   display: block;
@@ -57,7 +58,7 @@
   line-height: 1.25;
   white-space: nowrap;
   box-shadow: 0 3px 12px #2a3c2d24;
-  touch-action: manipulation;
+  touch-action: pan-y;
 }
 .classroom-object-label {
   max-width: calc(100% - 18px);
@@ -88,18 +89,43 @@
   background: #688758;
   border-color: #688758;
 }
+.classroom-object-objective {
+  border-color: #967c36;
+  background: #fff9dd;
+  box-shadow:
+    0 0 0 2px #f4cc644d,
+    0 3px 12px #2a3c2d24;
+}
+.classroom-object-next {
+  display: inline-block;
+  padding: 4px 6px;
+  border-radius: 9px;
+  background: #e6c46c;
+  color: #3f4e32;
+  font-size: 11px;
+  font-weight: 800;
+}
 .classroom-move-label {
-  flex-direction: column;
-  gap: 0;
-  width: 52px;
-  min-width: 52px;
+  flex-direction: row;
+  gap: 4px;
+  width: auto;
+  min-width: 82px;
   min-height: 52px;
-  padding: 4px;
-  border-radius: 50%;
+  padding: 5px 8px;
+  border-radius: 18px;
   color: #fff;
   border: 2px solid #f3efce;
   background: #52754be8;
   font-size: 11px;
+}
+.classroom-move-label span {
+  display: grid;
+  gap: 2px;
+}
+.classroom-move-label small {
+  font-size: 10px;
+  font-weight: 500;
+  color: #f6f4df;
 }
 .classroom-object-label:hover:not(:disabled),
 .classroom-move-label:hover:not(:disabled) {
@@ -127,8 +153,10 @@
   border: 1px solid #d1d7bd;
   background: #fffef4f2;
   font-size: 14px;
-  white-space: nowrap;
   pointer-events: none;
+  max-width: calc(100% - 24px);
+  white-space: normal;
+  text-align: center;
 }
 .classroom-3d-controls {
   display: grid;
