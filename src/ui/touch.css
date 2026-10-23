@@ -298,7 +298,7 @@
     font-size: 13px;
   }
   .with-3d-room .pocket-item.equipped small {
-    font-size: 11px;
+    display: none;
   }
   .with-3d-room .adventure-controls {
     display: flex;
@@ -352,5 +352,18 @@
   .escape-play .route-board {
     max-width: 290px;
     margin: 12px auto;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 650px) {
+  .with-3d-room .tray-label,
+  .with-3d-room .pocket-item > svg {
+    display: none;
+  }
+  .with-3d-room .pocket-item {
+    flex-wrap: nowrap;
+  }
+  .with-3d-room .pocket-item > span {
+    font-size: 14px;
+    white-space: nowrap;
   }
 }
