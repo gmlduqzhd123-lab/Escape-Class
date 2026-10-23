@@ -3,8 +3,15 @@ import "./ui/experience.css";
 
 // 홈 화면 설치·오프라인 열기 (배포판에서만)
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  addEventListener("load", () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {}));
+  addEventListener("load", () =>
+    navigator.serviceWorker
+      .register(`${import.meta.env.BASE_URL}sw.js`)
+      .catch(() => {}),
+  );
 }
+import "./ui/immersive.css";
+import { createFullscreenController } from "./ui/fullscreen";
+import type { ClassroomScene } from "./scene/classroom";
 import fontUrl from "./assets/classroom-font.woff2?url";
 import {
   createProgress,
@@ -92,6 +99,9 @@ try {
   storage = window.localStorage;
 } catch {}
 const c: ViewContext = {
+  sceneMode: "3d",
+  sceneFailed: false,
+  immersive: false,
   held: null,
   device: "main",
   bonusHintLevel: 0,
@@ -126,6 +136,89 @@ let panelReturnFocus = "";
 let toastTimeout: ReturnType<typeof setTimeout>;
 let toolContext = "";
 const route = () => location.hash.replace(/^#/, "") || "/";
+let classroom: ClassroomScene | null = null;
+let sceneHost: HTMLElement | null = null;
+let sceneLoading = false;
+let sceneGeneration = 0;
+const fullscreen = createFullscreenController(root, () => {
+  c.immersive =
+    document.fullscreenElement === root ||
+    root.classList.contains("immersive-fallback");
+  document
+    .querySelectorAll<HTMLElement>('[data-action="fullscreen"]')
+    .forEach((el) => {
+      el.textContent = c.immersive ? "화면 줄이기" : "전체화면";
+      el.setAttribute("aria-pressed", String(c.immersive));
+    });
+  classroom?.resize();
+});
+function disposeScene() {
+  sceneGeneration++;
+  classroom?.dispose();
+  classroom = null;
+  sceneHost = null;
+  sceneLoading = false;
+}
+function syncScene() {
+  const s = c.state;
+  if (s)
+    classroom?.setState({
+      solvedPuzzleIds: s.solvedPuzzleIds,
+      finalCombined: s.finalCombined,
+      finalKeyObtained: s.finalKeyObtained,
+      active:
+        active(s) &&
+        route() === "/play" &&
+        !c.objectId &&
+        !c.modal &&
+        c.sceneMode === "3d" &&
+        !document.hidden,
+      reducedMotion: s.settings.reducedMotion,
+    });
+}
+function failScene() {
+  disposeScene();
+  c.sceneMode = "2d";
+  c.sceneFailed = true;
+  render();
+  say("입체 화면 대신 그림 교실로 이어갈게요. 모은 단서는 그대로예요.");
+}
+function mountScene() {
+  const slot = document.getElementById("classroom-scene");
+  if (!slot || c.sceneMode !== "3d") {
+    syncScene();
+    return;
+  }
+  if (sceneHost) slot.replaceWith(sceneHost);
+  else sceneHost = slot;
+  if (classroom) {
+    syncScene();
+    classroom.resize();
+    return;
+  }
+  if (sceneLoading) return;
+  sceneLoading = true;
+  const generation = sceneGeneration;
+  void import("./scene/classroom")
+    .then(({ createClassroomScene }) => {
+      if (generation !== sceneGeneration || !sceneHost) return;
+      classroom = createClassroomScene(sceneHost, {
+        onInspect: (id) => {
+          void handle("inspect-direct", id);
+        },
+        onFailure: () => {
+          queueMicrotask(failScene);
+        },
+        reducedMotion: c.state?.settings.reducedMotion ?? false,
+      });
+      sceneLoading = false;
+      syncScene();
+      classroom.resize();
+    })
+    .catch(() => {
+      if (generation === sceneGeneration) failScene();
+    });
+}
 const go = (path: string) => {
   location.hash = path;
 };
@@ -183,6 +276,7 @@ function render(focusKey?: string) {
   const a = document.activeElement as HTMLElement | null;
   const focus = focusKey ?? a?.dataset.focus;
   const scroll = window.scrollY;
+  const appScroll = root.scrollTop;
   const dialogScroll = document.querySelector("dialog")?.scrollTop ?? 0;
   const previousDevice = document.querySelector<HTMLElement>(".zoom-device");
   const deviceKey = previousDevice?.dataset.device;
@@ -215,7 +309,9 @@ function render(focusKey?: string) {
     c.state?.settings.reducedMotion ?? c.setupReduced,
   );
   document.body.classList.toggle("in-game", current === "/play");
+  sceneHost?.remove();
   root.innerHTML = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal ? `<dialog id="game-dialog" aria-labelledby="dialog-title">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${modalContent(c)}</dialog>` : ""}`;
+  mountScene();
   const device = document.querySelector<HTMLElement>(".zoom-device");
   if (device && device.dataset.device === deviceKey)
     device.scrollTop = deviceScroll;
@@ -241,18 +337,24 @@ function render(focusKey?: string) {
     });
   }
   const restored = focus ? findFocus(focus) : null;
-  if (restored && !restored.hasAttribute("disabled"))
+  if (
+    restored &&
+    !restored.hasAttribute("disabled") &&
+    restored.getClientRects().length
+  )
     restored.focus({ preventScroll: true });
   else if (!dialog && focus) {
-    const fallback = document.querySelector<HTMLElement>(
-      "#panel-title, main h1",
-    );
+    const fallback =
+      document.querySelector<HTMLElement>("#panel-title") ??
+      document.querySelector<HTMLElement>('[data-scene-control="center"]') ??
+      document.querySelector<HTMLElement>("main h1");
     if (fallback) {
       fallback.tabIndex = -1;
       fallback.focus({ preventScroll: true });
     }
   }
   window.scrollTo({ top: scroll, behavior: "instant" });
+  root.scrollTop = appScroll;
 }
 function openModal(name: string) {
   if (name === "hint") c.bonusHintLevel = 0;
@@ -523,6 +625,7 @@ async function handle(action: string, value: string) {
       return;
     case "setup-next":
       await data();
+      disposeScene();
       c.state = createProgress(
         c.config ?? PRACTICE_CONFIG,
         c.schools.some((x) => x.schoolId === c.setupSchool)
@@ -543,6 +646,7 @@ async function handle(action: string, value: string) {
       return;
     case "start":
       if (s?.phase === "intro") {
+        void fullscreen.enter();
         s.phase = "playing";
         s.paused = false;
         persist();
@@ -550,7 +654,16 @@ async function handle(action: string, value: string) {
       }
       return;
     case "home":
+      void fullscreen.exit();
       go("/");
+      return;
+    case "fullscreen":
+      await fullscreen.toggle();
+      return;
+    case "scene-mode":
+      c.sceneMode = c.sceneMode === "3d" ? "2d" : "3d";
+      c.sceneFailed = false;
+      render("scene-mode:");
       return;
     case "modal":
       if (["bag", "notes", "hint", "settings", "objects"].includes(value))
@@ -571,6 +684,7 @@ async function handle(action: string, value: string) {
       document
         .querySelector<HTMLElement>(".hotspot")
         ?.focus({ preventScroll: true });
+      root.scrollTop = 0;
       window.scrollTo(0, 0);
       return;
     case "close-modal":
@@ -580,9 +694,11 @@ async function handle(action: string, value: string) {
       pause();
       return;
     case "resume":
+      void fullscreen.enter();
       resume();
       return;
     case "save-home":
+      void fullscreen.exit();
       c.modal = null;
       persist();
       go("/");
@@ -598,6 +714,8 @@ async function handle(action: string, value: string) {
         );
         return;
       }
+      disposeScene();
+      void fullscreen.exit();
       c.state = null;
       c.saved = false;
       c.selected = null;
@@ -689,7 +807,17 @@ async function handle(action: string, value: string) {
   }
   if (!s || !active(s) || route() !== "/play") return;
   switch (action) {
-    case "inspect": {
+    case "inspect":
+      if (c.sceneMode === "3d" && classroom) {
+        c.modal = null;
+        c.reward = null;
+        c.objectId = null;
+        render();
+        classroom.focusObject(value);
+        return;
+      }
+    // The accessible 2D view uses the same investigation rules.
+    case "inspect-direct": {
       panelReturnFocus = "inspect:" + value;
       c.modal = null;
       c.held = null;
@@ -712,6 +840,7 @@ async function handle(action: string, value: string) {
       persist();
       render();
       document.getElementById("panel-title")?.focus({ preventScroll: true });
+      root.scrollTop = 0;
       window.scrollTo(0, 0);
       if (applied) say(applied.message);
       checkDevice();
@@ -722,6 +851,7 @@ async function handle(action: string, value: string) {
       c.held = null;
       c.device = "main";
       render(panelReturnFocus);
+      root.scrollTop = 0;
       window.scrollTo(0, 0);
       return;
     case "device":
@@ -999,6 +1129,7 @@ async function handle(action: string, value: string) {
       c.modal = null;
       persist();
       if (result.ok) {
+        void fullscreen.exit();
         go("/result");
         sound();
       }
@@ -1100,6 +1231,7 @@ root.addEventListener("change", (event) => {
       "reduce-motion",
       c.state?.settings.reducedMotion ?? c.setupReduced,
     );
+    syncScene();
   }
 });
 root.addEventListener("submit", (event) => {
@@ -1154,7 +1286,10 @@ async function importFiles(files: FileList | null) {
 window.addEventListener("hashchange", () => {
   tick();
   c.running = false;
-  if (route() !== "/play") c.modal = null;
+  if (route() !== "/play") {
+    c.modal = null;
+    void fullscreen.exit();
+  }
   if (route() === "/play" && c.state?.paused) c.modal = "pause";
   render();
   document
@@ -1163,10 +1298,12 @@ window.addEventListener("hashchange", () => {
   document
     .querySelector<HTMLElement>("main h1")
     ?.focus({ preventScroll: true });
+  root.scrollTop = 0;
   window.scrollTo(0, 0);
   tick();
 });
 window.addEventListener("keydown", (event) => {
+  if (event.defaultPrevented || document.fullscreenElement) return;
   if (event.key === "Escape" && !c.modal && route() === "/play" && c.objectId) {
     event.preventDefault();
     c.objectId = null;
@@ -1178,6 +1315,7 @@ window.addEventListener("keydown", (event) => {
 document.addEventListener("visibilitychange", () => {
   tick();
   persist();
+  syncScene();
 });
 window.addEventListener("pagehide", () => {
   tick();

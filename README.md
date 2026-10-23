@@ -1,6 +1,6 @@
 # 교실 탈출 · 사라진 우정 열쇠
 
-초등학교 3~6학년 친구사랑 수업을 위한 모둠 협동 방탈출 웹앱입니다. TypeScript, Vite, CSS, DOM/SVG로 구현한 정적 앱이며, 앱 운영용 외부 서버·DB·학생 계정을 사용하지 않습니다.
+초등학교 3~6학년 친구사랑 수업을 위한 모둠 협동 방탈출 웹앱입니다. TypeScript, Vite, Three.js, CSS, DOM/SVG로 구현한 정적 앱이며, 앱 운영용 외부 서버·DB·학생 계정을 사용하지 않습니다.
 
 - 저장소: [gmlduqzhd123-lab/Escape-Class](https://github.com/gmlduqzhd123-lab/Escape-Class)
 - GitHub Pages: [교실 탈출 실행](https://gmlduqzhd123-lab.github.io/Escape-Class/)
@@ -47,6 +47,7 @@ npm run test:browser
 
 브라우저 실행 파일이 다른 위치라면 `EDGE_PATH` 환경 변수로 지정합니다. 결과는 기본 `work/browser-current/`에 저장하며 `EVIDENCE_DIR`로 바꿀 수 있습니다. `APP_URL`을 지정하면 배포된 같은 앱에서 검사합니다. Playwright 자체 브라우저 다운로드는 필수가 아닙니다. 공식 회차·학교 관련 시나리오만 브라우저의 정적 응답을 테스트 fixture로 대체하며 운영 데이터는 변경하지 않습니다.
 
+- [1.3 입체 교실 탐색과 전체화면](docs/3D-CLASSROOM.md)
 - [1.2 화면 기반 사용성 검토와 조작 단순화](docs/CHILD-REVIEW.md)
 - [1.1 조작 개선 당시 검증 범위](docs/UX-REVISION.md)
 

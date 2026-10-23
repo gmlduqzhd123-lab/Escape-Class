@@ -78,6 +78,7 @@ async function layout(page, name, targets = true) {
   }
 }
 function driver(page, keyboard) {
+  const room = () => page.locator("#classroom-scene, .adventure-room").first();
   const act = async (action, value, scope = page) => {
     const el = scope
       .locator(
@@ -93,15 +94,20 @@ function driver(page, keyboard) {
   const inspect = async (id) => {
     if (await page.locator('[data-action="close-panel"]').count())
       await act("close-panel");
-    await act("inspect", id, page.locator(".adventure-room"));
-    await page.locator("#panel-title").waitFor();
+    await room().waitFor();
+    await act("modal", "objects");
+    await act("inspect", id, page.getByRole("dialog"));
+    // In 3D the same accessible object list walks to the target before opening it.
+    await page.locator(`.zoom-device[data-device="${id}:main"]`).waitFor();
   };
   const reward = async (next = true) => {
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByRole("dialog")).toContainText(/見|조각|지도/);
     await act(next ? "follow-clue" : "reward-room");
+    if (next) await page.locator("#panel-title").waitFor();
+    else await room().waitFor();
   };
-  return { act, inspect, reward };
+  return { act, inspect, reward, room };
 }
 const path = [10, 5, 0, 1, 2, 7, 12, 17, 22, 23, 24, 19, 14];
 async function start(page, d, school) {
@@ -119,7 +125,7 @@ async function start(page, d, school) {
   await page.waitForTimeout(350);
   if (before) assert.equal((await saved(page)).elapsedMs, before.elapsedMs);
   await d.act("start");
-  await page.locator(".adventure-room").waitFor();
+  await d.room().waitFor();
 }
 async function play(
   page,
@@ -136,7 +142,7 @@ async function play(
   assert.equal((await saved(page)).finalKeyObtained, false);
   pass(prefix + " prerequisites and key hidden before assembled map");
   await inspect("O03");
-  await act("inspect", "O02");
+  await inspect("O02");
   await layout(page, prefix + " memo");
   await act("modal", "hint");
   await expect(page.getByRole("dialog")).toContainText("반쪽 메모 힌트");
@@ -150,7 +156,9 @@ async function play(
   assert.deepEqual((await saved(page)).solvedPuzzleIds, ["P1"]);
   await shot(page, prefix + "-02-reward");
   await reward(false);
-  await expect(page.locator('[data-scene-unlocked="drawer"]')).toBeVisible();
+  assert.deepEqual((await saved(page)).solvedPuzzleIds, ["P1"]);
+  await inspect("O04");
+  await expect(page.locator(".physical-lock")).toHaveCount(0);
   await inspect("O02");
   await act("device", "bonus");
   assert.equal(await page.locator(".memo-board").count(), 0);
@@ -165,7 +173,7 @@ async function play(
   assert.equal((await saved(page)).foundBonusIds.includes("B3"), true);
   pass(
     prefix +
-      " physical memo auto-complete, reward, opened drawer and separate bonus hints",
+      " physical memo auto-complete, reward, unlocked cipher and separate bonus hints",
   );
   await inspect("O10");
   await act("bonus", "B1:별");
@@ -344,13 +352,29 @@ try {
   await d.act("setup-next");
   await d.act("start");
   await d.inspect("O02");
+  // Fullscreen and its fill-screen fallback consume Escape themselves. Leave
+  // immersion through the UI before testing the investigation-panel shortcut.
+  const immersed = () =>
+    page.evaluate(
+      () =>
+        Boolean(document.fullscreenElement) ||
+        document
+          .getElementById("app")
+          ?.classList.contains("immersive-fallback"),
+    );
+  if (await immersed()) {
+    await d.act("fullscreen");
+    await expect.poll(immersed).toBe(false);
+  }
   await page.keyboard.press("Escape");
-  await expect(page.locator(".adventure-room")).toBeVisible();
-  assert.equal(
-    await page.evaluate(() =>
-      document.activeElement?.getAttribute("data-focus"),
-    ),
-    "inspect:O02",
+  await expect(d.room()).toBeVisible();
+  const returnedFocus = await page.evaluate(() => ({
+    key: document.activeElement?.getAttribute("data-focus"),
+    inRoom: Boolean(document.activeElement?.closest("#classroom-scene")),
+  }));
+  assert.ok(
+    returnedFocus.key === "inspect:O02" || returnedFocus.inRoom,
+    "Escape returns focus to the inspected object or the 3D room",
   );
   await page.locator(".skip-link").focus();
   await page.keyboard.press("Enter");
@@ -397,8 +421,9 @@ try {
   );
   const bp = await blocked.newPage();
   track(bp);
-  await start(bp, driver(bp, false));
-  await bp.locator('.hotspot[data-value="O03"]').click();
+  const bd = driver(bp, false);
+  await start(bp, bd);
+  await bd.inspect("O03");
   await expect(bp.locator(".paper-note")).toBeVisible();
   await blocked.close();
   pass("blocked storage still allows activity");

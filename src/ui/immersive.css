@@ -1,0 +1,159 @@
+/* The persistent app owns fullscreen; puzzles retain their normal page scrolling. */
+.in-game #app {
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+#app:fullscreen,
+#app.immersive-fallback {
+  width: 100%;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #f8f6ee;
+  color: #273e36;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+#app.immersive-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+#app::backdrop {
+  background: #f8f6ee;
+}
+.in-game #app:is(:fullscreen, .immersive-fallback) .site-header {
+  display: none;
+}
+.in-game #app:is(:fullscreen, .immersive-fallback) .escape-play {
+  margin-top: 0;
+  padding-top: 16px;
+}
+.with-3d-room {
+  max-width: 1440px;
+  width: 100%;
+  height: 100dvh;
+  margin: 0 auto;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.in-game .site-header {
+  display: none;
+}
+.with-3d-room .escape-hud,
+.with-3d-room .goal-bar {
+  flex-shrink: 0;
+}
+.with-3d-room .escape-stage {
+  padding: 0;
+  flex: 1;
+  min-height: 200px;
+}
+.with-3d-room .classroom-scene {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.with-3d-room .classroom-3d-stage {
+  flex: 1;
+  height: auto;
+  min-height: 140px;
+}
+.with-3d-room .classroom-3d-controls {
+  flex-shrink: 0;
+}
+.with-3d-room .classroom-3d-instruction {
+  margin: 6px 2px;
+}
+.with-3d-room .escape-bottom {
+  z-index: 8;
+  flex-shrink: 0;
+  position: static;
+}
+.tray-label {
+  writing-mode: horizontal-tb;
+  letter-spacing: 0;
+}
+.with-3d-room .pocket-tray {
+  min-height: 60px;
+  padding: 6px 10px;
+}
+.fullscreen-toggle {
+  font-size: 14px;
+  min-width: 88px;
+  padding: 8px 12px;
+}
+.scene-loading {
+  display: grid;
+  place-items: center;
+  min-height: 360px;
+  color: var(--green);
+}
+.adventure-controls {
+  flex-wrap: wrap;
+}
+.adventure-controls > button { min-width: 44px; }
+#app:is(:fullscreen, .immersive-fallback) .escape-bottom {
+  bottom: 0;
+}
+@media (max-width: 640px) {
+  .fullscreen-toggle {
+    font-size: 12px;
+    min-width: 78px;
+    padding: 5px 8px;
+  }
+  .escape-stats {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .escape-stats > span {
+    font-size: 12px;
+  }
+  .escape-hud {
+    gap: 10px;
+  }
+  .escape-hud h1 {
+    font-size: 20px;
+  }
+  .escape-hud > div:first-child {
+    flex-shrink: 0;
+  }
+  .adventure-controls {
+    gap: 5px;
+  }
+  .adventure-controls > button {
+    font-size: 12px;
+    padding: 7px 9px;
+  }
+  .with-3d-room .tiny-fragments {
+    display: none;
+  }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .with-3d-room {
+    height: auto;
+    overflow: visible;
+  }
+  .with-3d-room .classroom-3d-stage {
+    height: 300px;
+    flex: none;
+  }
+  .with-3d-room .escape-hud .eyebrow {
+    display: none;
+  }
+  .with-3d-room .escape-hud {
+    margin-bottom: 6px;
+  }
+  .with-3d-room .goal-bar {
+    margin-bottom: 8px;
+    padding: 4px 10px;
+    font-size: 14px;
+  }
+  .with-3d-room .escape-bottom {
+    position: static;
+  }
+}

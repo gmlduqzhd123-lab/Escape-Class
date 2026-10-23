@@ -13,6 +13,9 @@ import { exportReason } from "../ranking/service";
 import type { AggregateState } from "../tools/aggregate";
 import { button as b, esc, icon, animal, room, time } from "./helpers";
 export interface ViewContext {
+  sceneMode: "3d" | "2d";
+  sceneFailed: boolean;
+  immersive: boolean;
   held: string | null;
   device: "main" | "bonus";
   bonusHintLevel: number;
@@ -66,7 +69,7 @@ export function schoolOptions(
   return `${b(`학교 없이 체험 ${c.setupSchool === null ? "✓ 선택됨" : ""}`, "choose-school", "", `aria-pressed="${c.setupSchool === null}"`)}${matches.map((s) => b(`${esc(s.name)} ${c.setupSchool === s.schoolId ? "✓ 선택됨" : ""}`, "choose-school", s.schoolId, `aria-pressed="${c.setupSchool === s.schoolId}"`)).join("")}${!c.schools.length ? '<p class="muted">아직 등록된 학교가 없어요. 학교 없이 체험을 선택해 주세요.</p>' : !matches.length ? "<p>검색 결과가 없어요.</p>" : ""}`;
 }
 export function intro(c: ViewContext) {
-  return `<main id="main" class="narrow"><span class="eyebrow">모험의 시작 · 2 / 2</span><h1>우정 열쇠가 사라졌어요!</h1><div class="story-characters">${["토끼", "곰", "여우", "다람쥐"].map((n) => animal(n, 80)).join("")}</div><div class="surface"><p>친구사랑 축제의 마지막 활동은 가상 교실 방탈출 챌린지!</p><p>교실의 장치를 풀면 다섯 개의 우정 조각을 얻을 수 있어요. 조각을 연결해 마지막 열쇠가 숨겨진 곳을 찾아요.</p><p><strong>진짜 교실 문은 잠그지 않아요.</strong> 언제든 쉬거나 어른에게 도움을 요청할 수 있어요.</p></div><div class="instructions"><div>${icon("note", 32)}<h2>조사하기</h2><p>교실 물건이나 물건 목록을 눌러 단서를 찾아요. 단서 노트에서 다시 읽어요.</p></div><div>${icon("bag", 32)}<h2>사용하기</h2><p>아래 아이템 칸에서 도구를 고른 뒤 사용할 물건을 눌러요.</p></div><div>${icon("hint", 32)}<h2>힌트 나누기</h2><p>막히면 힌트를 열어요. 힌트와 활동 시간은 점수에 영향을 주지 않아요.</p></div></div><p>타이머는 아직 멈춰 있어요. 역할을 돌아가며 맡아 봐요: 관찰하기 · 단서 읽기 · 이유 설명하기 · 기기 조작하기.</p>${b("함께 탐색 시작하기", "start", "", 'class="primary large"')}</main>`;
+  return `<main id="main" class="narrow"><span class="eyebrow">모험의 시작 · 2 / 2</span><h1>우정 열쇠가 사라졌어요!</h1><div class="story-characters">${["토끼", "곰", "여우", "다람쥐"].map((n) => animal(n, 80)).join("")}</div><div class="surface"><p>친구사랑 축제의 마지막 활동은 가상 교실 방탈출 챌린지!</p><p>교실의 장치를 풀면 다섯 개의 우정 조각을 얻을 수 있어요. 조각을 연결해 마지막 열쇠가 숨겨진 곳을 찾아요.</p><p><strong>진짜 교실 문은 잠그지 않아요.</strong> 언제든 쉬거나 어른에게 도움을 요청할 수 있어요.</p></div><div class="instructions"><div>${icon("note", 32)}<h2>둘러보기</h2><p>좌우 버튼으로 교실을 둘러봐요. 화면을 밀어도 좋아요.</p></div><div>${icon("bag", 32)}<h2>이동하기</h2><p>바닥 표시를 누르면 그곳으로 이동해요. 가운데로 언제든 돌아와요.</p></div><div>${icon("hint", 32)}<h2>살펴보기</h2><p>물건을 누르면 가까이 살펴봐요. 막히면 위쪽 목표나 힌트를 눌러요.</p></div></div><p>타이머는 아직 멈춰 있어요. 화면 줄이기 버튼으로 언제든 전체화면을 나갈 수 있어요. 역할을 돌아가며 맡아 봐요: 관찰하기 · 단서 읽기 · 이유 설명하기 · 기기 조작하기.</p>${b("전체화면으로 게임 시작 →", "start", "", 'class="primary large"')}</main>`;
 }
 export function play(c: ViewContext) {
   return renderPlay(c);
@@ -136,7 +139,7 @@ export function modalContent(c: ViewContext) {
     case "pause":
       return `<h2 id="dialog-title">잠깐, 쉬어 가요</h2><p>진행은 그대로예요. 활동 시간도 멈춰 있어요.</p>${b("탐색 계속하기", "resume", "", 'class="primary"')}${b("저장하고 시작 화면으로", "save-home")}`;
     case "settings":
-      return `<h2 id="dialog-title">활동 설정</h2><label class="check-label"><input type="checkbox" data-setting="sound" ${s?.settings.sound ? "checked" : ""} /> 효과음 켜기</label><label class="check-label"><input type="checkbox" data-setting="reduced" ${s?.settings.reducedMotion ? "checked" : ""} /> 움직임 줄이기</label><p>소리와 움직임 없이도 모든 단서를 확인할 수 있어요.</p>`;
+      return `<h2 id="dialog-title">활동 설정</h2><label class="check-label"><input type="checkbox" data-setting="sound" ${s?.settings.sound ? "checked" : ""} /> 효과음 켜기</label><label class="check-label"><input type="checkbox" data-setting="reduced" ${s?.settings.reducedMotion ? "checked" : ""} /> 움직임 줄이기</label><p>소리 없이도 모든 단서를 확인할 수 있어요. 움직임 줄이기를 켜면 교실 이동이 바로 전환돼요.</p>`;
     case "exit-confirm":
       return `<h2 id="dialog-title">우정 조각을 모두 모았어요!</h2><p>문을 열면 탈출 성공이에요. ${s ? score(s) : 0}점으로 완료해요.</p><p>추가 단서는 선택 활동이에요.${s?.foundBonusIds.length === 4 ? " 모두 찾았어요!" : ` 남은 ${4 - (s?.foundBonusIds.length ?? 0)}개를 풀지 않아도 성공이에요.`}</p>${b("문 열고 탈출하기 →", "escape-confirm", "", 'class="primary"')}${b("추가 단서 더 찾아보기", "close-modal")}`;
     case "erase":
