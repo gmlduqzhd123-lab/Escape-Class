@@ -876,11 +876,21 @@ export function createClassroomScene(
     const occupied: { x: number; y: number; w: number; h: number }[] = [];
     const width = stage.clientWidth;
     const candidates = objects
-      .map((object) => ({
-        object,
-        point: screenPoint(object.anchor),
-        distance: camera.position.distanceTo(object.anchor),
-      }))
+      .map((object) => {
+        let point = screenPoint(object.anchor);
+        // At a close stop, looking down at an object can put its raised name
+        // anchor above a narrow screen. Keep its label on the visible object;
+        // never pull an off-screen or behind-camera object into view.
+        if (!point.visible && object.stop === currentStop) {
+          const closeup = screenPoint(object.look);
+          if (closeup.visible) point = closeup;
+        }
+        return {
+          object,
+          point,
+          distance: camera.position.distanceTo(object.anchor),
+        };
+      })
       .sort(
         (a, b) =>
           Number(b.object.id === state.objectiveId) -
