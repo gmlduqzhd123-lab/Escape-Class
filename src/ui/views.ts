@@ -101,6 +101,8 @@ export function toolsView(c: ViewContext) {
 export function modalContent(c: ViewContext) {
   const s = c.state;
   switch (c.modal) {
+    case "rotate":
+      return `<div class="rotate-phone-art" aria-hidden="true"><span>▯</span><b>↷</b><span>▭</span></div><h2 id="dialog-title">휴대폰을 가로로 돌려 주세요</h2><p>가로로 돌리면 교실이 더 넓게 보이고 버튼을 누르기 편해요. 돌리면 이 안내는 저절로 닫혀요.</p><p class="muted">화면이 그대로라면 휴대폰의 화면 회전 잠금을 확인해요.</p>${b("세로로 계속하기", "close-modal", "", 'class="portrait-continue"')}`;
     case "reward":
       return `<h2 id="dialog-title">${esc(c.reward?.title)}</h2><div class="reward-piece">${icon("key", 70)}</div><p>${esc(c.reward?.text)}</p>${b(`${OBJECTS.find((o) => o.id === c.reward?.next)?.name ?? "다음 단서"} 살펴보기 →`, "follow-clue", c.reward?.next ?? "", 'class="primary"')}${b("교실로 돌아가기", "reward-room")}`;
     case "objects": {

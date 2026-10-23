@@ -10,6 +10,7 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
   );
 }
 import "./ui/immersive.css";
+import "./ui/touch.css";
 import { createFullscreenController } from "./ui/fullscreen";
 import type { ClassroomScene } from "./scene/classroom";
 import fontUrl from "./assets/classroom-font.woff2?url";
@@ -136,6 +137,10 @@ let dialogReturnFocus = "";
 let panelReturnFocus = "";
 let toastTimeout: ReturnType<typeof setTimeout>;
 let toolContext = "";
+const phonePortrait = matchMedia(
+  "(max-width: 600px) and (orientation: portrait)",
+);
+let portraitGuideDismissed = false;
 const route = () => location.hash.replace(/^#/, "") || "/";
 let classroom: ClassroomScene | null = null;
 let sceneHost: HTMLElement | null = null;
@@ -233,7 +238,11 @@ function tick() {
   if (clockActive && c.state) c.state.elapsedMs += Math.max(0, now - lastTime);
   lastTime = now;
   clockActive = Boolean(
-    c.state && active(c.state) && route() === "/play" && !document.hidden,
+    c.state &&
+    active(c.state) &&
+    route() === "/play" &&
+    !document.hidden &&
+    c.modal !== "rotate",
   );
   const timer = document.getElementById("timer");
   if (timer && c.state) timer.textContent = time(c.state.elapsedMs);
@@ -275,6 +284,15 @@ function findFocus(value: string) {
   );
 }
 function render(focusKey?: string) {
+  if (
+    route() === "/play" &&
+    c.state &&
+    active(c.state) &&
+    phonePortrait.matches &&
+    !portraitGuideDismissed &&
+    !c.modal
+  )
+    c.modal = "rotate";
   const a = document.activeElement as HTMLElement | null;
   const focus = focusKey ?? a?.dataset.focus;
   const scroll = window.scrollY;
@@ -366,6 +384,7 @@ function openModal(name: string) {
   render();
 }
 function closeModal() {
+  if (c.modal === "rotate") portraitGuideDismissed = true;
   if (c.modal === "pause") {
     resume();
     return;
@@ -626,6 +645,7 @@ async function handle(action: string, value: string) {
       render();
       return;
     case "setup-next":
+      portraitGuideDismissed = false;
       await data();
       disposeScene();
       c.state = createProgress(
@@ -1303,6 +1323,17 @@ window.addEventListener("hashchange", () => {
   root.scrollTop = 0;
   window.scrollTo(0, 0);
   tick();
+});
+phonePortrait.addEventListener("change", () => {
+  if (!phonePortrait.matches) {
+    portraitGuideDismissed = false;
+    if (c.modal === "rotate") c.modal = null;
+  }
+  if (route() === "/play") {
+    render("fullscreen:");
+    classroom?.resize();
+    tick();
+  }
 });
 window.addEventListener("keydown", (event) => {
   if (event.defaultPrevented || document.fullscreenElement) return;

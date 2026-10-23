@@ -1,0 +1,356 @@
+/* Keep the classroom palette; give fingers and Korean labels more room. */
+@media (max-width: 1024px), (any-pointer: coarse) {
+  .escape-play button,
+  #game-dialog button {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  .escape-play .classroom-object-label {
+    min-height: 50px;
+    font-size: 15px;
+    padding: 8px 11px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .escape-play .classroom-object-next {
+    font-size: 12px;
+  }
+  .escape-play .classroom-move-label {
+    font-size: 14px;
+    min-height: 54px;
+  }
+  .escape-play .classroom-move-label small {
+    font-size: 12px;
+  }
+  .escape-play .classroom-3d-controls button {
+    font-size: 16px;
+    min-height: 50px;
+  }
+  .escape-play .classroom-3d-controls button,
+  .escape-play .classroom-3d-places button {
+    margin: 0;
+  }
+  .escape-play .classroom-3d-places button {
+    font-size: 15px;
+    min-height: 48px;
+  }
+  .escape-play .classroom-3d-location {
+    font-size: 14px;
+  }
+  .escape-play .classroom-3d-instruction {
+    font-size: 13px;
+  }
+  .escape-play .goal-destination {
+    font-size: 14px;
+  }
+  .escape-play .adventure-controls > button {
+    font-size: 14px;
+    padding: 8px;
+  }
+  .escape-play .pocket-item > span {
+    font-size: 14px;
+  }
+  .escape-play .pocket-item.equipped small {
+    font-size: 12px;
+  }
+  .escape-play .tray-label {
+    font-size: 13px;
+  }
+  .escape-play .empty-pocket {
+    font-size: 14px;
+  }
+  .escape-play .fullscreen-toggle {
+    font-size: 14px;
+    width: auto;
+    min-width: 86px;
+  }
+  .escape-play .classroom-3d-stage,
+  .escape-play .classroom-3d-canvas,
+  .escape-play .classroom-object-label,
+  .escape-play .classroom-move-label {
+    touch-action: pan-y pinch-zoom;
+  }
+  .escape-play .classroom-3d-stage.dragging .classroom-3d-canvas {
+    cursor: grabbing;
+  }
+  .escape-play .classroom-3d-stage {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #game-dialog .object-picker button {
+    font-size: 17px;
+    min-height: 64px;
+  }
+  #game-dialog .object-picker button small {
+    font-size: 14px;
+  }
+  #game-dialog .check-label {
+    min-height: 50px;
+    padding-block: 8px;
+  }
+  .escape-play .route-grid .tile {
+    min-height: 48px;
+  }
+  .escape-play .route-grid .tile small,
+  .escape-play .step-number {
+    font-size: 12px;
+  }
+  .escape-play .friends span {
+    font-size: 13px;
+  }
+  .escape-play .zoom-device .keypad button {
+    min-height: 52px;
+    font-size: 22px;
+  }
+}
+.rotate-phone-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  color: var(--green);
+  margin: 6px 0 16px;
+  font-size: 64px;
+  line-height: 1;
+}
+.rotate-phone-art b {
+  font-size: 36px;
+  color: #8c773d;
+}
+.portrait-continue {
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .escape-play .adventure-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.15fr 0.7fr;
+    gap: 6px;
+  }
+  .escape-play .adventure-controls > button svg {
+    display: none;
+  }
+  .escape-play .adventure-controls > button {
+    padding: 6px 4px;
+  }
+  .escape-play .escape-stats {
+    gap: 5px;
+  }
+  .escape-play .escape-stats > span {
+    font-size: 13px;
+  }
+  .escape-play .escape-hud {
+    flex-wrap: wrap;
+  }
+  .escape-play .pocket-item {
+    max-width: 160px;
+  }
+  .with-3d-room {
+    min-height: 680px;
+    overflow: visible;
+  }
+}
+/* Phone landscape: scene + three destination buttons, with turn controls inside. */
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1000px) {
+  .escape-play.with-3d-room {
+    height: 100dvh;
+    min-height: 320px;
+    padding: 4px 10px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: 4px;
+    overflow: hidden;
+  }
+  .escape-play .escape-hud {
+    margin: 0;
+    gap: 8px;
+    min-height: 44px;
+    flex-wrap: nowrap;
+  }
+  .escape-play .escape-hud .eyebrow {
+    display: none;
+  }
+  .escape-play .escape-hud h1 {
+    font-size: 20px;
+    margin: 0;
+  }
+  .escape-play .escape-stats {
+    flex-wrap: nowrap;
+    gap: 7px;
+  }
+  .escape-play .escape-stats > span {
+    font-size: 13px;
+  }
+  .escape-play .escape-stats > span:nth-child(2) {
+    display: none;
+  }
+  .escape-play .escape-stats button {
+    min-height: 44px;
+    height: 44px;
+  }
+  .escape-play .goal-bar {
+    margin: 0;
+    padding: 2px 10px;
+    min-height: 44px;
+    gap: 8px;
+  }
+  .escape-play .goal-target {
+    padding: 0;
+    min-height: 44px;
+  }
+  .escape-play .goal-target > #goal-instruction {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .escape-play .goal-destination {
+    font-size: 15px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+  .escape-play .goal-bar .goal-hint {
+    min-height: 44px;
+    padding: 3px 9px;
+    font-size: 14px;
+  }
+  .with-3d-room .escape-stage {
+    min-height: 0;
+    height: 100%;
+    overflow: visible;
+  }
+  .with-3d-room .classroom-scene {
+    position: relative;
+    height: 100%;
+    padding-right: 152px;
+  }
+  .with-3d-room .classroom-3d-stage {
+    height: 100%;
+    min-height: 0;
+    flex: none;
+  }
+  .with-3d-room .classroom-3d-controls {
+    position: absolute;
+    left: 6px;
+    right: 158px;
+    bottom: 6px;
+    z-index: 4;
+    margin: 0;
+    gap: 5px;
+  }
+  .with-3d-room .classroom-3d-controls button {
+    min-height: 46px;
+    padding: 5px;
+    font-size: 14px;
+    background: #fffef4f2;
+  }
+  .with-3d-room .classroom-3d-controls button span {
+    font-size: 18px;
+  }
+  .with-3d-room .classroom-3d-places {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 146px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    margin: 0;
+  }
+  .with-3d-room .classroom-3d-places button {
+    min-height: 48px;
+    padding: 5px;
+    font-size: 15px;
+  }
+  .with-3d-room .classroom-3d-instruction {
+    display: none;
+  }
+  .with-3d-room .escape-bottom {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 0;
+  }
+  .with-3d-room .pocket-tray {
+    min-height: 50px;
+    padding: 2px 6px;
+    flex: 1;
+    min-width: 0;
+    gap: 5px;
+  }
+  .with-3d-room .empty-pocket {
+    display: none;
+  }
+  .with-3d-room .pocket-item {
+    min-height: 44px;
+    padding: 2px 7px;
+    max-width: 180px;
+  }
+  .with-3d-room .pocket-item > svg {
+    width: 20px;
+  }
+  .with-3d-room .pocket-item > span {
+    font-size: 13px;
+  }
+  .with-3d-room .pocket-item.equipped small {
+    font-size: 11px;
+  }
+  .with-3d-room .adventure-controls {
+    display: flex;
+    flex-wrap: nowrap;
+    margin: 0;
+    gap: 5px;
+  }
+  .with-3d-room .adventure-controls > button {
+    min-height: 44px;
+    padding: 5px 8px;
+    font-size: 14px;
+  }
+  .with-3d-room .adventure-controls > button svg,
+  .with-3d-room .tiny-fragments {
+    display: none;
+  }
+  .with-3d-room .classroom-3d-location {
+    top: 6px;
+    left: 6px;
+    padding: 5px 9px;
+    font-size: 13px;
+  }
+  .escape-play:not(.with-3d-room) {
+    margin: 0 auto;
+    padding: 4px 10px 10px;
+  }
+  .escape-play:not(.with-3d-room) .escape-bottom {
+    position: static;
+  }
+  .escape-play:not(.with-3d-room) .zoom-vignette {
+    display: none;
+  }
+  .escape-play:not(.with-3d-room) .zoom-device {
+    margin: 10px auto 0;
+    padding: 12px;
+    min-height: 0;
+    max-height: none;
+  }
+  .escape-play:not(.with-3d-room) .zoom-top {
+    padding-bottom: 6px;
+  }
+  .escape-play:not(.with-3d-room) .back-room {
+    font-size: 15px;
+  }
+  .escape-play:not(.with-3d-room) .device-heading h3 {
+    font-size: 21px;
+  }
+  .escape-play:not(.with-3d-room) .device-heading p {
+    font-size: 16px;
+  }
+  .escape-play .route-board {
+    max-width: 290px;
+    margin: 12px auto;
+  }
+}

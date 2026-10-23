@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OBJECTS } from "../content/data";
 import "./classroom.css";
+import { bindSceneGestures } from "./gestures";
 
 export interface ClassroomState {
   objectiveId?: string;
@@ -875,6 +876,18 @@ export function createClassroomScene(
     }
     const occupied: { x: number; y: number; w: number; h: number }[] = [];
     const width = stage.clientWidth;
+    const stageRect = stage.getBoundingClientRect();
+    const labelTop =
+      location.parentElement!.getBoundingClientRect().bottom -
+      stageRect.top +
+      30;
+    const turnRect = host
+      .querySelector(".classroom-3d-controls")!
+      .getBoundingClientRect();
+    const labelBottom =
+      turnRect.top >= stageRect.top && turnRect.bottom <= stageRect.bottom
+        ? turnRect.top - stageRect.top - 8
+        : stage.clientHeight;
     const candidates = objects
       .map((object) => {
         let point = screenPoint(object.anchor);
@@ -930,7 +943,7 @@ export function createClassroomScene(
         buttonWidth / 2 + 8,
         Math.min(width - buttonWidth / 2 - 8, point.x),
       );
-      const y = Math.max(69, Math.min(stage.clientHeight - 32, point.y));
+      const y = Math.max(labelTop, Math.min(labelBottom - 28, point.y));
       const overlaps = occupied.some(
         (box) =>
           Math.abs(box.x - x) < (box.w + buttonWidth) / 2 + 8 &&
@@ -963,6 +976,7 @@ export function createClassroomScene(
           Math.abs(box.y - markerY) < 52,
       );
       marker.button.hidden =
+        markerY + 27 > labelBottom ||
         !point.floorVisible ||
         point.y < 80 ||
         moving ||
@@ -1152,129 +1166,38 @@ export function createClassroomScene(
   };
   host.addEventListener("click", onControlClick);
   const raycaster = new THREE.Raycaster();
-  let pointer: {
-    id: number;
-    x: number;
-    y: number;
-    lastX: number;
-    lastY: number;
-    dragging: boolean;
-    vertical: boolean;
-    fromLabel: boolean;
-  } | null = null;
-  let suppressGestureClick = false;
-  const pointerDown = (event: PointerEvent) => {
-    if (!active || moving || event.button !== 0 || !event.isPrimary) return;
-    releasePointer();
-    suppressGestureClick = false;
-    const fromLabel = !!(event.target as Element).closest(
-      ".classroom-object-label, .classroom-move-label",
-    );
-    pointer = {
-      id: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      lastX: event.clientX,
-      lastY: event.clientY,
-      dragging: false,
-      vertical: false,
-      fromLabel,
-    };
-    // Capture empty-scene presses immediately so releasing outside the canvas
-    // cannot leave a stale pointer or select an off-screen object.
-    if (!fromLabel) stage.setPointerCapture(event.pointerId);
-  };
-  const pointerMove = (event: PointerEvent) => {
-    if (!pointer || event.pointerId !== pointer.id || !active || moving) return;
-    const dx = event.clientX - pointer.x,
-      dy = event.clientY - pointer.y;
-    if (!pointer.dragging && !pointer.vertical && Math.hypot(dx, dy) > 9) {
-      pointer.vertical =
-        event.pointerType === "touch" && Math.abs(dy) > Math.abs(dx);
-      pointer.dragging = !pointer.vertical;
-      if (pointer.dragging) {
-        stage.setPointerCapture(event.pointerId);
-        tween = null;
-        canvas.classList.add("dragging");
-      }
-    }
-    if (pointer.dragging) {
-      yaw -= (event.clientX - pointer.lastX) * 0.006;
-      if (event.pointerType !== "touch")
-        pitch = Math.max(
-          -0.6,
-          Math.min(0.32, pitch - (event.clientY - pointer.lastY) * 0.003),
-        );
+  const gestures = bindSceneGestures(stage, {
+    enabled: () => active && !moving && !disposed,
+    onLook: (dx, dy, touch) => {
+      tween = null;
+      yaw -= dx * 0.006;
+      if (!touch) pitch = Math.max(-0.6, Math.min(0.32, pitch - dy * 0.003));
       requestDraw();
-    }
-    pointer.lastX = event.clientX;
-    pointer.lastY = event.clientY;
-  };
-  const releasePointer = () => {
-    if (pointer && stage.hasPointerCapture(pointer.id))
-      stage.releasePointerCapture(pointer.id);
-    pointer = null;
-    canvas.classList.remove("dragging");
-  };
-  const pointerUp = (event: PointerEvent) => {
-    if (!pointer || pointer.id !== event.pointerId) return;
-    const fromLabel = pointer.fromLabel;
-    const clicked =
-      !pointer.dragging &&
-      !pointer.vertical &&
-      Math.hypot(event.clientX - pointer.x, event.clientY - pointer.y) < 9;
-    suppressGestureClick = !clicked;
-    releasePointer();
-    if (!clicked || fromLabel || !active || moving) return;
-    const rect = canvas.getBoundingClientRect();
-    if (
-      event.clientX < rect.left ||
-      event.clientX > rect.right ||
-      event.clientY < rect.top ||
-      event.clientY > rect.bottom
-    )
-      return;
-    raycaster.setFromCamera(
-      new THREE.Vector2(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        (-(event.clientY - rect.top) / rect.height) * 2 + 1,
-      ),
-      camera,
-    );
-    const hit = raycaster
-      .intersectObjects(scene.children, true)
-      .find(
-        (result) =>
-          result.object instanceof THREE.Mesh && result.object.visible,
+    },
+    onTap: (x, y) => {
+      const rect = canvas.getBoundingClientRect();
+      if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom)
+        return;
+      raycaster.setFromCamera(
+        new THREE.Vector2(
+          ((x - rect.left) / rect.width) * 2 - 1,
+          (-(y - rect.top) / rect.height) * 2 + 1,
+        ),
+        camera,
       );
-    if (hit) {
-      let parent: THREE.Object3D | null = hit.object;
-      while (parent && !parent.userData.objectId) parent = parent.parent;
-      if (parent?.userData.objectId) focusObject(parent.userData.objectId);
-    }
-  };
-  const suppressDraggedLabelClick = (event: MouseEvent) => {
-    if (suppressGestureClick && event.detail > 0) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      suppressGestureClick = false;
-    }
-  };
-  const pointerCancel = (event: PointerEvent) => {
-    if (event.pointerId === pointer?.id) releasePointer();
-  };
-  const lostPointerCapture = (event: PointerEvent) => {
-    // Touch labels initially hold implicit capture. When a drag transfers it
-    // to the stage, the label's bubbling loss must not cancel the new capture.
-    if (event.target === stage && event.pointerId === pointer?.id)
-      releasePointer();
-  };
-  stage.addEventListener("pointerdown", pointerDown);
-  stage.addEventListener("pointermove", pointerMove);
-  stage.addEventListener("pointerup", pointerUp);
-  stage.addEventListener("pointercancel", pointerCancel);
-  stage.addEventListener("lostpointercapture", lostPointerCapture);
-  stage.addEventListener("click", suppressDraggedLabelClick, true);
+      const hit = raycaster
+        .intersectObjects(scene.children, true)
+        .find(
+          (result) =>
+            result.object instanceof THREE.Mesh && result.object.visible,
+        );
+      if (hit) {
+        let parent: THREE.Object3D | null = hit.object;
+        while (parent && !parent.userData.objectId) parent = parent.parent;
+        if (parent?.userData.objectId) focusObject(parent.userData.objectId);
+      }
+    },
+  });
   const onContextLost = (event: Event) => {
     event.preventDefault();
     cancelJourney();
@@ -1311,7 +1234,7 @@ export function createClassroomScene(
     active = next.active;
     if (!active) {
       cancelJourney(true);
-      releasePointer();
+      gestures.cancel();
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
     }
@@ -1345,17 +1268,12 @@ export function createClassroomScene(
     disposed = true;
     active = false;
     cancelJourney();
-    releasePointer();
+    gestures.cancel();
     if (frame) cancelAnimationFrame(frame);
     observer.disconnect();
     document.removeEventListener("visibilitychange", onVisibility);
     host.removeEventListener("click", onControlClick);
-    stage.removeEventListener("pointerdown", pointerDown);
-    stage.removeEventListener("pointermove", pointerMove);
-    stage.removeEventListener("pointerup", pointerUp);
-    stage.removeEventListener("pointercancel", pointerCancel);
-    stage.removeEventListener("lostpointercapture", lostPointerCapture);
-    stage.removeEventListener("click", suppressDraggedLabelClick, true);
+    gestures.dispose();
     canvas.removeEventListener("webglcontextlost", onContextLost);
     for (const geometry of geometries) geometry.dispose();
     for (const material of materials) material.dispose();
