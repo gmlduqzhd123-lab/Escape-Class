@@ -438,7 +438,14 @@ export function createClassroomScene(
   panel(board, [4.3, 1.6], [0, 2.05, 0.081], (ctx, w, h) => {
     ctx.fillStyle = palette.green;
     ctx.fillRect(0, 0, w, h);
-    text(ctx, "우리들의 우정 교실", w / 2, 70, 56, "#fff5d4");
+    text(
+      ctx,
+      pack.shell === "library" ? "함께 읽는 도서관" : "우리들의 우정 교실",
+      w / 2,
+      70,
+      56,
+      "#fff5d4",
+    );
     text(
       ctx,
       "다섯 우정 조각을 모아 지도를 완성해요",
@@ -735,6 +742,8 @@ export function createClassroomScene(
     part.position.z += 0.825;
   }
   const lamps: THREE.MeshStandardMaterial[] = [];
+  // Keep the lights above the exit sign so the large object label cannot hide them.
+  box(door, [0.08, 0.24, 1.5], [-0.17, 3.48, 0], palette.green);
   for (let i = 0; i < 5; i++) {
     const material = new THREE.MeshStandardMaterial({
       color: "#aab49b",
@@ -743,7 +752,7 @@ export function createClassroomScene(
     });
     lamps.push(material);
     const lamp = mesh(new THREE.SphereGeometry(0.08, 10, 8), material, door);
-    lamp.position.set(-0.25, 2.7, -0.48 + i * 0.24);
+    lamp.position.set(-0.25, 3.48, -0.48 + i * 0.24);
   }
   if (pack.shell === "library") {
     for (const x of [-2.2, -0.65]) {
