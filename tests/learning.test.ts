@@ -1,0 +1,205 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  createExperience,
+  validateExperience,
+  cooperationAnswer,
+  checkCooperation,
+  roleAssignments,
+  assistProgress,
+  shouldSuggestHint,
+  DEFAULT_LESSON,
+  practiceCard,
+  isPracticeLesson,
+} from "../src/game/learning";
+import { adaptEpisodeHtml, EPISODES } from "../src/content/episodes";
+import { OBJECTS } from "../src/content/data";
+import { createProgress, PRACTICE_CONFIG } from "../src/game/model";
+import { inspect, pickMemo, solve } from "../src/game/engine";
+import { validateProgress } from "../src/storage/progress";
+import {
+  createSaveCoordinator,
+  writeExperience,
+  readExperience,
+} from "../src/storage/session";
+class MemoryStore {
+  data = new Map<string, string>();
+  getItem(k: string) {
+    return this.data.get(k) ?? null;
+  }
+  setItem(k: string, v: string) {
+    this.data.set(k, v);
+  }
+  removeItem(k: string) {
+    this.data.delete(k);
+  }
+}
+test("cooperative code requires the observation and reading cards, not a guessed number alone", () => {
+  const e = createExperience();
+  e.coopCode = "426";
+  assert.equal(checkCooperation(e), false);
+  e.viewedRoles = [0];
+  assert.equal(checkCooperation(e), false);
+  e.viewedRoles = [0, 1];
+  assert.equal(checkCooperation(e), true);
+  e.coopSolved = true;
+  assert.deepEqual(validateExperience(e), e);
+});
+test("episode packs and grade change the cooperative sequence without changing core scoring", () => {
+  const e = createExperience({ ...DEFAULT_LESSON, episode: "library" });
+  assert.equal(cooperationAnswer(e), "642");
+  e.options.grade = "guided";
+  assert.equal(cooperationAnswer(e), "64");
+  assert.equal(isPracticeLesson(e.options), true);
+  assert.equal(
+    isPracticeLesson({
+      ...DEFAULT_LESSON,
+      cooperation: false,
+      grade: "standard",
+      episode: "classroom",
+    }),
+    false,
+  );
+});
+test("roles rotate at puzzle completion and can be shifted without pupil names", () => {
+  const e = createExperience(),
+    s = createProgress(PRACTICE_CONFIG);
+  assert.equal(roleAssignments(e, s)[3].student, 4);
+  s.solvedPuzzleIds = ["P1"];
+  assert.equal(roleAssignments(e, s)[3].student, 1);
+  e.roleShift = 1;
+  assert.equal(roleAssignments(e, s)[3].student, 2);
+});
+test("guided memo scaffolding preserves direct-speech discovery and the actual puzzle judge", () => {
+  const e = createExperience({ ...DEFAULT_LESSON, grade: "guided" }),
+    s = createProgress(PRACTICE_CONFIG);
+  s.phase = "playing";
+  inspect(s, "O02");
+  assistProgress(s, e);
+  assert.deepEqual(s.puzzles.p1.order, ["P1-C1"]);
+  pickMemo(s, "P1-C3");
+  assert.equal(s.puzzles.p1.order.includes("P1-C3"), false);
+  inspect(s, "O03");
+  pickMemo(s, "P1-C3");
+  pickMemo(s, "P1-C5");
+  assert.equal(solve(s, "P1").ok, true);
+  assert.doesNotThrow(() => validateProgress(s));
+});
+test("hint proposals respect teacher choice, idle threshold and repeated mistakes", () => {
+  assert.equal(shouldSuggestHint(89999, 0, DEFAULT_LESSON), false);
+  assert.equal(shouldSuggestHint(90000, 0, DEFAULT_LESSON), true);
+  assert.equal(shouldSuggestHint(0, 3, DEFAULT_LESSON), true);
+  assert.equal(
+    shouldSuggestHint(999999, 9, { ...DEFAULT_LESSON, hints: "request" }),
+    false,
+  );
+  assert.equal(
+    shouldSuggestHint(60000, 0, { ...DEFAULT_LESSON, grade: "guided" }),
+    true,
+  );
+});
+test("experience validation rejects forged cooperation, unknown items and unsafe camera pose", () => {
+  const e = createExperience();
+  for (const mutation of [
+    (v: typeof e) => (v.coopSolved = true),
+    (v: typeof e) => (v.view.selected = "unknown"),
+    (v: typeof e) => (v.view.pose = { stop: "outside", yaw: 0, pitch: 0 }),
+    (v: typeof e) =>
+      (v.view.pose = { stop: "center", yaw: Infinity, pitch: 0 }),
+  ]) {
+    const copy = structuredClone(e);
+    mutation(copy);
+    assert.throws(() => validateExperience(copy));
+  }
+});
+test("old progress stays canonical while a matching sidecar restores lesson and inspection", () => {
+  const storage = new MemoryStore(),
+    key = "game",
+    s = createProgress(PRACTICE_CONFIG),
+    e = createExperience();
+  e.view.objectId = "O02";
+  e.view.pose = { stop: "door", yaw: 0.3, pitch: -0.1 };
+  storage.setItem(key, JSON.stringify(s));
+  writeExperience(storage, key, e);
+  assert.deepEqual(readExperience(storage, key), e);
+  assert.doesNotThrow(() =>
+    validateProgress(JSON.parse(storage.getItem(key)!)),
+  );
+  storage.setItem(key, JSON.stringify({ ...s, elapsedMs: 100 }));
+  assert.equal(readExperience(storage, key), null);
+});
+test("external legacy writes block this writer before it can overwrite a newer save", async () => {
+  const storage = new MemoryStore();
+  storage.setItem("game", "first");
+  let conflicts = 0;
+  const c = createSaveCoordinator(storage, "game", () => conflicts++);
+  await c.acquire();
+  assert.equal(c.writable(), true);
+  storage.setItem("game", "newer from another tab");
+  assert.equal(c.writable(), false);
+  assert.equal(conflicts, 1);
+  assert.equal(storage.getItem("game"), "newer from another tab");
+  assert.equal(await c.acquire(), true);
+  assert.equal(c.writable(), true);
+});
+test("browser lock permits one writer, then permits handoff after that tab closes", async () => {
+  const held = new Set<string>();
+  const locks = {
+    async request(
+      name: string,
+      _options: unknown,
+      callback: (lock: unknown) => Promise<void> | void,
+    ) {
+      if (held.has(name)) return callback(null);
+      held.add(name);
+      try {
+        return await callback({ name });
+      } finally {
+        held.delete(name);
+      }
+    },
+  };
+  const storage = new MemoryStore(),
+    a = createSaveCoordinator(storage, "game", () => {}, locks),
+    b = createSaveCoordinator(storage, "game", () => {}, locks);
+  assert.equal(await a.acquire(), true);
+  assert.equal(await b.acquire(), false);
+  assert.equal(b.writable(), false);
+  a.release();
+  await new Promise(setImmediate);
+  assert.equal(await b.acquire(), true);
+  b.release();
+});
+test("blocked storage remains a playable no-save mode rather than throwing at startup", async () => {
+  const bad = {
+    getItem() {
+      throw Error("blocked");
+    },
+    setItem() {
+      throw Error("blocked");
+    },
+    removeItem() {
+      throw Error("blocked");
+    },
+  };
+  const c = createSaveCoordinator(bad, "game", () => {});
+  assert.equal(await c.acquire(), true);
+  assert.equal(c.writable(), true);
+});
+test("library rendering preserves object IDs/actions and changes authored story and names", () => {
+  const html =
+    '<button data-action="inspect" data-value="O02">게시판</button><h1>사라진 우정 열쇠</h1><p>함께 만들고 싶어. 만드는 방법을 먼저 알려 주면 좋겠어.</p>';
+  const changed = adaptEpisodeHtml(html, "library", OBJECTS);
+  assert.match(changed, /독서 게시판/);
+  assert.match(changed, /함께 읽고/);
+  assert.match(changed, /data-value="O02"/);
+  assert.match(changed, /data-action="inspect"/);
+  assert.equal(Object.keys(EPISODES.library.objects).length, 12);
+});
+test("pledge export contains the chosen practice and no names, scores or script", () => {
+  const e = createExperience();
+  e.pledge = 2;
+  const html = practiceCard(e);
+  assert.match(html, /함께하고 싶은 친구에게 자리를 나눌게요/);
+  assert.doesNotMatch(html, /schoolId|roundId|100점|<script/);
+});

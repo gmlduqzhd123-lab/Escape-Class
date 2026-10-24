@@ -1,0 +1,205 @@
+.lesson-settings fieldset {
+  border: 1px solid #cad6bf;
+  border-radius: 14px;
+  padding: 14px;
+  margin: 16px 0;
+}
+.lesson-settings legend {
+  font-weight: 750;
+  padding: 0 8px;
+}
+.lesson-settings fieldset p {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.7;
+}
+.lesson-settings button {
+  margin: 4px;
+}
+.lesson-settings button[aria-pressed="true"],
+.role-card-tabs button[aria-pressed="true"],
+.pledge-options button[aria-pressed="true"] {
+  background: #e1ecd6;
+  border: 2px solid #688054;
+}
+.team-button {
+  flex: 0 0 auto;
+  font-size: 14px;
+  padding: 5px 10px;
+  min-width: 48px;
+  min-height: 44px;
+  background: #fffef4;
+}
+.team-summary {
+  background: #edf2e5;
+  border: 1px solid #c4d3b7;
+  border-radius: 14px;
+  padding: 18px;
+  margin: 16px 0 24px;
+}
+.team-summary h3 {
+  font-size: 22px;
+}
+.team-summary p {
+  font-size: 16px;
+  line-height: 1.7;
+}
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+.role-grid > div {
+  padding: 12px 6px;
+  text-align: center;
+  background: #fffef8;
+  border: 1px solid #c9d5bf;
+  border-radius: 10px;
+}
+.role-grid strong,
+.role-grid span {
+  display: block;
+  font-size: 16px;
+}
+.role-card-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 0;
+}
+.role-card-tabs button {
+  margin: 0;
+  font-size: 16px;
+}
+.role-clue {
+  padding: 22px;
+  border: 2px solid #9eaa72;
+  border-radius: 16px;
+  background: #fff8df;
+  margin: 18px 0;
+}
+.role-clue p {
+  font-size: 21px;
+  line-height: 1.9;
+}
+.team-code {
+  display: block;
+  text-align: center;
+  font-size: 38px;
+  letter-spacing: 0.35em;
+  background: #e8eddc;
+  border: 1px solid #c5cfb6;
+  border-radius: 10px;
+  padding: 10px;
+}
+.team-keypad {
+  max-width: 330px;
+  margin: 14px auto;
+}
+.team-keypad button {
+  min-height: 50px;
+}
+.cooperation-gate,
+.guided-help {
+  border: 1px solid #b9caa3;
+  background: #eef3e4;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 0 0 20px;
+  line-height: 1.8;
+}
+.guided-help {
+  font-size: 17px;
+}
+.operate-device {
+  margin-top: 18px;
+  width: 100%;
+}
+.hint-suggested {
+  border: 2px solid #aa8d3f;
+  background: #fff4c6;
+}
+.pledge-options {
+  display: grid;
+  gap: 8px;
+}
+.pledge-options button {
+  margin: 0;
+  justify-content: flex-start;
+  text-align: left;
+}
+.pledge-preview {
+  padding: 26px;
+  border: 2px solid #7b9060;
+  border-radius: 18px;
+  margin: 22px 0;
+  background: #fbf9ed;
+}
+.pledge-preview h3 {
+  font-size: 26px;
+  line-height: 1.8;
+}
+.device-touch-pad {
+  min-height: 200px;
+  border: 2px dashed #6f8c5b;
+  background: #e8eedf;
+  border-radius: 18px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 20px;
+  margin: 20px 0;
+  touch-action: none;
+  user-select: none;
+  line-height: 1.8;
+}
+.audit-row {
+  display: flex;
+  width: 100%;
+  margin: 10px 0;
+  text-align: left;
+  justify-content: flex-start;
+}
+.audit-row[aria-pressed="true"] {
+  background: #e2eed8;
+  border: 2px solid #6b8757;
+}
+@media (max-width: 650px) {
+  .role-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .team-summary {
+    padding: 12px;
+  }
+  .team-button {
+    padding: 4px 8px;
+  }
+  .lesson-settings fieldset {
+    padding: 10px;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1000px) {
+  .team-button {
+    min-height: 44px;
+    padding: 3px 8px;
+  }
+  .role-clue {
+    padding: 14px;
+  }
+  .role-clue p {
+    font-size: 19px;
+  }
+}
+@media print {
+  .pledge-options,
+  .pledge-section > button {
+    display: none !important;
+  }
+  .pledge-preview {
+    break-inside: avoid;
+  }
+}
+.escape-play button[hidden] {
+  display: none !important;
+}

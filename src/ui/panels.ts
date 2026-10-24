@@ -62,7 +62,10 @@ function p1(s: Progress, c: ViewContext) {
    !d
      ? `<p class="device-feedback ${p.order.length === 3 && !correct ? "needs-fix" : ""}" role="status">${p.order.length === 3 && !correct ? "기호가 이어지지 않아요. 위 메모를 눌러 빼고 다시 골라요." : `메모 ${p.order.length}/3 · 메모를 누르면 다음 빈칸에 놓여요.`}</p><div class="clue-cards compact-cards">${CLUES.filter(
          (card) =>
-           s.discoveredClueIds.includes(card.id) && !p.order.includes(card.id),
+           s.discoveredClueIds.includes(card.id) &&
+           !p.order.includes(card.id) &&
+           (c.learning?.options.grade !== "guided" ||
+             !["P1-C2", "P1-C4"].includes(card.id)),
        )
          .map((card) =>
            b(

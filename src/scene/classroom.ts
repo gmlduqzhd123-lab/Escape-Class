@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { OBJECTS } from "../content/data";
 import "./classroom.css";
 import { bindSceneGestures } from "./gestures";
+import type { ScenePose } from "../game/learning";
+import { episode, type EpisodeId } from "../content/episodes";
 
 export interface ClassroomState {
   objectiveId?: string;
@@ -10,17 +12,24 @@ export interface ClassroomState {
   finalKeyObtained: boolean;
   active: boolean;
   reducedMotion: boolean;
+  drawerOpen?: boolean;
+  toolTaken?: boolean;
+  exitUsed?: boolean;
 }
 
 export interface ClassroomScene {
   setState(state: ClassroomState): void;
   focusObject(id: string): void;
   resetView(): void;
+  operateObject(id: string): void;
   resize(): void;
   dispose(): void;
 }
 
 type Options = {
+  initialPose?: ScenePose | null;
+  onPoseChange?: (pose: ScenePose) => void;
+  episodeId?: EpisodeId;
   onInspect: (id: string) => void;
   onFailure: () => void;
   reducedMotion: boolean;
@@ -71,6 +80,11 @@ export function createClassroomScene(
   options: Options,
 ): ClassroomScene {
   const scene = new THREE.Scene();
+  const pack = episode(options.episodeId ?? "classroom");
+  const sceneObjects = OBJECTS.map((o) => ({
+    ...o,
+    name: pack.objects[o.id] ?? o.name,
+  }));
   scene.background = new THREE.Color("#f2eedf");
   const camera = new THREE.PerspectiveCamera(68, 1, 0.08, 45);
   camera.position.set(0, 1.8, 2.8);
@@ -78,6 +92,12 @@ export function createClassroomScene(
   let yaw = 0;
   let pitch = -0.045;
   let currentStop = "center";
+  if (options.initialPose && STOPS[options.initialPose.stop]) {
+    currentStop = options.initialPose.stop;
+    camera.position.set(STOPS[currentStop].x, 1.8, STOPS[currentStop].z);
+    yaw = options.initialPose.yaw;
+    pitch = options.initialPose.pitch;
+  }
   let active = true;
   let reducedMotion = options.reducedMotion;
   let disposed = false;
@@ -118,12 +138,15 @@ export function createClassroomScene(
     <button type="button" data-scene-place="back" aria-label="교실 뒤편으로 이동">교실 뒤편으로</button>
   </div>
   <p class="classroom-3d-instruction" aria-live="polite">물건이나 이름표를 누르면 가까이 가서 살펴봐요.</p>`;
+  if (pack.shell === "library")
+    host.innerHTML = host.innerHTML.replaceAll("교실", "도서관");
   const stage = host.querySelector<HTMLElement>(".classroom-3d-stage")!;
   const labels = host.querySelector<HTMLElement>(".classroom-3d-labels")!;
   const instruction = host.querySelector<HTMLElement>(
     ".classroom-3d-instruction",
   )!;
   const location = host.querySelector<HTMLElement>(".classroom-location-name")!;
+  location.textContent = STOPS[currentStop].name.replace("교실", pack.room);
   const movingLabel = host.querySelector<HTMLElement>(".classroom-3d-moving")!;
   const canvas = renderer.domElement;
   canvas.className = "classroom-3d-canvas";
@@ -134,6 +157,8 @@ export function createClassroomScene(
   const materials = new Set<THREE.Material>();
   const textures = new Set<THREE.Texture>();
   const objects: Landmark[] = [];
+  const deviceValues = { drawer: 0, lid: 0, door: 0 };
+  const deviceTargets = { drawer: 0, lid: 0, door: 0 };
   const clickableGroups = new Map<string, THREE.Group>();
   const palette = {
     cream: "#f7f3e7",
@@ -479,7 +504,13 @@ export function createClassroomScene(
     ctx.fillRect(0, 0, w, h);
     animalFace(ctx, 200, 200, 260, 0);
     text(ctx, "함께", 530, 165, 80);
-    text(ctx, "만들고 싶어", 530, 265, 56);
+    text(
+      ctx,
+      pack.shell === "library" ? "읽고 싶어" : "만들고 싶어",
+      530,
+      265,
+      56,
+    );
   });
   note.rotation.y = Math.PI / 2 - 0.35;
 
@@ -504,8 +535,10 @@ export function createClassroomScene(
       }
   });
   cipher.rotation.x = -Math.PI / 2;
-  box(desk, [1.35, 0.18, 0.3], [0, 0.71, 0.47], "#c6a06c");
-  box(desk, [0.25, 0.045, 0.045], [0, 0.73, 0.64], palette.darkWood);
+  const drawer = new THREE.Group();
+  desk.add(drawer);
+  box(drawer, [1.35, 0.18, 0.3], [0, 0.71, 0.47], "#c6a06c");
+  box(drawer, [0.25, 0.045, 0.045], [0, 0.73, 0.64], palette.darkWood);
   const chair = new THREE.Group();
   desk.add(chair);
   chair.position.set(0, 0, -0.95);
@@ -554,7 +587,10 @@ export function createClassroomScene(
   const toolbox = makeObject("O06", [4.78, 0, -1.38]);
   table(toolbox, 0, 0, 1.1, 1.35);
   box(toolbox, [0.8, 0.4, 0.9], [0, 1.17, 0], "#789574");
-  box(toolbox, [0.85, 0.07, 0.96], [0, 1.4, 0], "#91ac83");
+  const lid = new THREE.Group();
+  toolbox.add(lid);
+  lid.position.set(0, 1.4, -0.48);
+  box(lid, [0.85, 0.07, 0.96], [0, 0, 0.48], "#91ac83");
   const toolLabel = panel(
     toolbox,
     [0.72, 0.28],
@@ -690,6 +726,40 @@ export function createClassroomScene(
     palette.yellow,
     10,
   ).rotation.z = Math.PI / 2;
+  const doorParts = [...door.children];
+  const doorLeaf = new THREE.Group();
+  doorLeaf.position.z = -0.825;
+  door.add(doorLeaf);
+  for (const part of doorParts) {
+    doorLeaf.add(part);
+    part.position.z += 0.825;
+  }
+  const lamps: THREE.MeshStandardMaterial[] = [];
+  for (let i = 0; i < 5; i++) {
+    const material = new THREE.MeshStandardMaterial({
+      color: "#aab49b",
+      emissive: "#6f9b3e",
+      emissiveIntensity: 0,
+    });
+    lamps.push(material);
+    const lamp = mesh(new THREE.SphereGeometry(0.08, 10, 8), material, door);
+    lamp.position.set(-0.25, 2.7, -0.48 + i * 0.24);
+  }
+  if (pack.shell === "library") {
+    for (const x of [-2.2, -0.65]) {
+      const shelf = new THREE.Group();
+      scene.add(shelf);
+      box(shelf, [1.25, 2.3, 0.3], [x, 1.15, 5.25], palette.wood);
+      for (let row = 0; row < 3; row++)
+        for (let book = 0; book < 7; book++)
+          box(
+            shelf,
+            [0.12, 0.48, 0.16],
+            [x - 0.47 + book * 0.15, 0.42 + row * 0.67, 5.01],
+            ["#7e9d83", "#e1c875", "#cb9c88"][book % 3],
+          );
+    }
+  }
   const exitSign = panel(door, [1.16, 0.34], [-0.16, 3.15, 0], (ctx, w, h) => {
     ctx.fillStyle = palette.green;
     ctx.fillRect(0, 0, w, h);
@@ -730,7 +800,7 @@ export function createClassroomScene(
     O11: { stop: "plant", label: [-4.7, 2.08, -3.8], look: [-4.7, 0.85, -3.8] },
     O12: { stop: "door", label: [5.13, 2.68, -3.65], look: [5.25, 1.5, -3.65] },
   };
-  for (const object of OBJECTS) {
+  for (const object of sceneObjects) {
     const config = anchors[object.id];
     const button = document.createElement("button");
     button.type = "button";
@@ -830,6 +900,17 @@ export function createClassroomScene(
   function render(now: number) {
     frame = 0;
     if (disposed || !active || !host.isConnected) return;
+    let deviceMoving = false;
+    for (const id of ["drawer", "lid", "door"] as const) {
+      const delta = deviceTargets[id] - deviceValues[id];
+      if (Math.abs(delta) > 0.002) {
+        deviceValues[id] += reducedMotion ? delta : delta * 0.18;
+        deviceMoving = true;
+      } else deviceValues[id] = deviceTargets[id];
+    }
+    drawer.position.z = deviceValues.drawer * 0.42;
+    lid.rotation.x = -deviceValues.lid * 1.1;
+    doorLeaf.rotation.y = -deviceValues.door * 1.2;
     if (tween) {
       const step = tween;
       const progress = Math.min(1, (now - step.started) / step.duration);
@@ -847,7 +928,13 @@ export function createClassroomScene(
     camera.updateMatrixWorld();
     renderer.render(scene, camera);
     positionLabels();
-    if (tween) requestDraw();
+    if (tween || deviceMoving) requestDraw();
+    if (!tween && !moving)
+      options.onPoseChange?.({
+        stop: currentStop,
+        yaw: normalizeAngle(yaw),
+        pitch,
+      });
   }
   const projected = new THREE.Vector3();
   function screenPoint(point: THREE.Vector3) {
@@ -1013,7 +1100,7 @@ export function createClassroomScene(
       // last safe stop so the position, place name, and next route agree.
       camera.position.set(STOPS[currentStop].x, 1.8, STOPS[currentStop].z);
     }
-    location.textContent = STOPS[currentStop].name;
+    location.textContent = STOPS[currentStop].name.replace("교실", pack.room);
     instruction.textContent = "물건이나 이름표를 누르면 가까이 가서 살펴봐요.";
   }
   function route(from: string, to: string) {
@@ -1064,6 +1151,7 @@ export function createClassroomScene(
     object?: Landmark,
     reset = false,
     destinationLook?: THREE.Vector3,
+    onArrival?: () => void,
   ) {
     if (!active || disposed || !STOPS[id]) return;
     cancelJourney();
@@ -1071,7 +1159,7 @@ export function createClassroomScene(
     const path = route(currentStop, id);
     setMoving(true);
     const destinationName = object
-      ? OBJECTS.find((item) => item.id === object.id)!.name
+      ? sceneObjects.find((item) => item.id === object.id)!.name
       : STOPS[id].name;
     movingLabel.textContent = object
       ? `${destinationName} 살펴보러 가요…`
@@ -1082,7 +1170,7 @@ export function createClassroomScene(
     const finish = () => {
       if (token !== journey || !active || disposed) return;
       currentStop = id;
-      location.textContent = STOPS[id].name;
+      location.textContent = STOPS[id].name.replace("교실", pack.room);
       const target = object?.look ?? destinationLook;
       const direction = target?.clone().sub(camera.position).normalize();
       const finalYaw = reset
@@ -1102,6 +1190,7 @@ export function createClassroomScene(
           "물건이나 이름표를 누르면 가까이 가서 살펴봐요.";
         requestDraw();
         if (object) options.onInspect(object.id);
+        else onArrival?.();
       });
     };
     const travel = (index: number) => {
@@ -1132,6 +1221,21 @@ export function createClassroomScene(
   }
   function resetView() {
     navigate("center", undefined, true);
+  }
+  function operateObject(id: string) {
+    const object = objects.find((o) => o.id === id);
+    if (!object) return;
+    if (
+      (id === "O04" && !state.drawerOpen) ||
+      (id === "O06" && !state.drawerOpen) ||
+      (id === "O12" && !state.finalKeyObtained)
+    )
+      return;
+    navigate(object.stop, undefined, false, object.look, () => {
+      const part = id === "O04" ? "drawer" : id === "O06" ? "lid" : "door";
+      deviceTargets[part] = deviceTargets[part] > 0.5 ? 0 : 1;
+      requestDraw();
+    });
   }
   function turn(delta: number) {
     if (!active || moving || disposed) return;
@@ -1228,6 +1332,17 @@ export function createClassroomScene(
   };
   document.addEventListener("visibilitychange", onVisibility);
   function setState(next: ClassroomState) {
+    if (state.drawerOpen !== next.drawerOpen)
+      deviceTargets.drawer = next.drawerOpen ? 1 : 0;
+    if (state.toolTaken !== next.toolTaken)
+      deviceTargets.lid = next.toolTaken ? 1 : 0;
+    if (state.exitUsed !== next.exitUsed)
+      deviceTargets.door = next.exitUsed ? 1 : 0;
+    lamps.forEach((material, i) => {
+      const found = !!next.solvedPuzzleIds[i];
+      material.color.set(found ? "#e9cf72" : "#aab49b");
+      material.emissiveIntensity = found ? 0.35 : 0;
+    });
     state = next;
     reducedMotion = next.reducedMotion;
     const wasActive = active;
@@ -1283,5 +1398,5 @@ export function createClassroomScene(
     host.replaceChildren();
   }
   resize();
-  return { setState, focusObject, resetView, resize, dispose };
+  return { setState, focusObject, resetView, operateObject, resize, dispose };
 }

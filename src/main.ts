@@ -11,6 +11,27 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
 }
 import "./ui/immersive.css";
 import "./ui/touch.css";
+import "./ui/learning.css";
+import {
+  createExperience,
+  DEFAULT_LESSON,
+  assistProgress,
+  checkCooperation,
+  cooperationAnswer,
+  isPracticeLesson,
+  progressMarker,
+  shouldSuggestHint,
+  practiceCard,
+  type LessonOptions,
+} from "./game/learning";
+import {
+  createSaveCoordinator,
+  readExperience,
+  writeExperience,
+  experienceKey,
+} from "./storage/session";
+import { adaptEpisodeHtml, episode, EPISODES } from "./content/episodes";
+import { deviceView, DEVICE_CHECKS, rolesDocument } from "./ui/learning";
 import { createFullscreenController } from "./ui/fullscreen";
 import type { ClassroomScene } from "./scene/classroom";
 import fontUrl from "./assets/classroom-font.woff2?url";
@@ -51,7 +72,7 @@ import {
   judgeP5,
   judgeFinal,
 } from "./puzzles/judges";
-import { FRAGMENTS } from "./content/data";
+import { FRAGMENTS, OBJECTS } from "./content/data";
 import {
   saveKey,
   loadProgress,
@@ -101,6 +122,18 @@ try {
   storage = window.localStorage;
 } catch {}
 const c: ViewContext = {
+  learning: null,
+  lessonDraft: { ...DEFAULT_LESSON },
+  roleCard: null,
+  hintSuggested: false,
+  deviceAudit: {
+    device: "기기 선택",
+    checks: [],
+    taps: 0,
+    swipes: 0,
+    multi: 0,
+    touchSeen: false,
+  },
   sceneMode: "3d",
   sceneFailed: false,
   immersive: false,
@@ -141,6 +174,23 @@ const phonePortrait = matchMedia(
   "(max-width: 600px) and (orientation: portrait)",
 );
 let portraitGuideDismissed = false;
+let lastMeaningful = Date.now(),
+  mistakes = 0,
+  lastMarker = "";
+let poseTimer: ReturnType<typeof setTimeout>;
+let saveBlocked = false;
+const saveCoordinator = createSaveCoordinator(
+  storage,
+  key,
+  () => {
+    saveBlocked = true;
+    if (c.state) c.state.paused = true;
+    c.running = false;
+    c.modal = "save-blocked";
+    queueMicrotask(() => render());
+  },
+  navigator.locks,
+);
 const route = () => location.hash.replace(/^#/, "") || "/";
 let classroom: ClassroomScene | null = null;
 let sceneHost: HTMLElement | null = null;
@@ -158,7 +208,15 @@ const fullscreen = createFullscreenController(root, () => {
     });
   classroom?.resize();
 });
+let pendingSceneOperation: string | null = null;
+function runPendingSceneOperation() {
+  if (!classroom || !pendingSceneOperation || c.objectId || c.modal) return;
+  const id = pendingSceneOperation;
+  pendingSceneOperation = null;
+  classroom.operateObject(id);
+}
 function disposeScene() {
+  pendingSceneOperation = null;
   sceneGeneration++;
   classroom?.dispose();
   classroom = null;
@@ -173,6 +231,9 @@ function syncScene() {
       solvedPuzzleIds: s.solvedPuzzleIds,
       finalCombined: s.finalCombined,
       finalKeyObtained: s.finalKeyObtained,
+      drawerOpen: s.solvedPuzzleIds.includes("P1"),
+      toolTaken: s.inventory.some((id) => id.endsWith("lens")),
+      exitUsed: s.exitUsed,
       active:
         active(s) &&
         route() === "/play" &&
@@ -201,6 +262,7 @@ function mountScene() {
   if (classroom) {
     syncScene();
     classroom.resize();
+    runPendingSceneOperation();
     return;
   }
   if (sceneLoading) return;
@@ -210,6 +272,20 @@ function mountScene() {
     .then(({ createClassroomScene }) => {
       if (generation !== sceneGeneration || !sceneHost) return;
       classroom = createClassroomScene(sceneHost, {
+        episodeId: c.learning?.options.episode ?? "classroom",
+        initialPose: c.learning?.view.pose ?? null,
+        onPoseChange: (pose) => {
+          if (
+            !c.learning ||
+            JSON.stringify(c.learning.view.pose) === JSON.stringify(pose)
+          )
+            return;
+          c.learning.view.pose = pose;
+          clearTimeout(poseTimer);
+          poseTimer = setTimeout(() => {
+            if (c.state && route() === "/play" && !saveBlocked) persist();
+          }, 600);
+        },
         onInspect: (id) => {
           void handle("inspect-direct", id);
         },
@@ -221,6 +297,7 @@ function mountScene() {
       sceneLoading = false;
       syncScene();
       classroom.resize();
+      runPendingSceneOperation();
     })
     .catch(() => {
       if (generation === sceneGeneration) failScene();
@@ -249,10 +326,41 @@ function tick() {
 }
 function persist() {
   if (!c.state) return;
+  if (!saveCoordinator.writable()) {
+    saveBlocked = true;
+    c.modal = "save-blocked";
+    return;
+  }
+  if (c.learning) {
+    c.learning.view = {
+      ...c.learning.view,
+      objectId: c.objectId,
+      device: c.device,
+      selected: c.selected,
+      sceneMode: c.sceneMode,
+    };
+    const marker = progressMarker(c.state);
+    if (marker !== lastMarker) {
+      lastMeaningful = Date.now();
+      mistakes = 0;
+      c.hintSuggested = false;
+      lastMarker = marker;
+    }
+  }
   if (!storage || !saveProgress(storage, key, c.state)) c.storageWarning = true;
-  else c.saved = true;
+  else {
+    saveCoordinator.wrote();
+    c.saved = true;
+    if (c.learning)
+      try {
+        writeExperience(storage, key, c.learning);
+      } catch {
+        c.storageWarning = true;
+      }
+  }
 }
 function say(message: string) {
+  if (/열리지|다시|아니에요|기호가 이어지지/.test(message)) mistakes++;
   c.toast = message;
   const status = document.getElementById("announcer");
   if (status) status.textContent = message;
@@ -284,6 +392,7 @@ function findFocus(value: string) {
   );
 }
 function render(focusKey?: string) {
+  if (saveBlocked && route() === "/play") c.modal = "save-blocked";
   if (
     route() === "/play" &&
     c.state &&
@@ -321,7 +430,8 @@ function render(focusKey?: string) {
   else if (current === "/result" && c.state?.phase === "escaped")
     content = result(c);
   else if (current === "/rankings") content = rankings(c);
-  else if (current === "/teacher") content = teacher();
+  else if (current === "/teacher") content = teacher(c);
+  else if (current === "/device-check") content = deviceView(c.deviceAudit!);
   else if (current === "/tools/results") content = toolsView(c);
   else content = home(c);
   document.documentElement.classList.toggle(
@@ -330,7 +440,15 @@ function render(focusKey?: string) {
   );
   document.body.classList.toggle("in-game", current === "/play");
   sceneHost?.remove();
-  root.innerHTML = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal ? `<dialog id="game-dialog" aria-labelledby="dialog-title">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${modalContent(c)}</dialog>` : ""}`;
+  const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal ? `<dialog id="game-dialog" aria-labelledby="dialog-title">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${modalContent(c)}</dialog>` : ""}`;
+  root.innerHTML = ["/play", "/intro", "/result"].includes(current)
+    ? adaptEpisodeHtml(
+        markup,
+        c.learning?.options.episode ?? "classroom",
+        OBJECTS,
+      )
+    : markup;
+  mountDeviceAudit();
   mountScene();
   const device = document.querySelector<HTMLElement>(".zoom-device");
   if (device && device.dataset.device === deviceKey)
@@ -384,6 +502,12 @@ function openModal(name: string) {
   render();
 }
 function closeModal() {
+  if (c.modal === "save-blocked") {
+    go("/");
+    c.modal = null;
+    render();
+    return;
+  }
   if (c.modal === "rotate") portraitGuideDismissed = true;
   if (c.modal === "pause") {
     resume();
@@ -454,6 +578,7 @@ async function bootstrap() {
       }),
     );
     await data();
+    saveBlocked = !(await saveCoordinator.acquire());
     const loaded = storage
       ? loadProgress(
           storage,
@@ -463,10 +588,27 @@ async function bootstrap() {
         )
       : { state: null, error: null };
     c.state = loaded.state;
+    c.learning = storage ? readExperience(storage, key) : null;
+    if (c.state && !c.learning)
+      c.learning = createExperience({ ...DEFAULT_LESSON, cooperation: false });
+    if (c.learning && c.state) {
+      c.lessonDraft = { ...c.learning.options };
+      c.objectId = c.learning.view.objectId;
+      c.device = c.learning.view.device;
+      c.selected = c.state.inventory.includes(
+        c.learning.view.selected as ItemId,
+      )
+        ? (c.learning.view.selected as ItemId)
+        : null;
+      c.sceneMode = c.learning.view.sceneMode;
+      c.reflection = null;
+      lastMarker = progressMarker(c.state);
+    }
     c.saved = Boolean(loaded.state);
     if (loaded.error)
       c.warnings.push(`이어하기 기록을 사용할 수 없어요: ${loaded.error}`);
     if (c.state?.paused && route() === "/play") c.modal = "pause";
+    if (saveBlocked && route() === "/play") c.modal = "save-blocked";
   } catch {
     c.loadError = true;
   } finally {
@@ -491,6 +633,61 @@ function download(value: unknown, name: string) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function saveText(text: string, name: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function openPrint(html: string) {
+  document.getElementById("lesson-print")?.remove();
+  const frame = document.createElement("iframe");
+  frame.id = "lesson-print";
+  frame.title = "인쇄할 모둠 카드";
+  frame.style.cssText =
+    "position:fixed;left:-2000px;top:0;width:900px;height:900px;border:0";
+  frame.onload = () => {
+    frame.contentWindow?.addEventListener("afterprint", () => frame.remove(), {
+      once: true,
+    });
+    frame.contentWindow?.print();
+  };
+  frame.srcdoc = html;
+  document.body.append(frame);
+}
+function mountDeviceAudit() {
+  const pad = document.getElementById("device-touch-pad");
+  if (!pad) return;
+  const pointers = new Map<number, { x: number; y: number }>(),
+    a = c.deviceAudit!;
+  const update = () => {
+    const t = document.getElementById("device-touch-stats");
+    if (t)
+      t.textContent = `터치 감지 ${a.touchSeen ? "있음" : "아직 없음"} · 누르기 ${a.taps} · 밀기 ${a.swipes} · 두 손가락 ${a.multi}`;
+  };
+  pad.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "touch") return;
+    a.touchSeen = true;
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.size === 2) a.multi++;
+    pad.setPointerCapture(event.pointerId);
+    update();
+  });
+  pad.addEventListener("pointerup", (event) => {
+    const p = pointers.get(event.pointerId);
+    if (!p) return;
+    Math.hypot(event.clientX - p.x, event.clientY - p.y) > 14
+      ? a.swipes++
+      : a.taps++;
+    pointers.delete(event.pointerId);
+    update();
+  });
+  pad.addEventListener("pointercancel", (event) =>
+    pointers.delete(event.pointerId),
+  );
 }
 async function run() {
   const s = c.state;
@@ -601,7 +798,159 @@ async function handle(action: string, value: string) {
   const previousToast = document.getElementById("toast");
   if (previousToast) previousToast.hidden = true;
   const s = c.state;
+  if (
+    saveBlocked &&
+    ![
+      "home",
+      "close-modal",
+      "save-retry",
+      "print",
+      "audit-check",
+      "audit-download",
+      "lesson",
+      "print-roles",
+      "download-pledge",
+      "print-pledge",
+    ].includes(action)
+  ) {
+    openModal("save-blocked");
+    return;
+  }
   switch (action) {
+    case "save-retry":
+      saveBlocked = !(await saveCoordinator.acquire());
+      if (!saveBlocked) {
+        disposeScene();
+        c.modal = null;
+        await bootstrap();
+        if (c.state && c.state.phase !== "intro" && c.state.phase !== "escaped")
+          c.modal = "pause";
+        render();
+      } else say("다른 탭을 닫은 뒤 다시 확인해 주세요.");
+      return;
+    case "lesson": {
+      const draft = c.lessonDraft!;
+      if (value === "official")
+        c.lessonDraft = {
+          ...DEFAULT_LESSON,
+          cooperation: false,
+          hints: "request",
+        };
+      else {
+        const [name, v] = value.split(":");
+        if (name === "grade" && ["guided", "standard"].includes(v))
+          draft.grade = v as LessonOptions["grade"];
+        if (name === "minutes" && [15, 25, 40].includes(Number(v)))
+          draft.minutes = Number(v) as 15 | 25 | 40;
+        if (name === "hints" && ["suggest", "request"].includes(v))
+          draft.hints = v as LessonOptions["hints"];
+        if (name === "cooperation") draft.cooperation = v === "true";
+        if (name === "episode" && Object.hasOwn(EPISODES, v))
+          draft.episode = v as LessonOptions["episode"];
+      }
+      render();
+      return;
+    }
+    case "role-card":
+      c.roleCard = value === "" ? null : Number(value);
+      if (
+        c.roleCard !== null &&
+        c.learning &&
+        c.roleCard >= 0 &&
+        c.roleCard < 4 &&
+        !c.learning.viewedRoles.includes(c.roleCard)
+      )
+        c.learning.viewedRoles.push(c.roleCard);
+      persist();
+      render();
+      return;
+    case "role-shift":
+      if (c.learning) {
+        c.learning.roleShift = (c.learning.roleShift + 1) % 4;
+        persist();
+        render();
+      }
+      return;
+    case "coop-code":
+      if (c.learning && !c.learning.coopSolved) {
+        const e = c.learning,
+          size = cooperationAnswer(e).length;
+        if (value === "지우기") e.coopCode = "";
+        else if (/^\d$/.test(value))
+          e.coopCode = (e.coopCode.length === size ? "" : e.coopCode) + value;
+        if (e.coopCode.length === size) {
+          e.coopSolved = checkCooperation(e);
+          if (!e.coopSolved)
+            say(
+              e.viewedRoles.includes(0) && e.viewedRoles.includes(1)
+                ? "두 친구의 기호 순서와 숫자를 다시 연결해요."
+                : "관찰 카드와 읽기 카드를 맡은 친구의 설명을 먼저 들어요.",
+            );
+          else say("친구의 설명을 연결해 도구함을 열었어요!");
+        }
+        persist();
+        render();
+      }
+      return;
+    case "pledge":
+      if (
+        c.learning &&
+        s?.phase === "escaped" &&
+        Number(value) >= 0 &&
+        Number(value) < 5
+      ) {
+        c.learning.pledge = Number(value);
+        persist();
+        render();
+      }
+      return;
+    case "print-roles":
+      openPrint(rolesDocument(c.learning ?? createExperience(c.lessonDraft)));
+      return;
+    case "print-pledge":
+      if (c.learning && c.learning.pledge !== null)
+        openPrint(practiceCard(c.learning));
+      return;
+    case "download-pledge":
+      if (c.learning && c.learning.pledge !== null)
+        saveText(
+          practiceCard(c.learning),
+          "우리-모둠-실천-카드.html",
+          "text/html;charset=utf-8",
+        );
+      return;
+    case "audit-check": {
+      const n = Number(value),
+        a = c.deviceAudit!;
+      if (n >= 0 && n < DEVICE_CHECKS.length)
+        a.checks = a.checks.includes(n)
+          ? a.checks.filter((i) => i !== n)
+          : [...a.checks, n];
+      render();
+      return;
+    }
+    case "audit-download": {
+      const a = c.deviceAudit!;
+      download(
+        {
+          type: "self-reported-device-check",
+          testDate: new Date().toLocaleDateString("sv-SE", {
+            timeZone: "Asia/Seoul",
+          }),
+          status:
+            a.touchSeen &&
+            a.device !== "기기 선택" &&
+            a.checks.length === DEVICE_CHECKS.length
+              ? "SELF_REPORTED_PASS"
+              : "NOT_RUN",
+          ...a,
+          items: DEVICE_CHECKS,
+          viewport: { width: innerWidth, height: innerHeight },
+        },
+        "교실-탈출-실기기-점검.json",
+      );
+      return;
+    }
     case "retry":
       await bootstrap();
       return;
@@ -648,8 +997,11 @@ async function handle(action: string, value: string) {
       portraitGuideDismissed = false;
       await data();
       disposeScene();
+      c.learning = createExperience(c.lessonDraft);
       c.state = createProgress(
-        c.config ?? PRACTICE_CONFIG,
+        isPracticeLesson(c.learning.options)
+          ? { ...(c.config ?? PRACTICE_CONFIG), activeRound: null }
+          : (c.config ?? PRACTICE_CONFIG),
         c.schools.some((x) => x.schoolId === c.setupSchool)
           ? c.setupSchool
           : null,
@@ -688,8 +1040,23 @@ async function handle(action: string, value: string) {
       render("scene-mode:");
       return;
     case "modal":
-      if (["bag", "notes", "hint", "settings", "objects"].includes(value))
+      if (
+        [
+          "bag",
+          "notes",
+          "hint",
+          "settings",
+          "objects",
+          "team",
+          "team-puzzle",
+        ].includes(value)
+      )
         openModal(value);
+      if (value === "hint") {
+        c.hintSuggested = false;
+        mistakes = 0;
+        lastMeaningful = Date.now();
+      }
       return;
     case "follow-clue":
       if (!s || !active(s)) return;
@@ -737,6 +1104,10 @@ async function handle(action: string, value: string) {
         return;
       }
       disposeScene();
+      try {
+        storage?.removeItem(experienceKey(key));
+        saveCoordinator.wrote();
+      } catch {}
       void fullscreen.exit();
       c.state = null;
       c.saved = false;
@@ -838,6 +1209,24 @@ async function handle(action: string, value: string) {
         classroom.focusObject(value);
         return;
       }
+    case "operate-device":
+      if (action === "operate-device") {
+        if (!["O04", "O06", "O12"].includes(value)) return;
+        if (
+          value === "O06" &&
+          c.learning?.options.cooperation &&
+          !c.learning.coopSolved
+        ) {
+          openModal("team-puzzle");
+          return;
+        }
+        c.objectId = null;
+        c.modal = null;
+        pendingSceneOperation = value;
+        render();
+        persist();
+        return;
+      }
     // The accessible 2D view uses the same investigation rules.
     case "inspect-direct": {
       panelReturnFocus = "inspect:" + value;
@@ -846,6 +1235,19 @@ async function handle(action: string, value: string) {
       c.device = "main";
       c.bonusHintLevel = 0;
       inspect(s, value);
+      if (c.learning) {
+        assistProgress(s, c.learning);
+        if (
+          c.learning.options.grade === "guided" &&
+          value === "O07" &&
+          unlocked(s, "P3") &&
+          s.puzzles.p3.path.length === 1 &&
+          !s.solvedPuzzleIds.includes("P3")
+        ) {
+          s.puzzles.p3.path = [10, 5, 0];
+          s.puzzles.p3.arrows = routeArrows(s.puzzles.p3.path);
+        }
+      }
       c.objectId = value;
       if (
         c.selected === "final-key" &&
@@ -859,6 +1261,7 @@ async function handle(action: string, value: string) {
       const selected = c.selected;
       const applied = selected ? applyItem(s, selected, value) : null;
       if (applied?.ok) c.selected = null;
+      if (c.learning) assistProgress(s, c.learning);
       persist();
       render();
       document.getElementById("panel-title")?.focus({ preventScroll: true });
@@ -872,11 +1275,16 @@ async function handle(action: string, value: string) {
       c.objectId = null;
       c.held = null;
       c.device = "main";
+      persist();
       render(panelReturnFocus);
       root.scrollTop = 0;
       window.scrollTo(0, 0);
       return;
     case "device":
+      if (value === "bonus" && c.learning?.options.minutes === 15) {
+        say("15분 활동은 필수 다섯 퍼즐에 집중해요.");
+        return;
+      }
       c.device = value === "bonus" ? "bonus" : "main";
       c.held = null;
       c.bonusHintLevel = 0;
@@ -994,6 +1402,10 @@ async function handle(action: string, value: string) {
       render();
       return;
     case "take":
+      if (c.learning?.options.cooperation && !c.learning.coopSolved) {
+        openModal("team-puzzle");
+        return;
+      }
       takeLens(s, value as ItemId);
       if (s.inventory.includes(value as ItemId)) c.selected = value as ItemId;
       persist();
@@ -1218,6 +1630,10 @@ root.addEventListener("click", (event) => {
 });
 root.addEventListener("input", (event) => {
   const input = event.target as HTMLInputElement;
+  if (input.dataset.input === "audit-device") {
+    c.deviceAudit!.device = input.value;
+    return;
+  }
   if (
     input.id === "bonus-code" &&
     c.state &&
@@ -1353,9 +1769,29 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => {
   tick();
   persist();
+  saveCoordinator.release();
+});
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) void bootstrap();
+});
+window.addEventListener("storage", (event) => {
+  if (event.key === key) saveCoordinator.observe();
 });
 setInterval(() => {
   tick();
+  if (
+    c.state &&
+    active(c.state) &&
+    route() === "/play" &&
+    !c.modal &&
+    !c.running &&
+    c.learning &&
+    !c.hintSuggested &&
+    shouldSuggestHint(Date.now() - lastMeaningful, mistakes, c.learning.options)
+  ) {
+    c.hintSuggested = true;
+    render();
+  }
   if (performance.now() - lastPersist > 5000 && clockActive) {
     persist();
     lastPersist = performance.now();
