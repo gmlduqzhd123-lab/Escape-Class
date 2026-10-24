@@ -1551,6 +1551,11 @@ dialog .bag-item {
 .note-entry small {
   font-size: 13px;
 }
+.note-entry h3 {
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0;
+}
 .skip-link {
   position: fixed;
   top: -100px;

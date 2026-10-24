@@ -130,7 +130,7 @@ export function modalContent(c: ViewContext) {
     case "team":
       return `<h2 id="dialog-title">우리 모둠의 역할</h2>${teamSummary(c)}`;
     case "navigation":
-      return `<h2 id="dialog-title">어디로 갈까요?</h2><p>장소를 누르면 그곳으로 이동해요. 바닥의 발자국도 누를 수 있어요.</p><div class="explore-choices">${b("칠판 앞으로", "go-place", "front")}${b("창가로", "go-place", "plant")}${b("교실 뒤편으로", "go-place", "back")}${b("가운데로 돌아가기", "go-place", "center")}</div>`;
+      return `<h2 id="dialog-title">어디로 갈까요?</h2><p>가고 싶은 곳을 눌러요.</p><div class="explore-choices">${b("칠판 앞으로", "go-place", "front")}${b("창가로", "go-place", "plant")}${b("교실 뒤편으로", "go-place", "back")}${b("가운데로 돌아가기", "go-place", "center")}</div>`;
     case "game-menu":
       return `<h2 id="dialog-title">탐색 메뉴</h2><p>단서를 다시 읽거나 모둠 역할을 확인해요.</p><div class="explore-choices">${b("단서 노트", "modal", "notes")}${b("물건 목록", "modal", "objects")}${b("우리 모둠 역할", "modal", "team")}${b("활동 설정", "modal", "settings")}${b(c.immersive ? "화면 줄이기" : "전체화면", "fullscreen", "", `aria-pressed="${c.immersive}"`)}${b(c.sceneMode === "3d" ? "그림으로 보기" : "입체로 보기", "scene-mode", "", `aria-label="${c.sceneMode === "3d" ? "그림 교실로 전환" : "입체 교실로 전환"}"`)}</div>`;
     case "reward":
@@ -161,10 +161,10 @@ export function modalContent(c: ViewContext) {
         CLUES.filter((x) => s?.discoveredClueIds.includes(x.id))
           .map(
             (x) =>
-              `<article class="note-entry"><strong>${esc(x.short)}</strong><p>${esc(x.text)}</p><small>뒷면: ${esc(x.back)}</small></article>`,
+              `<article class="note-entry"><h3>${esc(x.short)}</h3><p>${esc(x.text)}</p><small>뒷면: ${esc(x.back)}</small></article>`,
           )
           .join("") || "<p>아직 발견한 메모 카드가 없어요.</p>"
-      }<h3>조사한 물건</h3><ul>${OBJECTS.filter((o) =>
+      }<h3>조사한 물건</h3><ul class="notes-object-list">${OBJECTS.filter((o) =>
         s?.discoveredClueIds.includes(o.id),
       )
         .map((o) => `<li><strong>${o.name}</strong> · ${o.description}</li>`)
