@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OBJECTS } from "../content/data";
+import { PUZZLES } from "../game/model";
 import "./classroom.css";
 import { bindSceneGestures } from "./gestures";
 import { createFrameLoop } from "./frameLoop";
@@ -815,6 +816,46 @@ export function createClassroomScene(
     },
   );
   combination.rotation.y = -Math.PI / 2;
+  let combinationMarker = "";
+  function updateCombination(next: ClassroomState) {
+    const marker = `${next.solvedPuzzleIds.join(",")}:${next.finalCombined}`;
+    if (marker === combinationMarker) return;
+    combinationMarker = marker;
+    const map = (combination.material as THREE.MeshBasicMaterial)
+      .map as THREE.CanvasTexture;
+    const surface = map.image as HTMLCanvasElement;
+    const ctx = surface.getContext("2d")!;
+    ctx.fillStyle = "#fff6d7";
+    ctx.fillRect(0, 0, surface.width, surface.height);
+    text(
+      ctx,
+      pack.shell === "library" ? "책갈피 조합판" : "우정 조합판",
+      surface.width / 2,
+      90,
+      65,
+    );
+    PUZZLES.forEach((id, i) => {
+      const found = next.solvedPuzzleIds.includes(id);
+      text(
+        ctx,
+        found ? "★" : "☆",
+        130 + i * 126,
+        210,
+        95,
+        found ? "#a08343" : "#aab49b",
+      );
+    });
+    text(
+      ctx,
+      next.finalCombined
+        ? "지도 완성!"
+        : `조각 ${next.solvedPuzzleIds.length}/5`,
+      surface.width / 2,
+      320,
+      55,
+    );
+    map.needsUpdate = true;
+  }
 
   const anchors: Record<
     string,
@@ -1062,7 +1103,11 @@ export function createClassroomScene(
         // never pull an off-screen or behind-camera object into view.
         if (!point.visible && object.stop === currentStop) {
           const closeup = screenPoint(object.look);
-          if (closeup.visible) point = closeup;
+          if (closeup.visible) {
+            point = closeup;
+            // The exit's fallback label must leave the collected stars readable.
+            if (object.id === "O12") point = { ...point, y: point.y - 64 };
+          }
         }
         return {
           object,
@@ -1460,11 +1505,12 @@ export function createClassroomScene(
     if (state.exitUsed !== next.exitUsed)
       deviceTargets.door = next.exitUsed ? 1 : 0;
     lamps.forEach((material, i) => {
-      const found = !!next.solvedPuzzleIds[i];
+      const found = next.solvedPuzzleIds.includes(PUZZLES[i]);
       material.color.set(found ? "#e9cf72" : "#aab49b");
       material.emissiveIntensity = found ? 0.35 : 0;
     });
     state = next;
+    updateCombination(next);
     reducedMotion = next.reducedMotion;
     const wasActive = active;
     active = next.active;

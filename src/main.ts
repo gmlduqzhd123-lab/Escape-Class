@@ -15,12 +15,14 @@ import "./ui/learning.css";
 import "./ui/exploration.css";
 import {
   createExperience,
+  createHintClock,
   DEFAULT_LESSON,
   assistProgress,
   checkCooperation,
   cooperationAnswer,
   isPracticeLesson,
   progressMarker,
+  roleAssignments,
   shouldSuggestHint,
   practiceCard,
   type LessonOptions,
@@ -175,8 +177,8 @@ let toolContext = "";
 const phonePortrait = matchMedia(
   "(max-width: 600px) and (orientation: portrait), (max-width: 1024px) and (orientation: portrait) and (any-pointer: coarse)",
 );
-let lastMeaningful = Date.now(),
-  mistakes = 0,
+const hintClock = createHintClock();
+let mistakes = 0,
   lastMarker = "";
 let poseTimer: ReturnType<typeof setTimeout>;
 let saveBlocked = false;
@@ -227,6 +229,7 @@ function runPendingSceneOperation() {
   classroom.operateObject(id);
 }
 function disposeScene() {
+  clearTimeout(poseTimer);
   clearTimeout(sceneLoadTimer);
   sceneLoadTimer = undefined;
   pendingSceneOperation = null;
@@ -374,6 +377,7 @@ function tick() {
     !document.hidden &&
     !phonePortrait.matches,
   );
+  hintClock.update(now, clockActive && !c.modal && !c.running);
   const timer = document.getElementById("timer");
   if (timer && c.state) timer.textContent = time(c.state.elapsedMs);
 }
@@ -394,7 +398,7 @@ function persist() {
     };
     const marker = progressMarker(c.state);
     if (marker !== lastMarker) {
-      lastMeaningful = Date.now();
+      hintClock.reset();
       mistakes = 0;
       c.hintSuggested = false;
       lastMarker = marker;
@@ -810,6 +814,9 @@ function finishPuzzle(id: PuzzleId) {
     title: FRAGMENTS[PUZZLES.indexOf(id)] + " 조각을 찾았어요!",
     text: texts[PUZZLES.indexOf(id)],
     next: nexts[PUZZLES.indexOf(id)],
+    roleNotice: c.learning
+      ? `역할을 바꿔요. 다음 조작은 ${roleAssignments(c.learning, s).find((x) => x.role === "조작")!.student}번 친구예요.`
+      : undefined,
   };
   persist();
   openModal("reward");
@@ -869,6 +876,7 @@ async function handle(action: string, value: string) {
       "audit-download",
       "lesson",
       "print-roles",
+      "download-roles",
       "download-pledge",
       "print-pledge",
     ].includes(action)
@@ -921,6 +929,14 @@ async function handle(action: string, value: string) {
         !c.learning.viewedRoles.includes(c.roleCard)
       )
         c.learning.viewedRoles.push(c.roleCard);
+      if (
+        c.learning &&
+        !c.learning.coopSolved &&
+        checkCooperation(c.learning)
+      ) {
+        c.learning.coopSolved = true;
+        say("두 친구의 설명과 암호가 맞아요. 도구함을 열었어요!");
+      }
       persist();
       render();
       return;
@@ -965,7 +981,24 @@ async function handle(action: string, value: string) {
       }
       return;
     case "print-roles":
-      openPrint(rolesDocument(c.learning ?? createExperience(c.lessonDraft)));
+      openPrint(
+        rolesDocument(
+          route() === "/play" && c.learning
+            ? c.learning
+            : createExperience(c.lessonDraft),
+        ),
+      );
+      return;
+    case "download-roles":
+      saveText(
+        rolesDocument(
+          route() === "/play" && c.learning
+            ? c.learning
+            : createExperience(c.lessonDraft),
+        ),
+        "모둠-역할-카드.html",
+        "text/html;charset=utf-8",
+      );
       return;
     case "print-pledge":
       if (c.learning && c.learning.pledge !== null)
@@ -1084,7 +1117,7 @@ async function handle(action: string, value: string) {
           void fullscreen.enter();
           s.phase = "playing";
           s.paused = false;
-          lastMeaningful = Date.now();
+          hintClock.reset();
           mistakes = 0;
           c.hintSuggested = false;
         }
@@ -1132,7 +1165,7 @@ async function handle(action: string, value: string) {
       if (value === "hint") {
         c.hintSuggested = false;
         mistakes = 0;
-        lastMeaningful = Date.now();
+        hintClock.reset();
       }
       return;
     case "follow-clue":
@@ -1373,6 +1406,7 @@ async function handle(action: string, value: string) {
       c.device = value === "bonus" ? "bonus" : "main";
       c.held = null;
       c.bonusHintLevel = 0;
+      persist();
       render();
       return;
     case "memo-pick":
@@ -1834,7 +1868,7 @@ phonePortrait.addEventListener("change", () => {
       void handle("start", "");
       return;
     }
-    if (!phonePortrait.matches) lastMeaningful = Date.now();
+    if (!phonePortrait.matches) hintClock.reset();
     render("fullscreen:");
     classroom?.resize();
     tick();
@@ -1877,7 +1911,7 @@ setInterval(() => {
     !phonePortrait.matches &&
     c.learning &&
     !c.hintSuggested &&
-    shouldSuggestHint(Date.now() - lastMeaningful, mistakes, c.learning.options)
+    shouldSuggestHint(hintClock.idleMs, mistakes, c.learning.options)
   ) {
     c.hintSuggested = true;
     render();

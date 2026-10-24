@@ -27,7 +27,12 @@ export interface ViewContext {
   held: string | null;
   device: "main" | "bonus";
   bonusHintLevel: number;
-  reward: { title: string; text: string; next: string } | null;
+  reward: {
+    title: string;
+    text: string;
+    next: string;
+    roleNotice?: string;
+  } | null;
   state: Progress | null;
   config: GameConfig | null;
   schools: School[];
@@ -123,7 +128,7 @@ export function modalContent(c: ViewContext) {
     case "game-menu":
       return `<h2 id="dialog-title">탐색 메뉴</h2><p>단서를 다시 읽거나 모둠 역할을 확인해요.</p><div class="explore-choices">${b("단서 노트", "modal", "notes")}${b("물건 목록", "modal", "objects")}${b("우리 모둠 역할", "modal", "team")}${b("활동 설정", "modal", "settings")}${b(c.immersive ? "화면 줄이기" : "전체화면", "fullscreen", "", `aria-pressed="${c.immersive}"`)}${b(c.sceneMode === "3d" ? "그림으로 보기" : "입체로 보기", "scene-mode", "", `aria-label="${c.sceneMode === "3d" ? "그림 교실로 전환" : "입체 교실로 전환"}"`)}</div>`;
     case "reward":
-      return `<h2 id="dialog-title">${esc(c.reward?.title)}</h2><div class="reward-piece">${icon("key", 70)}</div><p>${esc(c.reward?.text)}</p>${b(`${OBJECTS.find((o) => o.id === c.reward?.next)?.name ?? "다음 단서"} 살펴보기 →`, "follow-clue", c.reward?.next ?? "", 'class="primary"')}${b("교실로 돌아가기", "reward-room")}`;
+      return `<h2 id="dialog-title">${esc(c.reward?.title)}</h2><div class="reward-piece">${icon("key", 70)}</div><p>${esc(c.reward?.text)}</p>${c.reward?.roleNotice ? `<p class="notice" role="status">${esc(c.reward.roleNotice)}</p>` : ""}${b(`${OBJECTS.find((o) => o.id === c.reward?.next)?.name ?? "다음 단서"} 살펴보기 →`, "follow-clue", c.reward?.next ?? "", 'class="primary"')}${b("교실로 돌아가기", "reward-room")}`;
     case "objects": {
       const target = s ? objective(s)[1] : null;
       const ordered = [

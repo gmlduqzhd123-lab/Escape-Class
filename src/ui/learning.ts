@@ -5,6 +5,7 @@ import {
   ROLES,
   PLEDGES,
   roleAssignments,
+  cooperationLegend,
   type Experience,
 } from "../game/learning";
 import { EPISODES, episode } from "../content/episodes";
@@ -29,7 +30,7 @@ export function lessonSetup(c: ViewContext) {
 export function teamSummary(c: ViewContext) {
   if (!c.learning || !c.state) return "";
   const people = roleAssignments(c.learning, c.state);
-  return `<section class="team-summary"><h3>이번에는 누가 맡을까요?</h3><p>이름 대신 모둠 자리 1~4번을 정해요. 퍼즐을 풀면 역할이 한 칸씩 바뀌어요.</p><div class="role-grid">${people.map((x) => `<div><strong>${x.student}번 친구</strong><span>${x.role.endsWith("기") ? x.role : x.role + "하기"}</span></div>`).join("")}</div>${b("역할 한 칸 바꾸기", "role-shift")}${b("역할 단서 카드 보기", "modal", "team-puzzle")}${b("역할 카드 인쇄", "print-roles")}</section>`;
+  return `<section class="team-summary"><h3>이번에는 누가 맡을까요?</h3><p>이름 대신 모둠 자리 1~4번을 정해요. 퍼즐을 풀면 역할이 한 칸씩 바뀌어요.</p><div class="role-grid">${people.map((x) => `<div><strong>${x.student}번 친구</strong><span>${x.role.endsWith("기") ? x.role : x.role + "하기"}</span></div>`).join("")}</div>${b("역할 한 칸 바꾸기", "role-shift")}${b("역할 단서 카드 보기", "modal", "team-puzzle")}${b("역할 카드 인쇄", "print-roles")}${b("역할 카드 파일 저장", "download-roles")}</section>`;
 }
 export function teamPuzzle(c: ViewContext) {
   const e = c.learning!;
@@ -39,11 +40,11 @@ export function teamPuzzle(c: ViewContext) {
     `도구함 기호 순서: ${episode(e.options.episode)
       .coopSequence.slice(0, guided ? 2 : 3)
       .join(" → ")}. 이 순서를 친구에게 말해요.`,
-    "기호 사전: 별은 4, 하트는 2, 원은 6이에요. 친구가 말한 기호를 숫자로 바꿔요.",
+    `기호 사전: ${cooperationLegend(e)}. 친구가 말한 기호를 숫자로 바꿔요.`,
     "관찰 친구의 순서와 읽기 친구의 숫자를 연결해요. 서로 같은 뜻으로 이해했는지 확인해요.",
     `${guided ? "두" : "세"} 자리 숫자를 입력해요. 관찰·읽기 친구의 설명을 모두 듣고 눌러요.`,
   ];
-  return `<h2 id="dialog-title">서로 설명해서 도구함 열기</h2><p>한 친구가 순서를, 다른 친구가 숫자를 맡아요. 화면 카드를 번갈아 보거나 인쇄해 나눠 가져요.</p><div class="role-card-tabs">${ROLES.map((r, i) => b(`${i + 1}. ${r} 카드`, "role-card", String(i), `aria-pressed="${selected === i}"`)).join("")}</div>${selected !== null ? `<article class="role-clue"><h3>${ROLES[selected]} 친구만 읽고 설명해요</h3><p>${cards[selected]}</p>${b("카드 덮기", "role-card", "")}</article>` : '<p class="notice">카드를 눌러 맡은 단서를 확인해요.</p>'}${e.coopSolved ? '<p class="opened-device">✓ 친구의 설명으로 도구함을 열었어요!</p>' + b("도구함 살펴보기 →", "inspect", "O06", 'class="primary"') : `<p>확인한 단서: 관찰 ${e.viewedRoles.includes(0) ? "✓" : "○"} · 읽기 ${e.viewedRoles.includes(1) ? "✓" : "○"}</p><output class="team-code" aria-live="polite">${esc(e.coopCode.padEnd(guided ? 2 : 3, "_"))}</output><div class="keypad team-keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "coop-code", String(n))).join("")}</div>`}${b("역할 카드 인쇄", "print-roles")}`;
+  return `<h2 id="dialog-title">서로 설명해서 도구함 열기</h2><p>한 친구가 순서를, 다른 친구가 숫자를 맡아요. 화면 카드를 번갈아 보거나 인쇄해 나눠 가져요.</p><div class="role-card-tabs">${ROLES.map((r, i) => b(`${i + 1}. ${r} 카드`, "role-card", String(i), `aria-pressed="${selected === i}"`)).join("")}</div>${selected !== null ? `<article class="role-clue"><h3>${ROLES[selected]} 친구만 읽고 설명해요</h3><p>${cards[selected]}</p>${b("카드 덮기", "role-card", "")}</article>` : '<p class="notice">카드를 눌러 맡은 단서를 확인해요.</p>'}${e.coopSolved ? '<p class="opened-device">✓ 친구의 설명으로 도구함을 열었어요!</p>' + b("도구함 살펴보기 →", "inspect", "O06", 'class="primary"') : `<p>확인한 단서: 관찰 ${e.viewedRoles.includes(0) ? "✓" : "○"} · 읽기 ${e.viewedRoles.includes(1) ? "✓" : "○"}</p><output class="team-code" aria-live="polite">${esc(e.coopCode.padEnd(guided ? 2 : 3, "_"))}</output><div class="keypad team-keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "coop-code", String(n))).join("")}</div>`}${b("역할 카드 인쇄", "print-roles")}${b("역할 카드 파일 저장", "download-roles")}`;
 }
 export function learningPanel(c: ViewContext, html: string) {
   const e = c.learning;
@@ -99,7 +100,11 @@ export function learningPanel(c: ViewContext, html: string) {
       (c.objectId === "O12" && c.state.finalKeyObtained))
   )
     html += b(
-      "3D에서 장치 움직여 보기",
+      c.objectId === "O04"
+        ? "서랍 열고 닫기"
+        : c.objectId === "O06"
+          ? "도구함 뚜껑 열고 닫기"
+          : "출구 문 열고 닫기",
       "operate-device",
       c.objectId!,
       'class="operate-device"',
@@ -114,7 +119,7 @@ export function rolesDocument(e: Experience) {
   const seq = episode(e.options.episode)
     .coopSequence.slice(0, e.options.grade === "guided" ? 2 : 3)
     .join(" → ");
-  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>모둠 역할 카드</title><style>body{font-family:system-ui,'Malgun Gothic',sans-serif;color:#254e45;padding:24px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:20px}article{border:2px dashed #6e855c;border-radius:16px;padding:25px;break-inside:avoid}p{font-size:22px;line-height:1.8}</style><h1>나눠 가지고 서로 설명해요</h1><p>${episode(e.options.episode).title}</p><div class="cards">${[`${seq} 순서로 기호를 읽어 주세요.`, `별=4 · 하트=2 · 원=6. 친구가 말한 기호를 숫자로 바꿔요.`, `두 친구의 설명을 연결하고 서로 확인해요.`, `친구의 설명을 들은 뒤 ${e.options.grade === "guided" ? 2 : 3}자리 암호를 눌러요.`].map((t, i) => `<article><h2>${i + 1}. ${ROLES[i]} 친구</h2><p>${t}</p></article>`).join("")}</div></html>`;
+  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>모둠 역할 카드</title><style>body{font-family:system-ui,'Malgun Gothic',sans-serif;color:#254e45;padding:24px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:20px}article{border:2px dashed #6e855c;border-radius:16px;padding:25px;break-inside:avoid}p{font-size:22px;line-height:1.8}</style><h1>나눠 가지고 서로 설명해요</h1><p>${episode(e.options.episode).title}</p><div class="cards">${[`${seq} 순서로 기호를 읽어 주세요.`, `${cooperationLegend(e)}. 친구가 말한 기호를 숫자로 바꿔요.`, `두 친구의 설명을 연결하고 서로 확인해요.`, `친구의 설명을 들은 뒤 ${e.options.grade === "guided" ? 2 : 3}자리 암호를 눌러요.`].map((t, i) => `<article><h2>${i + 1}. ${ROLES[i]} 친구</h2><p>${t}</p></article>`).join("")}</div></html>`;
 }
 export const DEVICE_CHECKS = [
   "가로로 돌렸을 때 안내가 닫히고 교실이 보여요.",

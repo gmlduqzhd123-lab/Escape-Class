@@ -11,9 +11,12 @@ import {
   DEFAULT_LESSON,
   practiceCard,
   isPracticeLesson,
+  createHintClock,
+  cooperationLegend,
 } from "../src/game/learning";
 import { adaptEpisodeHtml, EPISODES } from "../src/content/episodes";
 import { OBJECTS } from "../src/content/data";
+import { rolesDocument } from "../src/ui/learning";
 import { createProgress, PRACTICE_CONFIG } from "../src/game/model";
 import { inspect, pickMemo, solve } from "../src/game/engine";
 import { validateProgress } from "../src/storage/progress";
@@ -34,6 +37,41 @@ class MemoryStore {
     this.data.delete(k);
   }
 }
+test("hint idle clock excludes dialog, pause and hidden intervals and resets after progress", () => {
+  const clock = createHintClock();
+  clock.update(0, true);
+  clock.update(30000, false);
+  assert.equal(clock.idleMs, 30000);
+  clock.update(630000, true);
+  assert.equal(clock.idleMs, 30000);
+  clock.update(660000, true);
+  assert.equal(
+    shouldSuggestHint(clock.idleMs, 0, { ...DEFAULT_LESSON, grade: "guided" }),
+    true,
+  );
+  clock.reset();
+  assert.equal(clock.idleMs, 0);
+  clock.update(670000, true);
+  assert.equal(clock.idleMs, 10000);
+});
+test("every episode's printed and on-screen symbol dictionary matches its cooperative answer", () => {
+  for (const id of Object.keys(EPISODES) as (keyof typeof EPISODES)[]) {
+    for (const grade of ["guided", "standard"] as const) {
+      const e = createExperience({ ...DEFAULT_LESSON, episode: id, grade });
+      const pack = EPISODES[id];
+      assert.equal(
+        cooperationAnswer(e),
+        pack.coopSequence
+          .slice(0, grade === "guided" ? 2 : 3)
+          .map((s) => pack.coopDigits[s])
+          .join(""),
+      );
+      for (const entry of cooperationLegend(e).split(" · "))
+        assert.ok(rolesDocument(e).includes(entry));
+      assert.ok(rolesDocument(e).includes(pack.title));
+    }
+  }
+});
 test("cooperative code requires the observation and reading cards, not a guessed number alone", () => {
   const e = createExperience();
   e.coopCode = "426";
@@ -195,6 +233,14 @@ test("library rendering preserves object IDs/actions and changes authored story 
   assert.match(changed, /data-value="O02"/);
   assert.match(changed, /data-action="inspect"/);
   assert.equal(Object.keys(EPISODES.library.objects).length, 12);
+  assert.equal(
+    adaptEpisodeHtml(
+      "바구니 옆에서 우정 조각 · 그림 책상 암호판 · ← 교실로",
+      "library",
+      OBJECTS,
+    ),
+    "반납함 옆에서 책갈피 조각 · 독서대 암호판 · ← 도서관으로",
+  );
 });
 test("pledge export contains the chosen practice and no names, scores or script", () => {
   const e = createExperience();

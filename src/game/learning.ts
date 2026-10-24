@@ -129,11 +129,16 @@ export function validateExperience(value: unknown): Experience {
   return structuredClone(v);
 }
 export function cooperationAnswer(e: Experience) {
-  const digits: Record<string, string> = { 별: "4", 하트: "2", 원: "6" };
-  return episode(e.options.episode)
-    .coopSequence.slice(0, e.options.grade === "guided" ? 2 : 3)
-    .map((symbol) => digits[symbol])
+  const pack = episode(e.options.episode);
+  return pack.coopSequence
+    .slice(0, e.options.grade === "guided" ? 2 : 3)
+    .map((symbol) => pack.coopDigits[symbol])
     .join("");
+}
+export function cooperationLegend(e: Experience) {
+  return Object.entries(episode(e.options.episode).coopDigits)
+    .map(([symbol, digit]) => `${symbol}=${digit}`)
+    .join(" · ");
 }
 export function checkCooperation(e: Experience) {
   return (
@@ -161,6 +166,25 @@ export function shouldSuggestHint(
     o.hints === "suggest" &&
     (mistakes >= 3 || idleMs >= (o.grade === "guided" ? 60000 : 90000))
   );
+}
+/** Count time spent exploring, excluding pauses, dialogs and hidden tabs. */
+export function createHintClock() {
+  let last: number | null = null;
+  let enabled = false;
+  let idleMs = 0;
+  return {
+    update(now: number, active: boolean) {
+      if (last !== null && enabled) idleMs += Math.max(0, now - last);
+      last = now;
+      enabled = active;
+    },
+    reset() {
+      idleMs = 0;
+    },
+    get idleMs() {
+      return idleMs;
+    },
+  };
 }
 export function assistProgress(s: Progress, e: Experience) {
   if (e.options.grade !== "guided") return;
