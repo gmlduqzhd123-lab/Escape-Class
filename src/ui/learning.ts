@@ -1,3 +1,4 @@
+import { inlineFeedback } from "./visibility";
 import type { ViewContext } from "./views";
 import { button as b, esc } from "./helpers";
 import {
@@ -62,7 +63,7 @@ export function teamPuzzle(c: ViewContext) {
       : "";
   const keypad =
     selected === null && ready
-      ? `<div class="coop-entry"><div class="coop-code-context"><h3 tabindex="-1" class="coop-input-title">${people[3].student}번 조작 친구가 암호를 눌러요</h3><p class="coop-stage">3/3 · 두 단서를 숫자로 바꿔요.</p><output class="team-code" aria-live="polite">${esc(e.coopCode.padEnd(guided ? 2 : 3, "_"))}</output>${b("단서 다시 보기", "role-card", "0", 'class="coop-recall"')}</div><div class="keypad team-keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "coop-code", String(n))).join("")}</div></div>`
+      ? `<div class="coop-entry"><div class="coop-code-context"><h3 tabindex="-1" class="coop-input-title">${people[3].student}번 조작 친구가 암호를 눌러요</h3><p class="coop-stage">${inlineFeedback(c.toast, "3/3 · 두 단서를 숫자로 바꿔요.")}</p><output class="team-code" aria-live="polite">${esc(e.coopCode.padEnd(guided ? 2 : 3, "_"))}</output>${b("단서 다시 보기", "role-card", "0", 'class="coop-recall"')}</div><div class="keypad team-keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "coop-code", String(n))).join("")}</div></div>`
       : "";
   return `<h2 id="dialog-title">친구와 도구함 열기</h2>${e.coopSolved ? '<p class="opened-device">✓ 두 친구의 단서를 맞췄어요!</p>' + b("렌즈 찾으러 가기 →", "inspect", "O06", 'class="primary"') : `${selected === null && ready ? "" : `<p class="notice">${selected !== null && selected >= 2 ? "다른 역할 도움 · 선택" : selected === null && ready ? "3/3 · 두 단서를 숫자로 바꿔요." : selected === 1 ? "2/3 · 숫자 단서를 읽어요." : "1/3 · 기호 순서를 읽어요."}</p>`}${selected === null && ready ? "" : `<div class="role-card-tabs">${tab(0)}${tab(1)}</div>`}${card}${keypad}${selected === null && !ready ? b("첫 번째 단서 읽기 →", "role-card", "0", 'class="primary"') : ""}`}<details class="optional-controls" data-disclosure="coop-extras"><summary>다른 역할·인쇄 카드 · 선택</summary><div class="role-card-tabs">${tab(2)}${tab(3)}</div>${selected !== null && selected >= 2 ? `<article class="role-clue"><h3 tabindex="-1">${people[selected].student}번 ${ROLES[selected]} 친구가 읽어요</h3><p>${cards[selected]}</p>${b(e.coopSolved ? "설명 카드 닫기" : "두 단서로 돌아가기", "role-card", ready ? "" : "0")}</article>` : ""}${b("역할 카드 인쇄", "print-roles")}${b("역할 카드 파일 저장", "download-roles")}</details>`;
 }

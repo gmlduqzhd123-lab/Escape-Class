@@ -1,3 +1,4 @@
+import { inlineFeedback } from "./visibility";
 import { renderPlay, hintTarget, objective } from "./experience";
 import { lessonSetup, teamSummary, teamPuzzle, pledgeView } from "./learning";
 import type { DeviceAudit } from "./learning";
@@ -117,7 +118,7 @@ export function toolsView(c: ViewContext) {
 export function modalShell(c: ViewContext) {
   const html = modalContent(c);
   const title = html.match(/^<h2\b[^>]*>[\s\S]*?<\/h2>/)?.[0] ?? "";
-  return `<div class="dialog-actions">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${title}</div>${html.slice(title.length)}`;
+  return `<div class="dialog-actions">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${title}</div>${html.includes("data-inline-feedback") ? "" : inlineFeedback(c.toast)}${html.slice(title.length)}`;
 }
 export function modalContent(c: ViewContext) {
   const s = c.state;

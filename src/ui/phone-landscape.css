@@ -6,11 +6,28 @@
 .phone-scroll-hint {
   display: none;
 }
+.inline-feedback[hidden],
+.zoom-top > .inline-feedback,
+.has-open-dialog > #toast {
+  display: none;
+}
+#game-dialog > .inline-feedback:not([hidden]) {
+  display: block;
+  margin: 8px 0;
+}
+.inline-feedback.has-feedback {
+  color: var(--green-dark, #234c42);
+  background: #e7eedc;
+  border-radius: 10px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
 
 @media (orientation: landscape) and (max-height: 600px) and (max-width: 1000px) {
   .in-game #app {
     overscroll-behavior-y: contain;
-    scroll-padding-block: 64px 16px;
+    scroll-padding-block: var(--device-scroll-top, 64px) 16px;
+    overflow-anchor: none;
     -webkit-overflow-scrolling: touch;
   }
   #app .escape-play button,
@@ -59,7 +76,16 @@
     min-height: 56px;
     padding: 4px 0;
     gap: 12px;
+    flex-wrap: wrap;
     background: var(--paper);
+  }
+  #app.has-device-panel > #toast {
+    display: none;
+  }
+  #app .zoom-top > .inline-feedback:not([hidden]) {
+    display: block;
+    flex: 1 0 100%;
+    font-size: 16px;
   }
   #app .zoom-top h2 {
     font-size: 18px;
@@ -82,7 +108,7 @@
     padding: 14px 12px;
   }
   #app .zoom-device button {
-    scroll-margin-block: 64px 12px;
+    scroll-margin-block: 8px 12px;
   }
   #app .zoom-device p {
     font-size: 18px;
@@ -186,7 +212,7 @@
     max-height: calc(100dvh - 12px);
     padding: 14px 16px;
     overscroll-behavior: contain;
-    scroll-padding-block: 56px 12px;
+    scroll-padding-block: var(--dialog-scroll-top, 78px) 12px;
     -webkit-overflow-scrolling: touch;
   }
   #game-dialog .dialog-actions {
@@ -272,6 +298,10 @@
   #game-dialog .coop-stage {
     font-size: 16px;
     margin: 8px 0;
+  }
+  #game-dialog .coop-stage .inline-feedback {
+    display: block;
+    font-size: 16px;
   }
   #game-dialog .team-code {
     font-size: 32px;

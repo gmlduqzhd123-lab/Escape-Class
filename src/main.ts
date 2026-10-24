@@ -36,6 +36,7 @@ import {
 } from "./storage/session";
 import { adaptEpisodeHtml, episode, EPISODES } from "./content/episodes";
 import { deviceView, DEVICE_CHECKS, rolesDocument } from "./ui/learning";
+import { updateFeedback, watchStickyHeaders } from "./ui/visibility";
 import { createFullscreenController } from "./ui/fullscreen";
 import type { ClassroomScene } from "./scene/classroom";
 import fontUrl from "./assets/classroom-font.woff2?url";
@@ -202,6 +203,7 @@ let sceneLoading = false;
 let sceneGeneration = 0;
 let sceneLoadTimer: ReturnType<typeof setTimeout> | undefined;
 let clearScrollCue = () => {};
+let clearStickyHeaders = () => {};
 const fullscreen = createFullscreenController(root, () => {
   c.immersive =
     document.fullscreenElement === root ||
@@ -421,6 +423,7 @@ function persist() {
 function say(message: string) {
   if (/열리지|다시|아니에요|기호가 이어지지/.test(message)) mistakes++;
   c.toast = message;
+  updateFeedback(root, message);
   const status = document.getElementById("announcer");
   if (status) status.textContent = message;
   const toast = document.getElementById("toast");
@@ -431,6 +434,7 @@ function say(message: string) {
   clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => {
     c.toast = "";
+    updateFeedback(root, "");
     const t = document.getElementById("toast");
     if (t) t.hidden = true;
   }, 6500);
@@ -451,6 +455,7 @@ function findFocus(value: string) {
   );
 }
 function render(focusKey?: string) {
+  clearStickyHeaders();
   clearScrollCue();
   clearScrollCue = () => {};
   const expanded = new Set(
@@ -513,6 +518,14 @@ function render(focusKey?: string) {
         OBJECTS,
       )
     : markup;
+  root.classList.toggle(
+    "has-device-panel",
+    !!root.querySelector(".zoom-device"),
+  );
+  root.classList.toggle(
+    "has-open-dialog",
+    !!root.querySelector("#game-dialog"),
+  );
   mountDeviceAudit();
   mountScene();
   root
@@ -564,6 +577,7 @@ function render(focusKey?: string) {
       closeModal();
     });
   }
+  clearStickyHeaders = watchStickyHeaders(root);
   const restored = focus ? findFocus(focus) : null;
   if (
     restored &&
@@ -911,6 +925,7 @@ async function handle(action: string, value: string) {
   tick();
   clearTimeout(toastTimeout);
   c.toast = "";
+  updateFeedback(root, "");
   const previousToast = document.getElementById("toast");
   if (previousToast) previousToast.hidden = true;
   const s = c.state;
