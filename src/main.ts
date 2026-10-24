@@ -12,6 +12,7 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
 import "./ui/immersive.css";
 import "./ui/touch.css";
 import "./ui/learning.css";
+import "./ui/exploration.css";
 import {
   createExperience,
   DEFAULT_LESSON,
@@ -209,14 +210,22 @@ const fullscreen = createFullscreenController(root, () => {
   classroom?.resize();
 });
 let pendingSceneOperation: string | null = null;
+let pendingScenePlace: string | null = null;
 function runPendingSceneOperation() {
-  if (!classroom || !pendingSceneOperation || c.objectId || c.modal) return;
+  if (!classroom || c.objectId || c.modal) return;
+  if (pendingScenePlace) {
+    const place = pendingScenePlace;
+    pendingScenePlace = null;
+    classroom.moveToPlace(place);
+  }
+  if (!pendingSceneOperation) return;
   const id = pendingSceneOperation;
   pendingSceneOperation = null;
   classroom.operateObject(id);
 }
 function disposeScene() {
   pendingSceneOperation = null;
+  pendingScenePlace = null;
   sceneGeneration++;
   classroom?.dispose();
   classroom = null;
@@ -440,7 +449,7 @@ function render(focusKey?: string) {
   );
   document.body.classList.toggle("in-game", current === "/play");
   sceneHost?.remove();
-  const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal ? `<dialog id="game-dialog" aria-labelledby="dialog-title">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${modalContent(c)}</dialog>` : ""}`;
+  const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${modalContent(c)}</dialog>` : ""}`;
   root.innerHTML = ["/play", "/intro", "/result"].includes(current)
     ? adaptEpisodeHtml(
         markup,
@@ -484,6 +493,7 @@ function render(focusKey?: string) {
   else if (!dialog && focus) {
     const fallback =
       document.querySelector<HTMLElement>("#panel-title") ??
+      document.querySelector<HTMLElement>(".explore-goal") ??
       document.querySelector<HTMLElement>('[data-scene-control="center"]') ??
       document.querySelector<HTMLElement>("main h1");
     if (fallback) {
@@ -1035,6 +1045,7 @@ async function handle(action: string, value: string) {
       await fullscreen.toggle();
       return;
     case "scene-mode":
+      c.modal = null;
       c.sceneMode = c.sceneMode === "3d" ? "2d" : "3d";
       c.sceneFailed = false;
       render("scene-mode:");
@@ -1049,6 +1060,8 @@ async function handle(action: string, value: string) {
           "objects",
           "team",
           "team-puzzle",
+          "navigation",
+          "game-menu",
         ].includes(value)
       )
         openModal(value);
@@ -1200,6 +1213,14 @@ async function handle(action: string, value: string) {
   }
   if (!s || !active(s) || route() !== "/play") return;
   switch (action) {
+    case "go-place":
+      if (!["front", "plant", "back", "center"].includes(value)) return;
+      c.modal = null;
+      c.objectId = null;
+      pendingScenePlace = value;
+      render();
+      persist();
+      return;
     case "inspect":
       if (c.sceneMode === "3d" && classroom) {
         c.modal = null;
@@ -1389,6 +1410,7 @@ async function handle(action: string, value: string) {
       if (s.inventory.includes(value as ItemId)) {
         c.selected = c.selected === value ? null : (value as ItemId);
         c.modal = null;
+        persist();
         render("select-item:" + value);
         say(
           c.selected

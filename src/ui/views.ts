@@ -77,7 +77,7 @@ export function schoolOptions(
   return `${b(`학교 없이 체험 ${c.setupSchool === null ? "✓ 선택됨" : ""}`, "choose-school", "", `aria-pressed="${c.setupSchool === null}"`)}${matches.map((s) => b(`${esc(s.name)} ${c.setupSchool === s.schoolId ? "✓ 선택됨" : ""}`, "choose-school", s.schoolId, `aria-pressed="${c.setupSchool === s.schoolId}"`)).join("")}${!c.schools.length ? '<p class="muted">아직 등록된 학교가 없어요. 학교 없이 체험을 선택해 주세요.</p>' : !matches.length ? "<p>검색 결과가 없어요.</p>" : ""}`;
 }
 export function intro(c: ViewContext) {
-  return `<main id="main" class="narrow"><span class="eyebrow">모험의 시작 · 2 / 2</span><h1>우정 열쇠가 사라졌어요!</h1><div class="story-characters">${["토끼", "곰", "여우", "다람쥐"].map((n) => animal(n, 80)).join("")}</div><div class="surface"><p>친구사랑 축제의 마지막 활동은 가상 교실 방탈출 챌린지!</p><p>교실의 장치를 풀면 다섯 개의 우정 조각을 얻을 수 있어요. 조각을 연결해 마지막 열쇠가 숨겨진 곳을 찾아요.</p><p><strong>진짜 교실 문은 잠그지 않아요.</strong> 언제든 쉬거나 어른에게 도움을 요청할 수 있어요.</p></div><div class="instructions"><div>${icon("note", 32)}<h2>둘러보기</h2><p>좌우 버튼으로 교실을 둘러봐요. 화면을 밀어도 좋아요.</p></div><div>${icon("bag", 32)}<h2>이동하기</h2><p>바닥 표시를 누르면 그곳으로 이동해요. 가운데로 언제든 돌아와요.</p></div><div>${icon("hint", 32)}<h2>살펴보기</h2><p>물건이나 이름을 눌러 살펴봐요. 못 찾겠으면 ‘다음’ 표시나 위쪽 ‘살펴보기’를 눌러요.</p></div></div><p>타이머는 아직 멈춰 있어요. 화면 줄이기 버튼으로 언제든 전체화면을 나갈 수 있어요. 역할을 돌아가며 맡아 봐요: 관찰하기 · 단서 읽기 · 이유 설명하기 · 기기 조작하기.</p>${b("전체화면으로 게임 시작 →", "start", "", 'class="primary large"')}</main>`;
+  return `<main id="main" class="narrow"><span class="eyebrow">모험의 시작 · 2 / 2</span><h1>우정 열쇠가 사라졌어요!</h1><div class="story-characters">${["토끼", "곰", "여우", "다람쥐"].map((n) => animal(n, 80)).join("")}</div><div class="surface"><p>친구사랑 축제의 마지막 활동은 가상 교실 방탈출 챌린지!</p><p>교실의 장치를 풀면 다섯 개의 우정 조각을 얻을 수 있어요. 조각을 연결해 마지막 열쇠가 숨겨진 곳을 찾아요.</p><p><strong>진짜 교실 문은 잠그지 않아요.</strong> 언제든 쉬거나 어른에게 도움을 요청할 수 있어요.</p></div><div class="instructions"><div>${icon("note", 32)}<h2>둘러보기</h2><p>좌우 버튼으로 교실을 둘러봐요. 화면을 밀어도 좋아요.</p></div><div>${icon("bag", 32)}<h2>이동하기</h2><p>이동 버튼이나 바닥 표시로 장소를 골라요. 이동 메뉴에서 가운데로 돌아올 수 있어요.</p></div><div>${icon("hint", 32)}<h2>살펴보기</h2><p>물건이나 이름을 눌러 살펴봐요. 못 찾겠으면 ‘다음’ 표시나 위쪽 ‘살펴보기’를 눌러요.</p></div></div><p>타이머는 아직 멈춰 있어요. 메뉴나 화면 줄이기 버튼으로 언제든 전체화면을 나갈 수 있어요. 역할을 돌아가며 맡아 봐요: 관찰하기 · 단서 읽기 · 이유 설명하기 · 기기 조작하기.</p>${b("전체화면으로 게임 시작 →", "start", "", 'class="primary large"')}</main>`;
 }
 export function play(c: ViewContext) {
   return renderPlay(c);
@@ -115,6 +115,10 @@ export function modalContent(c: ViewContext) {
       return c.learning ? teamPuzzle(c) : "";
     case "team":
       return `<h2 id="dialog-title">우리 모둠의 역할</h2>${teamSummary(c)}`;
+    case "navigation":
+      return `<h2 id="dialog-title">어디로 갈까요?</h2><p>장소를 누르면 그곳으로 이동해요. 바닥의 발자국도 누를 수 있어요.</p><div class="explore-choices">${b("칠판 앞으로", "go-place", "front")}${b("창가로", "go-place", "plant")}${b("교실 뒤편으로", "go-place", "back")}${b("가운데로 돌아가기", "go-place", "center")}</div>`;
+    case "game-menu":
+      return `<h2 id="dialog-title">탐색 메뉴</h2><p>단서를 다시 읽거나 모둠 역할을 확인해요.</p><div class="explore-choices">${b("단서 노트", "modal", "notes")}${b("물건 목록", "modal", "objects")}${b("우리 모둠 역할", "modal", "team")}${b("활동 설정", "modal", "settings")}${b(c.immersive ? "화면 줄이기" : "전체화면", "fullscreen", "", `aria-pressed="${c.immersive}"`)}${b(c.sceneMode === "3d" ? "그림으로 보기" : "입체로 보기", "scene-mode", "", `aria-label="${c.sceneMode === "3d" ? "그림 교실로 전환" : "입체 교실로 전환"}"`)}</div>`;
     case "rotate":
       return `<div class="rotate-phone-art" aria-hidden="true"><span>▯</span><b>↷</b><span>▭</span></div><h2 id="dialog-title">휴대폰을 가로로 돌려 주세요</h2><p>가로로 돌리면 교실이 더 넓게 보이고 버튼을 누르기 편해요. 돌리면 이 안내는 저절로 닫혀요.</p><p class="muted">화면이 그대로라면 휴대폰의 화면 회전 잠금을 확인해요.</p>${b("세로로 계속하기", "close-modal", "", 'class="portrait-continue"')}`;
     case "reward":
@@ -139,7 +143,7 @@ export function modalContent(c: ViewContext) {
         .join("")}</div>`;
     }
     case "bag":
-      return `<h2 id="dialog-title">가방</h2><p>아래 아이템 칸에서 도구를 선택하고 사용할 물건을 눌러요.</p>${!s?.inventory.length ? "<p>아직 아이템이 없어요. 사물함이나 공용 도구함을 살펴봐요.</p>" : s.inventory.map((id) => b(`${icon(id === "final-key" ? "key" : "bag")} ${id === "final-key" ? "마지막 열쇠" : id === "shared-lens" ? "공용 렌즈" : "허락받은 렌즈"} ${c.selected === id ? "✓ 선택됨" : ""}`, "select-item", id, 'class="bag-item"')).join("")}`;
+      return `<h2 id="dialog-title">가방</h2><p>도구를 고르면 가방이 닫혀요. 사용할 물건을 눌러요. 선택한 도구를 다시 고르면 선택이 풀려요.</p>${!s?.inventory.length ? "<p>아직 도구가 없어요. 사물함이나 공용 도구함을 살펴봐요.</p>" : `<div class="explore-choices">${s.inventory.map((id) => b(`${icon(id === "final-key" ? "key" : "bag")} ${id === "final-key" ? "마지막 열쇠" : id === "shared-lens" ? "공용 렌즈" : "허락받은 렌즈"} ${c.selected === id ? "✓ 선택됨" : ""}`, "select-item", id, `class="bag-item" aria-pressed="${c.selected === id}"`)).join("")}</div>`}`;
     case "notes":
       return `<h2 id="dialog-title">단서 노트</h2>${teamSummary(c)}<p>조사한 내용은 패널을 닫아도 남아 있어요.</p>${
         CLUES.filter((x) => s?.discoveredClueIds.includes(x.id))

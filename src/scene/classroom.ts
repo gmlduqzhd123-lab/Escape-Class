@@ -21,6 +21,7 @@ export interface ClassroomScene {
   setState(state: ClassroomState): void;
   focusObject(id: string): void;
   resetView(): void;
+  moveToPlace(place: string): void;
   operateObject(id: string): void;
   resize(): void;
   dispose(): void;
@@ -980,8 +981,18 @@ export function createClassroomScene(
     const turnRect = host
       .querySelector(".classroom-3d-controls")!
       .getBoundingClientRect();
-    const labelBottom =
-      turnRect.top >= stageRect.top && turnRect.bottom <= stageRect.bottom
+    const fillRoom = host.closest(".room-fill");
+    const dockRect = fillRoom
+      ?.querySelector(".explore-dock")
+      ?.getBoundingClientRect();
+    const selectedRect = fillRoom
+      ?.querySelector(".explore-selected")
+      ?.getBoundingClientRect();
+    const labelBottom = dockRect
+      ? Math.min(dockRect.top, selectedRect?.top ?? Infinity) -
+        stageRect.top -
+        10
+      : turnRect.top >= stageRect.top && turnRect.bottom <= stageRect.bottom
         ? turnRect.top - stageRect.top - 8
         : stage.clientHeight;
     const candidates = objects
@@ -1030,6 +1041,8 @@ export function createClassroomScene(
     const buttonWidths = new Map(
       labelButtons.map((button) => [button, button.offsetWidth]),
     );
+    let shownLabels = 0;
+    const labelLimit = fillRoom ? (width <= 1024 ? 3 : 4) : Infinity;
     for (const { object, point, distance } of candidates) {
       const buttonWidth = Math.min(
         buttonWidths.get(object.button) || 148,
@@ -1045,9 +1058,15 @@ export function createClassroomScene(
           Math.abs(box.x - x) < (box.w + buttonWidth) / 2 + 8 &&
           Math.abs(box.y - y) < 54,
       );
-      const visible = point.visible && distance > 0.4 && !overlaps && !moving;
+      const visible =
+        point.visible &&
+        distance > 0.4 &&
+        !overlaps &&
+        !moving &&
+        shownLabels < labelLimit;
       object.button.hidden = !visible;
       if (visible) {
+        shownLabels++;
         object.button.style.left = `${x}px`;
         object.button.style.top = `${y}px`;
         occupied.push({ x, y, w: buttonWidth, h: 46 });
@@ -1259,11 +1278,12 @@ export function createClassroomScene(
       yaw = normalizeAngle(yaw);
     });
   }
-  const onControlClick = (event: Event) => {
-    const place = (event.target as HTMLElement).closest<HTMLElement>(
-      "[data-scene-place]",
-    )?.dataset.scenePlace;
-    if (place) {
+  function moveToPlace(place: string) {
+    if (place === "center") {
+      resetView();
+      return;
+    }
+    if (["front", "plant", "back"].includes(place)) {
       const nextObject = objects.find(
         (object) => object.id === state.objectiveId && object.stop === place,
       );
@@ -1275,6 +1295,14 @@ export function createClassroomScene(
             ? new THREE.Vector3(-4.7, 1.8, -3.8)
             : new THREE.Vector3(2.4, 2, 5.3));
       navigate(place, undefined, false, lookAt);
+    }
+  }
+  const onControlClick = (event: Event) => {
+    const place = (event.target as HTMLElement).closest<HTMLElement>(
+      "[data-scene-place]",
+    )?.dataset.scenePlace;
+    if (place) {
+      moveToPlace(place);
       return;
     }
     const control = (event.target as HTMLElement).closest<HTMLElement>(
@@ -1414,5 +1442,13 @@ export function createClassroomScene(
     host.replaceChildren();
   }
   resize();
-  return { setState, focusObject, resetView, operateObject, resize, dispose };
+  return {
+    setState,
+    focusObject,
+    resetView,
+    moveToPlace,
+    operateObject,
+    resize,
+    dispose,
+  };
 }
