@@ -214,6 +214,35 @@
     overscroll-behavior: contain;
     scroll-padding-block: var(--dialog-scroll-top, 78px) 12px;
     -webkit-overflow-scrolling: touch;
+    overflow-anchor: none;
+  }
+  #game-dialog .explore-choices > button {
+    min-height: 52px;
+    font-size: 18px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  #game-dialog .explore-choices > .bag-item {
+    margin: 0;
+    align-items: center;
+  }
+  #game-dialog .bag-item > svg {
+    flex-shrink: 0;
+  }
+  #game-dialog .hint-step {
+    scroll-margin-block: 8px;
+    padding: 12px;
+  }
+  #game-dialog .hint-step strong {
+    font-size: 18px;
+    line-height: 1.5;
+  }
+  #game-dialog .hint-step p {
+    margin: 8px 0 0;
+  }
+  #game-dialog .object-picker button small {
+    font-size: 16px;
+    line-height: 1.5;
   }
   #game-dialog .dialog-actions {
     display: flex;

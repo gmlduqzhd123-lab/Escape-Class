@@ -155,7 +155,7 @@ export function modalContent(c: ViewContext) {
         .join("")}</div>`;
     }
     case "bag":
-      return `<h2 id="dialog-title">가방</h2><p>도구를 고르면 가방이 닫혀요. 사용할 물건을 눌러요. 선택한 도구를 다시 고르면 선택이 풀려요.</p>${!s?.inventory.length ? "<p>아직 도구가 없어요. 사물함이나 공용 도구함을 살펴봐요.</p>" : `<div class="explore-choices">${s.inventory.map((id) => b(`${icon(id === "final-key" ? "key" : "bag")} ${id === "final-key" ? "마지막 열쇠" : id === "shared-lens" ? "공용 렌즈" : "허락받은 렌즈"} ${c.selected === id ? "✓ 선택됨" : ""}`, "select-item", id, `class="bag-item" aria-pressed="${c.selected === id}"`)).join("")}</div>`}`;
+      return `<h2 id="dialog-title">가방</h2><p>도구를 고른 뒤 사용할 물건을 눌러요. 다시 고르면 선택이 풀려요.</p>${!s?.inventory.length ? "<p>아직 도구가 없어요. 사물함이나 공용 도구함을 살펴봐요.</p>" : `<div class="explore-choices">${s.inventory.map((id) => b(`${icon(id === "final-key" ? "key" : "bag")} ${id === "final-key" ? "마지막 열쇠" : id === "shared-lens" ? "공용 렌즈" : "허락받은 렌즈"} ${c.selected === id ? "✓ 선택됨" : ""}`, "select-item", id, `class="bag-item" aria-pressed="${c.selected === id}"`)).join("")}</div>`}`;
     case "notes":
       return `<h2 id="dialog-title">단서 노트</h2><p>조사한 내용은 패널을 닫아도 남아 있어요.</p>${
         CLUES.filter((x) => s?.discoveredClueIds.includes(x.id))
@@ -183,7 +183,7 @@ export function modalContent(c: ViewContext) {
         .slice(0, level)
         .map(
           (text, i) =>
-            `<article class="hint-step"><strong>${i + 1}단계 · ${["살펴볼 위치", "연결 원리", "실제 해결 방법"][i]}</strong><p>${esc(text)}</p></article>`,
+            `<article class="hint-step" tabindex="-1" role="region" aria-label="${i + 1}단계 힌트"><strong>${i + 1}단계 · ${["살펴볼 위치", "연결 원리", "실제 해결 방법"][i]}</strong><p>${esc(text)}</p></article>`,
         )
         .join(
           "",

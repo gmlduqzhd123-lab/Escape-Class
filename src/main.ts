@@ -470,7 +470,10 @@ function render(focusKey?: string) {
   const focus = focusKey ?? a?.dataset.focus;
   const scroll = window.scrollY;
   const appScroll = root.scrollTop;
-  const dialogScroll = document.querySelector("dialog")?.scrollTop ?? 0;
+  const previousDialog =
+    document.querySelector<HTMLDialogElement>("#game-dialog");
+  const dialogScroll =
+    previousDialog?.dataset.kind === c.modal ? previousDialog.scrollTop : 0;
   const previousDevice = document.querySelector<HTMLElement>(".zoom-device");
   const deviceKey = previousDevice?.dataset.device;
   const deviceScroll = previousDevice?.scrollTop ?? 0;
@@ -614,8 +617,9 @@ function openModal(name: string) {
     if (checkCooperation(e)) e.coopSolved = true;
     persist();
   }
-  dialogReturnFocus =
-    (document.activeElement as HTMLElement)?.dataset.focus ?? "";
+  if (!c.modal)
+    dialogReturnFocus =
+      (document.activeElement as HTMLElement)?.dataset.focus ?? "";
   c.modal = name;
   render();
 }
@@ -1790,6 +1794,15 @@ async function handle(action: string, value: string) {
   }
   persist();
   render();
+  if (action === "next-hint") {
+    const step = document.querySelector<HTMLElement>(
+      "#game-dialog .hint-step:last-of-type",
+    );
+    if (step) {
+      step.focus({ preventScroll: true });
+      step.scrollIntoView({ block: "start", behavior: "instant" });
+    }
+  }
   if (c.objectId === "O04" && judgeP2(s)) finishPuzzle("P2");
   checkDevice();
   if (action === "sentence-start")
