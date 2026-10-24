@@ -1054,6 +1054,16 @@ async function handle(action: string, value: string) {
         c.learning.pledge = Number(value);
         persist();
         render();
+        if (
+          matchMedia(
+            "(orientation: landscape) and (max-height: 600px) and (max-width: 1000px)",
+          ).matches
+        ) {
+          const preview =
+            document.querySelector<HTMLElement>(".pledge-preview");
+          preview?.focus({ preventScroll: true });
+          preview?.scrollIntoView({ block: "start", behavior: "instant" });
+        }
       }
       return;
     case "print-roles":

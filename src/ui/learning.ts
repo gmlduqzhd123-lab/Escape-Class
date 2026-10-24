@@ -134,7 +134,7 @@ export function learningPanel(c: ViewContext, html: string) {
 }
 export function pledgeView(c: ViewContext) {
   const selected = c.learning?.pledge;
-  return `<section class="surface pledge-section"><h2>우리 모둠의 작은 실천</h2><p>모두 실천할 수 있는 약속 하나를 골라요. 개인 이름이나 점수는 카드에 넣지 않아요.</p><div class="pledge-options">${PLEDGES.map((p, i) => b(p, "pledge", String(i), `aria-pressed="${selected === i}"`)).join("")}</div>${selected !== null && selected !== undefined ? `<article class="pledge-preview"><small>함께 정한 약속</small><h3>${PLEDGES[selected]}</h3><p>실천한 순간을 발견하면 고마운 마음을 전해요.</p></article>${b("실천 카드 인쇄 / PDF", "print-pledge")}${b("실천 카드 파일 저장", "download-pledge")}` : ""}</section>`;
+  return `<section class="surface pledge-section"><h2>우리 모둠의 작은 실천</h2><p>모두 실천할 수 있는 약속 하나를 골라요. 개인 이름이나 점수는 카드에 넣지 않아요.</p><div class="pledge-options">${PLEDGES.map((p, i) => b(p, "pledge", String(i), `aria-pressed="${selected === i}"`)).join("")}</div>${selected !== null && selected !== undefined ? `<article class="pledge-preview" tabindex="-1" role="region" aria-label="선택한 실천 카드"><small>함께 정한 약속</small><h3>${PLEDGES[selected]}</h3><p>실천한 순간을 발견하면 고마운 마음을 전해요.</p></article>${b("실천 카드 인쇄 / PDF", "print-pledge")}${b("실천 카드 파일 저장", "download-pledge")}` : ""}</section>`;
 }
 export function rolesDocument(e: Experience) {
   const seq = episode(e.options.episode)

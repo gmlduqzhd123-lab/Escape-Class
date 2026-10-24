@@ -279,6 +279,117 @@
   #game-dialog .notes-object-list li {
     margin: 10px 0;
   }
+  #game-dialog .pause-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  #game-dialog .pause-actions > button {
+    min-height: 52px;
+    min-width: 0;
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.5;
+    white-space: normal;
+  }
+  #game-dialog[data-kind="settings"] .check-label {
+    min-height: 52px;
+    font-size: 18px;
+    margin: 8px 0;
+  }
+  #game-dialog[data-kind="settings"] > p {
+    margin: 8px 0 0;
+  }
+
+  .result-main button {
+    min-height: 52px;
+    font-size: 18px;
+    line-height: 1.5;
+    white-space: normal;
+    max-width: 100%;
+  }
+  .result-main h2 {
+    font-size: 24px;
+    line-height: 1.4;
+  }
+  .result-main p,
+  .result-main .result-record dd {
+    font-size: 18px;
+    line-height: 1.65;
+  }
+  .result-main .result-record dt,
+  .result-main .muted,
+  .result-main .pledge-preview small {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .result-main .result-record dl > div {
+    grid-template-columns: minmax(100px, 0.3fr) minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 0;
+  }
+  .result-main .celebration {
+    width: 72px;
+    height: 72px;
+    border-width: 6px;
+    margin: 12px auto 8px;
+  }
+  .result-main .celebration svg {
+    width: 44px;
+    height: 44px;
+  }
+  .result-main .result-header h1 {
+    margin: 12px 0 6px;
+  }
+  .result-main .result-header > p {
+    margin: 8px 0;
+  }
+  .result-main .final-score {
+    padding: 8px;
+    margin: 8px 0;
+  }
+  .result-main .final-score strong {
+    font-size: 64px;
+  }
+  .result-main .final-score span {
+    font-size: 18px;
+    margin-top: 6px;
+  }
+  .result-main .pledge-preview {
+    scroll-margin-block: 16px;
+    padding: 16px;
+    margin: 16px 0;
+  }
+  .result-main .pledge-preview h3 {
+    font-size: 22px;
+    line-height: 1.55;
+    margin: 8px 0;
+  }
+  .result-main .pledge-preview p {
+    margin: 8px 0 0;
+  }
+  .result-main .result-save-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .result-main .result-save-actions > button {
+    width: 100%;
+    margin: 0;
+  }
+  .result-main .result-save-actions > .primary {
+    grid-column: 1 / -1;
+  }
+  .result-main > div.no-print {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .result-main > div.no-print > button {
+    flex: 1;
+    margin: 0;
+  }
   #game-dialog .dialog-actions {
     display: flex;
     flex-direction: row-reverse;
