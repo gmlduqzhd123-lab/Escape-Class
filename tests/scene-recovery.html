@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>3D 복구 개발 검사</title>
+  <style>
+    body {
+      margin: 0;
+      background: #f8f6ee;
+      font-family: system-ui;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px;
+    }
+    button {
+      min-height: 44px;
+    }
+    #host {
+      height: calc(100dvh - 120px);
+      position: relative;
+    }
+    #host .classroom-3d-stage {
+      height: 100%;
+    }
+    #status {
+      padding: 8px;
+    }
+  </style>
+  <nav>
+    <button id="erase">활성 장면의 버퍼 비우기</button
+    ><button id="resize">같은 크기로 다시 맞추기</button
+    ><button id="loss">GPU 연결 끊기</button>
+  </nav>
+  <p id="status" role="status">3D 준비 중</p>
+  <div id="host"></div>
+  <script type="module">
+    // Development-only Vite entry; not part of the production build.
+    import { createClassroomScene } from "../src/scene/classroom.ts";
+    const host = document.getElementById("host"),
+      status = document.getElementById("status");
+    const scene = createClassroomScene(host, {
+      reducedMotion: true,
+      onInspect: (id) => (status.textContent = `물건 선택 ${id}`),
+      onFailure: () => {
+        scene.dispose();
+        host.innerHTML = "<p>그림 교실 대체 화면</p>";
+        status.textContent = "FAILURE_HANDLED";
+      },
+    });
+    scene.setState({
+      solvedPuzzleIds: [],
+      finalCombined: false,
+      finalKeyObtained: false,
+      active: true,
+      reducedMotion: true,
+    });
+    status.textContent = "ACTIVE";
+    document.getElementById("erase").onclick = () => {
+      const gl = host.querySelector("canvas").getContext("webgl2");
+      gl.clearColor(0.95, 0.93, 0.88, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      status.textContent = "BUFFER_CLEARED";
+    };
+    document.getElementById("resize").onclick = () => {
+      scene.resize();
+      status.textContent = "RESIZED";
+    };
+    document.getElementById("loss").onclick = () => {
+      host
+        .querySelector("canvas")
+        .getContext("webgl2")
+        .getExtension("WEBGL_lose_context")
+        .loseContext();
+    };
+  </script>
+</html>

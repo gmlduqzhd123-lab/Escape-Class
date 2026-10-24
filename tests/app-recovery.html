@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover"
+  />
+  <title>교실 탈출 복구 검사</title>
+  <div id="app"></div>
+  <button
+    id="gpu-loss"
+    style="
+      position: fixed;
+      right: 8px;
+      bottom: 90px;
+      z-index: 100;
+      min-height: 44px;
+    "
+  >
+    개발 검사: GPU 연결 끊기
+  </button>
+  <script type="module">
+    // Development-only entry. Exercise the real app's existing progress-safe fallback.
+    import "../src/main.ts";
+    document.getElementById("gpu-loss").onclick = () => {
+      document
+        .querySelector("canvas")
+        ?.getContext("webgl2")
+        ?.getExtension("WEBGL_lose_context")
+        ?.loseContext();
+    };
+  </script>
+</html>

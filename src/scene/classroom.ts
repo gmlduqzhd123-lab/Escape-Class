@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OBJECTS } from "../content/data";
 import "./classroom.css";
 import { bindSceneGestures } from "./gestures";
+import { createFrameLoop } from "./frameLoop";
 import type { ScenePose } from "../game/learning";
 import { episode, type EpisodeId } from "../content/episodes";
 
@@ -102,7 +103,6 @@ export function createClassroomScene(
   let active = true;
   let reducedMotion = options.reducedMotion;
   let disposed = false;
-  let frame = 0;
   let moving = false;
   let state: ClassroomState = {
     solvedPuzzleIds: [],
@@ -120,6 +120,8 @@ export function createClassroomScene(
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
   renderer.setClearColor("#f2eedf");
 
   host.classList.add("classroom-3d");
@@ -904,12 +906,31 @@ export function createClassroomScene(
   let journey = 0;
   const normalizeAngle = (angle: number) =>
     Math.atan2(Math.sin(angle), Math.cos(angle));
+  const frames = createFrameLoop({
+    canDraw: () =>
+      !disposed &&
+      active &&
+      !document.hidden &&
+      host.isConnected &&
+      stage.clientWidth > 0 &&
+      stage.clientHeight > 0,
+    animating: () => !!tween || moving,
+    draw: render,
+    onFailure: () => {
+      cancelJourney();
+      options.onFailure();
+    },
+  });
+  renderer.debug.onShaderError = () => frames.fail();
   function requestDraw() {
-    if (!disposed && active && !frame) frame = requestAnimationFrame(render);
+    frames.request();
   }
   function render(now: number) {
-    frame = 0;
     if (disposed || !active || !host.isConnected) return;
+    if (renderer.getContext().isContextLost()) {
+      frames.fail();
+      return;
+    }
     let deviceMoving = false;
     for (const id of ["drawer", "lid", "door"] as const) {
       const delta = deviceTargets[id] - deviceValues[id];
@@ -921,6 +942,7 @@ export function createClassroomScene(
     drawer.position.z = deviceValues.drawer * 0.42;
     lid.rotation.x = -deviceValues.lid * 1.1;
     doorLeaf.rotation.y = -deviceValues.door * 1.2;
+    if (deviceMoving) renderer.shadowMap.needsUpdate = true;
     if (tween) {
       const step = tween;
       const progress = Math.min(1, (now - step.started) / step.duration);
@@ -938,7 +960,6 @@ export function createClassroomScene(
     camera.updateMatrixWorld();
     renderer.render(scene, camera);
     positionLabels();
-    if (tween || deviceMoving) requestDraw();
     if (!tween && !moving)
       options.onPoseChange?.({
         stop: currentStop,
@@ -1348,33 +1369,44 @@ export function createClassroomScene(
   });
   const onContextLost = (event: Event) => {
     event.preventDefault();
-    cancelJourney();
-    if (!disposed) options.onFailure();
+    frames.fail();
   };
   canvas.addEventListener("webglcontextlost", onContextLost);
   function resize() {
     if (disposed || !host.isConnected) return;
-    const width = stage.clientWidth,
-      height = stage.clientHeight;
+    const width = Math.round(stage.clientWidth),
+      height = Math.round(stage.clientHeight);
     if (width < 1 || height < 1) return;
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.fov = width < 520 ? 78 : 68;
-    camera.updateProjectionMatrix();
-    camera.rotation.set(pitch, yaw, 0, "YXZ");
-    camera.updateMatrixWorld();
-    positionLabels();
-    requestDraw();
+    try {
+      // Assigning canvas.width/height clears WebGL, even at the same size.
+      if (
+        canvas.width !== Math.floor(width * renderer.getPixelRatio()) ||
+        canvas.height !== Math.floor(height * renderer.getPixelRatio())
+      )
+        renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.fov = width < 520 ? 78 : 68;
+      camera.updateProjectionMatrix();
+      camera.rotation.set(pitch, yaw, 0, "YXZ");
+      camera.updateMatrixWorld();
+      positionLabels();
+      requestDraw();
+    } catch {
+      frames.fail();
+    }
   }
   const observer = new ResizeObserver(resize);
   observer.observe(stage);
   const onVisibility = () => {
     if (document.hidden) {
-      if (frame) cancelAnimationFrame(frame);
-      frame = 0;
-    } else requestDraw();
+      frames.stop();
+    } else resize();
   };
   document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", resize);
+  document.addEventListener("fullscreenchange", resize);
+  window.visualViewport?.addEventListener("resize", resize);
   function setState(next: ClassroomState) {
     if (state.drawerOpen !== next.drawerOpen)
       deviceTargets.drawer = next.drawerOpen ? 1 : 0;
@@ -1394,8 +1426,7 @@ export function createClassroomScene(
     if (!active) {
       cancelJourney(true);
       gestures.cancel();
-      if (frame) cancelAnimationFrame(frame);
-      frame = 0;
+      frames.stop();
     }
     if (active && !wasActive) resize();
     const solved: Record<string, boolean> = {
@@ -1428,9 +1459,13 @@ export function createClassroomScene(
     active = false;
     cancelJourney();
     gestures.cancel();
-    if (frame) cancelAnimationFrame(frame);
+    frames.dispose();
     observer.disconnect();
     document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("resize", resize);
+    window.removeEventListener("orientationchange", resize);
+    document.removeEventListener("fullscreenchange", resize);
+    window.visualViewport?.removeEventListener("resize", resize);
     host.removeEventListener("click", onControlClick);
     gestures.dispose();
     canvas.removeEventListener("webglcontextlost", onContextLost);
