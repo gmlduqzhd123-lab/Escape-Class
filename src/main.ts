@@ -105,6 +105,7 @@ import {
   setup,
   schoolOptions,
   intro,
+  landscapeStart,
   play,
   result,
   rankings,
@@ -172,9 +173,8 @@ let panelReturnFocus = "";
 let toastTimeout: ReturnType<typeof setTimeout>;
 let toolContext = "";
 const phonePortrait = matchMedia(
-  "(max-width: 600px) and (orientation: portrait)",
+  "(max-width: 600px) and (orientation: portrait), (max-width: 1024px) and (orientation: portrait) and (any-pointer: coarse)",
 );
-let portraitGuideDismissed = false;
 let lastMeaningful = Date.now(),
   mistakes = 0,
   lastMarker = "";
@@ -248,6 +248,7 @@ function syncScene() {
         route() === "/play" &&
         !c.objectId &&
         !c.modal &&
+        !phonePortrait.matches &&
         c.sceneMode === "3d" &&
         !document.hidden,
       reducedMotion: s.settings.reducedMotion,
@@ -266,6 +267,16 @@ function mountScene() {
     syncScene();
     return;
   }
+  if (
+    phonePortrait.matches ||
+    c.modal ||
+    !c.state ||
+    !active(c.state) ||
+    document.hidden
+  ) {
+    syncScene();
+    return;
+  }
   if (sceneHost) slot.replaceWith(sceneHost);
   else sceneHost = slot;
   if (classroom) {
@@ -280,6 +291,17 @@ function mountScene() {
   void import("./scene/classroom")
     .then(({ createClassroomScene }) => {
       if (generation !== sceneGeneration || !sceneHost) return;
+      if (
+        phonePortrait.matches ||
+        c.modal ||
+        !c.state ||
+        !active(c.state) ||
+        !sceneHost.isConnected ||
+        document.hidden
+      ) {
+        sceneLoading = false;
+        return;
+      }
       classroom = createClassroomScene(sceneHost, {
         episodeId: c.learning?.options.episode ?? "classroom",
         initialPose: c.learning?.view.pose ?? null,
@@ -328,7 +350,7 @@ function tick() {
     active(c.state) &&
     route() === "/play" &&
     !document.hidden &&
-    c.modal !== "rotate",
+    !phonePortrait.matches,
   );
   const timer = document.getElementById("timer");
   if (timer && c.state) timer.textContent = time(c.state.elapsedMs);
@@ -402,15 +424,6 @@ function findFocus(value: string) {
 }
 function render(focusKey?: string) {
   if (saveBlocked && route() === "/play") c.modal = "save-blocked";
-  if (
-    route() === "/play" &&
-    c.state &&
-    active(c.state) &&
-    phonePortrait.matches &&
-    !portraitGuideDismissed &&
-    !c.modal
-  )
-    c.modal = "rotate";
   const a = document.activeElement as HTMLElement | null;
   const focus = focusKey ?? a?.dataset.focus;
   const scroll = window.scrollY;
@@ -420,12 +433,18 @@ function render(focusKey?: string) {
   const deviceKey = previousDevice?.dataset.device;
   const deviceScroll = previousDevice?.scrollTop ?? 0;
   const current = route();
+  const landscapeBlocked =
+    current === "/play" &&
+    c.state &&
+    c.state.phase !== "escaped" &&
+    phonePortrait.matches;
   let content = "";
   if (c.loading)
     content =
       '<main id="main" class="narrow loading"><div class="loader"></div><h1>교실 문을 여는 중이에요</h1><p>게임 데이터와 꼭 필요한 자산을 확인하고 있어요.</p></main>';
   else if (c.loadError)
     content = `<main id="main" class="narrow"><h1>교실을 준비하지 못했어요</h1><p>필수 그림·글꼴·소리를 읽지 못했어요. 연결을 확인하고 다시 시도해 주세요.</p>${b("다시 준비하기", "retry", "", 'class="primary"')}</main>`;
+  else if (landscapeBlocked) content = landscapeStart();
   else if (current === "/setup") content = setup(c);
   else if (current === "/intro" && c.state?.phase === "intro")
     content = intro(c);
@@ -449,7 +468,7 @@ function render(focusKey?: string) {
   );
   document.body.classList.toggle("in-game", current === "/play");
   sceneHost?.remove();
-  const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${modalContent(c)}</dialog>` : ""}`;
+  const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${modalContent(c)}</dialog>` : ""}`;
   root.innerHTML = ["/play", "/intro", "/result"].includes(current)
     ? adaptEpisodeHtml(
         markup,
@@ -518,7 +537,6 @@ function closeModal() {
     render();
     return;
   }
-  if (c.modal === "rotate") portraitGuideDismissed = true;
   if (c.modal === "pause") {
     resume();
     return;
@@ -623,6 +641,16 @@ async function bootstrap() {
     c.loadError = true;
   } finally {
     c.loading = false;
+    if (
+      route() === "/play" &&
+      c.state?.phase === "intro" &&
+      !phonePortrait.matches &&
+      !saveBlocked &&
+      !c.loadError
+    ) {
+      void handle("start", "");
+      return;
+    }
     render();
     tick();
   }
@@ -1004,7 +1032,6 @@ async function handle(action: string, value: string) {
       render();
       return;
     case "setup-next":
-      portraitGuideDismissed = false;
       await data();
       disposeScene();
       c.learning = createExperience(c.lessonDraft);
@@ -1030,11 +1057,19 @@ async function handle(action: string, value: string) {
       return;
     case "start":
       if (s?.phase === "intro") {
-        void fullscreen.enter();
-        s.phase = "playing";
-        s.paused = false;
+        c.modal = null;
+        if (!phonePortrait.matches) {
+          void fullscreen.enter();
+          s.phase = "playing";
+          s.paused = false;
+          lastMeaningful = Date.now();
+          mistakes = 0;
+          c.hintSuggested = false;
+        }
         persist();
         go("/play");
+        render();
+        tick();
       }
       return;
     case "home":
@@ -1763,11 +1798,14 @@ window.addEventListener("hashchange", () => {
   tick();
 });
 phonePortrait.addEventListener("change", () => {
-  if (!phonePortrait.matches) {
-    portraitGuideDismissed = false;
-    if (c.modal === "rotate") c.modal = null;
-  }
   if (route() === "/play") {
+    tick();
+    if (phonePortrait.matches) c.running = false;
+    if (!phonePortrait.matches && c.state?.phase === "intro" && !c.loading) {
+      void handle("start", "");
+      return;
+    }
+    if (!phonePortrait.matches) lastMeaningful = Date.now();
     render("fullscreen:");
     classroom?.resize();
     tick();
@@ -1807,6 +1845,7 @@ setInterval(() => {
     route() === "/play" &&
     !c.modal &&
     !c.running &&
+    !phonePortrait.matches &&
     c.learning &&
     !c.hintSuggested &&
     shouldSuggestHint(Date.now() - lastMeaningful, mistakes, c.learning.options)

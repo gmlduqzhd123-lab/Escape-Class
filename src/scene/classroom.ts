@@ -3,6 +3,7 @@ import { OBJECTS } from "../content/data";
 import "./classroom.css";
 import { bindSceneGestures } from "./gestures";
 import { createFrameLoop } from "./frameLoop";
+import { sceneQuality } from "./quality";
 import type { ScenePose } from "../game/learning";
 import { episode, type EpisodeId } from "../content/episodes";
 
@@ -111,14 +112,20 @@ export function createClassroomScene(
     active: true,
     reducedMotion,
   };
+  const touchDevice = matchMedia("(any-pointer: coarse)").matches;
+  const quality = sceneQuality(
+    innerWidth,
+    innerHeight,
+    touchDevice,
+    devicePixelRatio,
+  );
   const renderer = new THREE.WebGLRenderer({
-    antialias: true,
+    antialias: quality.antialias,
     alpha: false,
     powerPreference: "low-power",
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = quality.shadows;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
@@ -390,16 +397,34 @@ export function createClassroomScene(
   sun.shadow.normalBias = 0.035;
   scene.add(sun);
   box(scene, [11.2, 0.16, 11.2], [0, -0.1, 0], "#dfc397");
+  const floorSeams: { size: number[]; at: number[] }[] = [];
   for (let x = -5.2; x <= 5.2; x += 0.65)
-    box(scene, [0.012, 0.006, 11], [x, -0.015, 0], "#cfb081");
+    floorSeams.push({ size: [0.012, 0.006, 11], at: [x, -0.015, 0] });
   for (let x = -4.9; x <= 5; x += 1.3)
     for (let z = -4.7; z < 5; z += 2.2)
-      box(
-        scene,
-        [0.65, 0.006, 0.012],
-        [x, -0.014, z + (Math.round(x * 10) % 2 ? 0.5 : 0)],
-        "#cfb081",
-      );
+      floorSeams.push({
+        size: [0.65, 0.006, 0.012],
+        at: [x, -0.014, z + (Math.round(x * 10) % 2 ? 0.5 : 0)],
+      });
+  // Reuse one box and one draw call for the many static wooden floor seams.
+  const seamGeometry = new THREE.BoxGeometry(1, 1, 1);
+  geometries.add(seamGeometry);
+  const floorGrid = new THREE.InstancedMesh(
+    seamGeometry,
+    mat("#cfb081"),
+    floorSeams.length,
+  );
+  floorSeams.forEach(({ size, at }, i) =>
+    floorGrid.setMatrixAt(
+      i,
+      new THREE.Matrix4()
+        .makeScale(...(size as [number, number, number]))
+        .setPosition(...(at as [number, number, number])),
+    ),
+  );
+  floorGrid.instanceMatrix.needsUpdate = true;
+  floorGrid.receiveShadow = quality.shadows;
+  scene.add(floorGrid);
   box(scene, [11.2, 3.8, 0.16], [0, 1.85, -5.6], palette.cream);
   box(scene, [11.2, 3.8, 0.16], [0, 1.85, 5.6], palette.cream);
   box(scene, [0.16, 3.8, 11.2], [-5.6, 1.85, 0], palette.cream);
@@ -906,6 +931,7 @@ export function createClassroomScene(
   let journey = 0;
   const normalizeAngle = (angle: number) =>
     Math.atan2(Math.sin(angle), Math.cos(angle));
+  let labelsDirty = true;
   const frames = createFrameLoop({
     canDraw: () =>
       !disposed &&
@@ -914,7 +940,14 @@ export function createClassroomScene(
       host.isConnected &&
       stage.clientWidth > 0 &&
       stage.clientHeight > 0,
-    animating: () => !!tween || moving,
+    animating: () =>
+      !!tween ||
+      moving ||
+      (Object.keys(deviceValues) as (keyof typeof deviceValues)[]).some(
+        (id) => Math.abs(deviceTargets[id] - deviceValues[id]) > 0.002,
+      ),
+    maxFps: quality.maxFps,
+    idleFps: 4,
     draw: render,
     onFailure: () => {
       cancelJourney();
@@ -923,6 +956,7 @@ export function createClassroomScene(
   });
   renderer.debug.onShaderError = () => frames.fail();
   function requestDraw() {
+    labelsDirty = true;
     frames.request();
   }
   function render(now: number) {
@@ -931,6 +965,7 @@ export function createClassroomScene(
       frames.fail();
       return;
     }
+    const updateLabels = labelsDirty || !!tween || moving;
     let deviceMoving = false;
     for (const id of ["drawer", "lid", "door"] as const) {
       const delta = deviceTargets[id] - deviceValues[id];
@@ -959,8 +994,11 @@ export function createClassroomScene(
     camera.rotation.set(pitch, yaw, 0, "YXZ");
     camera.updateMatrixWorld();
     renderer.render(scene, camera);
-    positionLabels();
-    if (!tween && !moving)
+    if (updateLabels) {
+      positionLabels();
+      labelsDirty = false;
+    }
+    if (updateLabels && !tween && !moving)
       options.onPoseChange?.({
         stop: currentStop,
         yaw: normalizeAngle(yaw),
@@ -1378,12 +1416,19 @@ export function createClassroomScene(
       height = Math.round(stage.clientHeight);
     if (width < 1 || height < 1) return;
     try {
+      const ratio = sceneQuality(
+        width,
+        height,
+        touchDevice,
+        devicePixelRatio,
+      ).pixelRatio;
       // Assigning canvas.width/height clears WebGL, even at the same size.
       if (
-        canvas.width !== Math.floor(width * renderer.getPixelRatio()) ||
-        canvas.height !== Math.floor(height * renderer.getPixelRatio())
+        canvas.width !== Math.floor(width * ratio) ||
+        canvas.height !== Math.floor(height * ratio) ||
+        renderer.getPixelRatio() !== ratio
       )
-        renderer.setSize(width, height, false);
+        renderer.setDrawingBufferSize(width, height, ratio);
       camera.aspect = width / height;
       camera.fov = width < 520 ? 78 : 68;
       camera.updateProjectionMatrix();
@@ -1468,6 +1513,7 @@ export function createClassroomScene(
     window.visualViewport?.removeEventListener("resize", resize);
     host.removeEventListener("click", onControlClick);
     gestures.dispose();
+    floorGrid.dispose();
     canvas.removeEventListener("webglcontextlost", onContextLost);
     for (const geometry of geometries) geometry.dispose();
     for (const material of materials) material.dispose();

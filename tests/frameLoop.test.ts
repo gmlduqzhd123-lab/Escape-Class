@@ -52,24 +52,33 @@ test("an idle classroom repaints after its buffer is cleared without an input ev
   f.frame(0);
   assert.equal(f.state.pixels, true);
   f.state.pixels = false;
-  f.frame(40);
+  f.frame(250);
   assert.equal(f.state.pixels, true);
   assert.equal(f.pending.size, 1);
 });
-test("resting room is throttled while movement and invalidation draw immediately", () => {
+test("movement and repeated invalidations respect the frame budget", () => {
   const f = fixture();
   f.loop.request();
   f.frame(0);
   f.frame(16);
   assert.equal(f.state.draws, 1);
   f.state.moving = true;
-  f.frame(24);
+  f.frame(34);
   assert.equal(f.state.draws, 2);
   f.state.moving = false;
   f.loop.request();
-  f.frame(25);
+  f.frame(35);
+  assert.equal(f.state.draws, 2);
+  f.frame(68);
   assert.equal(f.state.draws, 3);
   assert.equal(f.pending.size, 1);
+});
+test("a resting scene draws four recovery frames per second rather than thirty", () => {
+  const f = fixture();
+  f.loop.request();
+  f.frame(0);
+  for (let i = 1; i <= 60; i++) f.frame((i * 1000) / 60);
+  assert.equal(f.state.draws, 5);
 });
 test("hidden tabs and detached panels stop, then repaint when resumed", () => {
   const f = fixture();

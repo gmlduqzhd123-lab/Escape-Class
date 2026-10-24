@@ -1,4 +1,38 @@
 /* The room occupies the viewport; controls float over its edges. */
+.landscape-start {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 20px;
+}
+.landscape-start > section {
+  width: min(100%, 480px);
+  max-height: 100%;
+  overflow: auto;
+  padding: 28px 22px;
+  text-align: center;
+}
+.landscape-start h1 {
+  margin: 12px 0 18px;
+  font-size: clamp(24px, 6vw, 30px);
+}
+.landscape-start p {
+  font-size: 17px;
+  line-height: 1.7;
+}
+.landscape-start .landscape-message {
+  font-size: 20px;
+  font-weight: 750;
+  color: var(--green);
+}
+.landscape-start p.muted {
+  font-size: 14px;
+}
+.landscape-start button {
+  min-height: 48px;
+}
 #app .escape-play.room-fill {
   position: relative;
   isolation: isolate;

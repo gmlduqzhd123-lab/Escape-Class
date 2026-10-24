@@ -3,6 +3,8 @@ type Options = {
   animating: () => boolean;
   draw: (now: number) => void;
   onFailure: () => void;
+  maxFps?: number;
+  idleFps?: number;
   request?: (callback: (now: number) => void) => number;
   cancel?: (id: number) => void;
 };
@@ -23,6 +25,7 @@ export function createFrameLoop(options: Options) {
   function stop() {
     if (frame) cancel(frame);
     frame = 0;
+    lastDraw = -Infinity;
   }
   function fail() {
     if (failed || disposed) return;
@@ -34,8 +37,12 @@ export function createFrameLoop(options: Options) {
     frame = 0;
     if (disposed || failed || !options.canDraw()) return;
     try {
-      // Keep the resting room alive at 30 fps; gestures and walks can use 60 fps.
-      if (force || options.animating() || now - lastDraw >= 1000 / 30) {
+      // Recover an idle buffer without continuously rendering a stationary room.
+      const fps =
+        force || options.animating()
+          ? (options.maxFps ?? 30)
+          : (options.idleFps ?? 4);
+      if (now - lastDraw + 0.5 >= 1000 / fps) {
         force = false;
         lastDraw = now;
         options.draw(now);
