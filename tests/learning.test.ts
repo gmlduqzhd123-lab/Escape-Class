@@ -235,6 +235,14 @@ test("library rendering preserves object IDs/actions and changes authored story 
   assert.equal(Object.keys(EPISODES.library.objects).length, 12);
   assert.equal(
     adaptEpisodeHtml(
+      "가상 교실 방탈출이에요. 우정 조각 다섯 개를 모아요.",
+      "library",
+      OBJECTS,
+    ),
+    "가상 도서관 방탈출이에요. 책갈피 조각 다섯 개를 모아요.",
+  );
+  assert.equal(
+    adaptEpisodeHtml(
       "바구니 옆에서 우정 조각 · 그림 책상 암호판 · ← 교실로",
       "library",
       OBJECTS,

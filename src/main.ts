@@ -512,6 +512,10 @@ function render(focusKey?: string) {
     c.state?.settings.reducedMotion ?? c.setupReduced,
   );
   document.body.classList.toggle("in-game", current === "/play");
+  root.classList.toggle(
+    "has-start-screen",
+    ["/", "/setup", "/intro"].includes(current),
+  );
   sceneHost?.remove();
   const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${modalShell(c)}</dialog>` : ""}`;
   root.innerHTML = ["/play", "/intro", "/result"].includes(current)

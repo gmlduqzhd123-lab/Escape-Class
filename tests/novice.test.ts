@@ -4,7 +4,7 @@ import { createExperience } from "../src/game/learning";
 import { createProgress, PRACTICE_CONFIG } from "../src/game/model";
 import { teamPuzzle, lessonSetup } from "../src/ui/learning";
 import { hintTarget } from "../src/ui/experience";
-import { modalContent, type ViewContext } from "../src/ui/views";
+import { modalContent, setup, type ViewContext } from "../src/ui/views";
 
 function fixture() {
   const state = createProgress(PRACTICE_CONFIG);
@@ -70,4 +70,24 @@ test("student setup keeps the current lesson visible while teacher choices start
   assert.match(html, /수업 설정 바꾸기 · 차근차근 · 15분 · EP.02/);
   assert.match(html, /<details[^>]*data-disclosure="lesson-settings">/);
   assert.doesNotMatch(html, /<details[^>]*\bopen\b/);
+});
+
+test("compact guest preparation preserves school choice when a registry is present", () => {
+  const c: ViewContext = {
+    ...fixture(),
+    schools: [],
+    schoolQuery: "",
+    setupSchool: null,
+  };
+  const guest = setup(c);
+  assert.doesNotMatch(guest, /id="school-search"/);
+  assert.match(guest, /학교 선택이나 이름 입력 없이 바로 시작/);
+  c.schools = [{ schoolId: "KR-E-DEMO", name: "예시초등학교" }];
+  c.setupSchool = "KR-E-DEMO";
+  const registered = setup(c);
+  assert.match(registered, /id="school-search"/);
+  assert.match(registered, /학교 선택은 소속 인증이 아니에요/);
+  assert.match(registered, /학교 없이 체험/);
+  assert.match(registered, /예시초등학교 ✓ 선택됨/);
+  assert.match(registered, /data-action="setup-next"/);
 });

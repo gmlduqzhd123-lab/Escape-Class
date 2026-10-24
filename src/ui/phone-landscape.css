@@ -24,6 +24,215 @@
 }
 
 @media (orientation: landscape) and (max-height: 600px) and (max-width: 1000px) {
+  #app.has-start-screen .site-header {
+    min-height: 0;
+    padding: 8px 16px;
+    gap: 8px;
+  }
+  #app.has-start-screen .site-header nav {
+    order: 2;
+    flex: 1 1 auto;
+    width: auto;
+    margin: 0;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  #app.has-start-screen .site-header nav a {
+    font-size: 14px;
+    min-height: 44px;
+  }
+  #app.has-start-screen .ys-key {
+    order: 3;
+  }
+  #app.has-start-screen .ys-chip {
+    font-size: 14px;
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+  #app.has-start-screen .home {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin: 0 18px;
+    padding-top: 12px;
+    gap: 16px;
+  }
+  #app.has-start-screen .hero-copy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(136px, 0.55fr);
+    column-gap: 16px;
+    align-items: center;
+    padding: 0;
+  }
+  #app.has-start-screen .hero-copy > .pill {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    font-size: 14px;
+    padding: 5px 10px;
+  }
+  #app.has-start-screen .hero-overline {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 6px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  #app.has-start-screen .hero-copy h1 {
+    grid-column: 1;
+    grid-row: 3;
+    font-size: clamp(40px, 7vw, 56px);
+    margin: 6px 0;
+  }
+  #app.has-start-screen .title-spark {
+    font-size: 22px;
+    top: 0;
+  }
+  #app.has-start-screen .hero-copy h2 {
+    grid-column: 1;
+    grid-row: 4;
+    font-size: 22px;
+    margin: 0;
+  }
+  #app.has-start-screen .hero-actions {
+    grid-column: 2;
+    grid-row: 2 / 5;
+    display: grid;
+    gap: 8px;
+    margin: 0;
+  }
+  #app.has-start-screen .hero-actions button.large {
+    width: 100%;
+    min-height: 52px;
+    margin: 0;
+    padding: 10px;
+    font-size: 18px;
+  }
+  #app.has-start-screen .hero-description {
+    grid-column: 1 / -1;
+    grid-row: 5;
+    font-size: 18px;
+    line-height: 1.6;
+    margin: 10px 0;
+  }
+  #app.has-start-screen .hero-meta {
+    grid-column: 1 / -1;
+    grid-row: 6;
+    font-size: 16px;
+    gap: 10px;
+  }
+  #app.has-start-screen .hero-art {
+    width: 100%;
+    margin: 12px 0;
+    transform: none;
+  }
+  #app.has-start-screen .mission-strip p,
+  #app.has-start-screen .privacy-inline {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  #app .setup-screen,
+  #app .intro-screen {
+    margin: 16px 18px 0;
+  }
+  #app .setup-screen h1,
+  #app .intro-screen h1 {
+    font-size: 30px;
+    margin: 8px 0;
+  }
+  #app .setup-screen .back-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-bottom: 8px;
+    font-size: 16px;
+  }
+  #app .setup-screen .eyebrow,
+  #app .intro-screen .eyebrow {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+  #app .setup-screen p,
+  #app .intro-screen p {
+    font-size: 18px;
+    line-height: 1.6;
+    margin: 10px 0;
+  }
+  #app .setup-screen .surface,
+  #app .intro-screen .surface {
+    padding: 14px;
+    margin: 16px 0;
+  }
+  #app .setup-screen .surface h2 {
+    font-size: 22px;
+    margin: 0 0 8px;
+  }
+  #app .setup-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  #app .setup-screen .check-label {
+    min-height: 52px;
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.5;
+  }
+  #app .setup-screen button,
+  #app .intro-screen button {
+    min-height: 52px;
+    font-size: 18px;
+    line-height: 1.5;
+    white-space: normal;
+    max-width: 100%;
+  }
+  #game-dialog[data-kind="new-confirm"] button:not(.dialog-close) {
+    min-height: 52px;
+    font-size: 18px;
+  }
+  #app .setup-screen .start-next,
+  #app .intro-screen .start-next {
+    display: flex;
+    width: 100%;
+    margin: 16px 0;
+    padding: 12px;
+  }
+  #app .setup-screen .lesson-settings fieldset {
+    min-width: 0;
+    margin: 12px 0;
+  }
+  #app .setup-screen .lesson-settings legend {
+    font-size: 18px;
+  }
+  #app .setup-screen .optional-controls > summary {
+    min-height: 52px;
+    font-size: 18px;
+    line-height: 1.5;
+    padding: 10px;
+  }
+  #app .intro-screen .story-characters {
+    gap: 8px;
+    margin: 12px 0;
+  }
+  #app .intro-screen .story-characters svg {
+    width: 44px;
+    height: 44px;
+  }
+  #app .intro-screen .instructions {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  #app .intro-screen .instructions > div {
+    padding: 12px;
+  }
+  #app .intro-screen .instructions h2 {
+    font-size: 22px;
+    margin: 0;
+  }
+  #app .intro-screen .instructions p {
+    margin: 0;
+  }
   .in-game #app {
     overscroll-behavior-y: contain;
     scroll-padding-block: var(--device-scroll-top, 64px) 16px;
@@ -515,5 +724,28 @@
 @media (orientation: landscape) and (max-width: 440px) {
   #game-dialog .coop-entry {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) and (min-width: 720px) and (max-width: 1000px) {
+  #app .intro-screen .instructions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  #app .intro-screen .instructions > div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 560px) {
+  #app.has-start-screen .site-header nav {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+  #app.has-start-screen .ys-key {
+    order: 2;
   }
 }
