@@ -1186,6 +1186,13 @@ export function createClassroomScene(
       animate(camera.position.clone(), finalYaw, finalPitch, 330, () => {
         if (token !== journey || !active || disposed) return;
         setMoving(false);
+        // Opening a panel immediately suspends drawing; save the arrival pose
+        // before onInspect makes the scene inactive.
+        options.onPoseChange?.({
+          stop: currentStop,
+          yaw: normalizeAngle(yaw),
+          pitch,
+        });
         instruction.textContent =
           "물건이나 이름표를 누르면 가까이 가서 살펴봐요.";
         requestDraw();
