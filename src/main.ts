@@ -13,6 +13,7 @@ import "./ui/immersive.css";
 import "./ui/touch.css";
 import "./ui/learning.css";
 import "./ui/exploration.css";
+import "./ui/phone-landscape.css";
 import {
   createExperience,
   createHintClock,
@@ -113,10 +114,10 @@ import {
   rankings,
   teacher,
   toolsView,
-  modalContent,
+  modalShell,
   type ViewContext,
 } from "./ui/views";
-import { button as b, esc, icon, time } from "./ui/helpers";
+import { button as b, esc, time } from "./ui/helpers";
 import { objective } from "./ui/experience";
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
@@ -200,6 +201,7 @@ let sceneHost: HTMLElement | null = null;
 let sceneLoading = false;
 let sceneGeneration = 0;
 let sceneLoadTimer: ReturnType<typeof setTimeout> | undefined;
+let clearScrollCue = () => {};
 const fullscreen = createFullscreenController(root, () => {
   c.immersive =
     document.fullscreenElement === root ||
@@ -449,6 +451,8 @@ function findFocus(value: string) {
   );
 }
 function render(focusKey?: string) {
+  clearScrollCue();
+  clearScrollCue = () => {};
   const expanded = new Set(
     [
       ...root.querySelectorAll<HTMLDetailsElement>(
@@ -501,7 +505,7 @@ function render(focusKey?: string) {
   );
   document.body.classList.toggle("in-game", current === "/play");
   sceneHost?.remove();
-  const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${modalContent(c)}</dialog>` : ""}`;
+  const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${modalShell(c)}</dialog>` : ""}`;
   root.innerHTML = ["/play", "/intro", "/result"].includes(current)
     ? adaptEpisodeHtml(
         markup,
@@ -521,15 +525,35 @@ function render(focusKey?: string) {
     device.scrollTop = deviceScroll;
   const scrollCue = document.querySelector<HTMLElement>(".device-scroll-cue");
   if (device && scrollCue) {
+    // Device content flows in #app. Observe the real scroller, not the
+    // non-scrolling device card, and remove listeners before the next render.
+    const scroller =
+      device.scrollHeight > device.clientHeight + 2 ? device : root;
+    const phoneCue = document.querySelector<HTMLElement>(
+      "[data-phone-scroll-hint]",
+    );
     const updateCue = () => {
-      scrollCue.hidden = device.scrollHeight <= device.clientHeight + 2;
-      scrollCue.textContent =
-        device.scrollTop + device.clientHeight < device.scrollHeight - 8
-          ? "↓ 아래에도 장치가 있어요 · 위아래로 움직여 살펴봐요"
-          : "↑ 위쪽 단서를 다시 살펴볼 수 있어요";
+      const scrollable = scroller.scrollHeight > scroller.clientHeight + 2;
+      const below =
+        scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 8;
+      scrollCue.hidden = !scrollable;
+      scrollCue.textContent = below
+        ? "↓ 아래에도 장치가 있어요 · 위아래로 움직여 살펴봐요"
+        : "↑ 위쪽 단서를 다시 살펴볼 수 있어요";
+      if (phoneCue) {
+        phoneCue.hidden = !scrollable;
+        phoneCue.textContent = below ? "↓ 아래도 있어요" : "↑ 위로 돌아보기";
+      }
     };
     updateCue();
-    device.addEventListener("scroll", updateCue, { passive: true });
+    scroller.addEventListener("scroll", updateCue, { passive: true });
+    const observer = new ResizeObserver(updateCue);
+    observer.observe(root);
+    observer.observe(device);
+    clearScrollCue = () => {
+      scroller.removeEventListener("scroll", updateCue);
+      observer.disconnect();
+    };
   }
   const dialog = document.querySelector<HTMLDialogElement>("#game-dialog");
   if (dialog) {
@@ -964,6 +988,11 @@ async function handle(action: string, value: string) {
       }
       persist();
       render();
+      if (c.modal === "team-puzzle") {
+        const dialog =
+          document.querySelector<HTMLDialogElement>("#game-dialog");
+        if (dialog) dialog.scrollTop = 0;
+      }
       document
         .querySelector<HTMLElement>(".role-clue h3, .coop-input-title")
         ?.focus();

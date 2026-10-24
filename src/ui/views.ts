@@ -114,6 +114,11 @@ export function toolsView(c: ViewContext) {
       "",
     )}</ul>${c.aggregate.records.length ? `<p>서로 다른 학교 ${c.aggregate.records.length}곳의 결과가 있어요.</p>` : '<p class="muted">선택한 파일이 없어요. 예시 학교와 기록은 자동으로 만들지 않아요.</p>'}${c.aggregate.conflicts.map((x, i) => `<article class="conflict"><h3>${esc(c.schools.find((s) => s.schoolId === x.schoolId)?.name ?? x.schoolId)} · 결과 충돌</h3><p>${esc(x.name)} · 기존 ${x.existing.score}점 / 새 결과 ${x.incoming.score}점</p>${b(`기존 유지 ${x.choice === "keep" ? "✓" : ""}`, "conflict", `${i}:keep`, `aria-pressed="${x.choice === "keep"}"`)}${b(`새 결과 교체 ${x.choice === "replace" ? "✓" : ""}`, "conflict", `${i}:replace`, `aria-pressed="${x.choice === "replace"}"`)}</article>`).join("")}</div><div class="surface"><h2>3. 새 순위 파일 다운로드</h2><p>학교 ID·점수·추가 단서 수·탈출 완료만 포함해요. 갱신일은 게시본 생성 시각이에요.</p>${b("rankings.json 다운로드", "aggregate-download", "", `class="primary" ${enabled && !c.importBusy && !c.aggregate.conflicts.some((x) => x.choice === null) ? "" : "disabled"}`)}<p>다운로드한 파일을 운영자가 저장소의 <code>public/data/rankings.json</code>에 반영하고 정적 Pages 배포 절차를 진행해요. 이 화면에는 GitHub 쓰기 기능이 없어요.</p></div></main>`;
 }
+export function modalShell(c: ViewContext) {
+  const html = modalContent(c);
+  const title = html.match(/^<h2\b[^>]*>[\s\S]*?<\/h2>/)?.[0] ?? "";
+  return `<div class="dialog-actions">${b(icon("close"), "close-modal", "", 'class="dialog-close icon-button" aria-label="대화상자 닫기"')}${title}</div>${html.slice(title.length)}`;
+}
 export function modalContent(c: ViewContext) {
   const s = c.state;
   switch (c.modal) {
