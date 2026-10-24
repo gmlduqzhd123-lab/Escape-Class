@@ -197,6 +197,7 @@ let classroom: ClassroomScene | null = null;
 let sceneHost: HTMLElement | null = null;
 let sceneLoading = false;
 let sceneGeneration = 0;
+let sceneLoadTimer: ReturnType<typeof setTimeout> | undefined;
 const fullscreen = createFullscreenController(root, () => {
   c.immersive =
     document.fullscreenElement === root ||
@@ -207,6 +208,8 @@ const fullscreen = createFullscreenController(root, () => {
       el.textContent = c.immersive ? "화면 줄이기" : "전체화면";
       el.setAttribute("aria-pressed", String(c.immersive));
     });
+  // Fullscreen may finish after a temporary hidden/orientation state skipped loading.
+  mountScene();
   classroom?.resize();
 });
 let pendingSceneOperation: string | null = null;
@@ -224,6 +227,8 @@ function runPendingSceneOperation() {
   classroom.operateObject(id);
 }
 function disposeScene() {
+  clearTimeout(sceneLoadTimer);
+  sceneLoadTimer = undefined;
   pendingSceneOperation = null;
   pendingScenePlace = null;
   sceneGeneration++;
@@ -264,9 +269,15 @@ function failScene() {
 function mountScene() {
   const slot = document.getElementById("classroom-scene");
   if (!slot || c.sceneMode !== "3d") {
+    clearTimeout(sceneLoadTimer);
+    sceneLoadTimer = undefined;
     syncScene();
     return;
   }
+  // Keep the existing canvas attached behind dialogs. Rendering can be paused
+  // without replacing the room with a loading placeholder.
+  if (sceneHost && sceneHost !== slot) slot.replaceWith(sceneHost);
+  else sceneHost = slot;
   if (
     phonePortrait.matches ||
     c.modal ||
@@ -274,16 +285,23 @@ function mountScene() {
     !active(c.state) ||
     document.hidden
   ) {
+    clearTimeout(sceneLoadTimer);
+    sceneLoadTimer = undefined;
     syncScene();
     return;
   }
-  if (sceneHost) slot.replaceWith(sceneHost);
-  else sceneHost = slot;
   if (classroom) {
     syncScene();
     classroom.resize();
     runPendingSceneOperation();
     return;
+  }
+  if (!sceneLoadTimer) {
+    const generation = sceneGeneration;
+    sceneLoadTimer = setTimeout(() => {
+      sceneLoadTimer = undefined;
+      if (generation === sceneGeneration && !classroom) failScene();
+    }, 12000);
   }
   if (sceneLoading) return;
   sceneLoading = true;
@@ -300,6 +318,8 @@ function mountScene() {
         document.hidden
       ) {
         sceneLoading = false;
+        clearTimeout(sceneLoadTimer);
+        sceneLoadTimer = undefined;
         return;
       }
       classroom = createClassroomScene(sceneHost, {
@@ -326,6 +346,8 @@ function mountScene() {
         reducedMotion: c.state?.settings.reducedMotion ?? false,
       });
       sceneLoading = false;
+      clearTimeout(sceneLoadTimer);
+      sceneLoadTimer = undefined;
       syncScene();
       classroom.resize();
       runPendingSceneOperation();
@@ -1077,7 +1099,14 @@ async function handle(action: string, value: string) {
       go("/");
       return;
     case "fullscreen":
+      // Close the dialog synchronously, before entering the fullscreen top layer.
+      // Keep this before the first await so the native request retains activation.
+      if (c.modal === "game-menu") {
+        c.modal = null;
+        render("fullscreen:");
+      }
       await fullscreen.toggle();
+      mountScene();
       return;
     case "scene-mode":
       c.modal = null;
@@ -1824,7 +1853,7 @@ window.addEventListener("keydown", (event) => {
 document.addEventListener("visibilitychange", () => {
   tick();
   persist();
-  syncScene();
+  mountScene();
 });
 window.addEventListener("pagehide", () => {
   tick();
