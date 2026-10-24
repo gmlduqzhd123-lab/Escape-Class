@@ -260,7 +260,7 @@
   #game-dialog .dialog-actions::before {
     content: "";
     position: absolute;
-    inset: -24px -20px 0;
+    inset: -24px 0 0;
     background: var(--paper);
     z-index: -1;
     pointer-events: none;
