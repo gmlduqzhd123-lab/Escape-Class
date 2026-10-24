@@ -10,9 +10,9 @@ import {
 } from "../game/learning";
 import { EPISODES, episode } from "../content/episodes";
 
-export function lessonSetup(c: ViewContext) {
+export function lessonSetup(c: ViewContext, compact = false) {
   const o = c.lessonDraft ?? DEFAULT_LESSON;
-  return `<section class="surface lesson-settings"><h2>우리 수업에 맞춰요</h2><p>학년과 시간, 모둠 활동을 골라요. 설정은 새 게임부터 적용돼요.</p><fieldset><legend>학년과 도움</legend>${b("3~4학년 · 차근차근", "lesson", "grade:guided", `aria-pressed="${o.grade === "guided"}"`)}${b("5~6학년 · 스스로", "lesson", "grade:standard", `aria-pressed="${o.grade === "standard"}"`)}</fieldset><fieldset><legend>수업 시간</legend>${[15, 25, 40].map((n) => b(`${n}분`, "lesson", `minutes:${n}`, `aria-pressed="${o.minutes === n}"`)).join("")}<p>${o.minutes === 15 ? "필수 퍼즐에 집중해요. 추가 단서는 숨겨요." : o.minutes === 40 ? "추가 단서와 역할 설명, 실천 약속까지 충분히 나눠요." : "필수 퍼즐과 원하는 추가 단서를 찾아요."}</p></fieldset><fieldset><legend>협동과 힌트</legend>${b(o.cooperation ? "✓ 역할 단서로 도구함 열기" : "역할 단서로 도구함 열기", "lesson", `cooperation:${!o.cooperation}`, `aria-pressed="${o.cooperation}"`)}${b(o.hints === "suggest" ? "✓ 막히면 도움 제안" : "막히면 도움 제안", "lesson", `hints:${o.hints === "suggest" ? "request" : "suggest"}`, `aria-pressed="${o.hints === "suggest"}"`)}</fieldset><fieldset><legend>이야기 선택</legend>${Object.values(
+  const html = `<section class="surface lesson-settings"><h2>우리 수업에 맞춰요</h2><p>학년과 시간, 모둠 활동을 골라요. 설정은 새 게임부터 적용돼요.</p><fieldset><legend>학년과 도움</legend>${b("3~4학년 · 차근차근", "lesson", "grade:guided", `aria-pressed="${o.grade === "guided"}"`)}${b("5~6학년 · 스스로", "lesson", "grade:standard", `aria-pressed="${o.grade === "standard"}"`)}</fieldset><fieldset><legend>수업 시간</legend>${[15, 25, 40].map((n) => b(`${n}분`, "lesson", `minutes:${n}`, `aria-pressed="${o.minutes === n}"`)).join("")}<p>${o.minutes === 15 ? "필수 퍼즐에 집중해요. 추가 단서는 숨겨요." : o.minutes === 40 ? "추가 단서와 역할 설명, 실천 약속까지 충분히 나눠요." : "필수 퍼즐과 원하는 추가 단서를 찾아요."}</p></fieldset><fieldset><legend>협동과 힌트</legend>${b(o.cooperation ? "✓ 역할 단서로 도구함 열기" : "역할 단서로 도구함 열기", "lesson", `cooperation:${!o.cooperation}`, `aria-pressed="${o.cooperation}"`)}${b(o.hints === "suggest" ? "✓ 막히면 도움 제안" : "막히면 도움 제안", "lesson", `hints:${o.hints === "suggest" ? "request" : "suggest"}`, `aria-pressed="${o.hints === "suggest"}"`)}</fieldset><fieldset><legend>이야기 선택</legend>${Object.values(
     EPISODES,
   )
     .map((p) =>
@@ -26,6 +26,9 @@ export function lessonSetup(c: ViewContext) {
     .join(
       "",
     )}<p>${episode(o.episode).intro}</p></fieldset><p class="muted">차근차근·협동·도서관 테마는 연습 활동이에요. 점수는 학생 평가에 쓰지 않아요.</p>${b("기본 공식 규칙으로 맞추기", "lesson", "official")}</section>`;
+  return compact
+    ? `<details class="surface lesson-options optional-controls" data-disclosure="lesson-settings"><summary>수업 설정 바꾸기 · ${o.grade === "guided" ? "차근차근" : "스스로"} · ${o.minutes}분 · ${episode(o.episode).label}</summary>${html}</details>`
+    : html;
 }
 export function teamSummary(c: ViewContext) {
   if (!c.learning || !c.state) return "";
@@ -36,15 +39,32 @@ export function teamPuzzle(c: ViewContext) {
   const e = c.learning!;
   const guided = e.options.grade === "guided";
   const selected = c.roleCard ?? null;
+  const people = roleAssignments(e, c.state!);
+  const ready = e.viewedRoles.includes(0) && e.viewedRoles.includes(1);
   const cards = [
-    `도구함 기호 순서: ${episode(e.options.episode)
+    `기호 순서: ${episode(e.options.episode)
       .coopSequence.slice(0, guided ? 2 : 3)
       .join(" → ")}. 이 순서를 친구에게 말해요.`,
     `기호 사전: ${cooperationLegend(e)}. 친구가 말한 기호를 숫자로 바꿔요.`,
-    "관찰 친구의 순서와 읽기 친구의 숫자를 연결해요. 서로 같은 뜻으로 이해했는지 확인해요.",
-    `${guided ? "두" : "세"} 자리 숫자를 입력해요. 관찰·읽기 친구의 설명을 모두 듣고 눌러요.`,
+    "두 친구의 설명을 연결하고, 서로 같은 뜻으로 이해했는지 확인해요.",
+    `친구의 설명을 듣고 ${guided ? "두" : "세"} 자리 숫자를 눌러요.`,
   ];
-  return `<h2 id="dialog-title">서로 설명해서 도구함 열기</h2><p>한 친구가 순서를, 다른 친구가 숫자를 맡아요. 화면 카드를 번갈아 보거나 인쇄해 나눠 가져요.</p><div class="role-card-tabs">${ROLES.map((r, i) => b(`${i + 1}. ${r} 카드`, "role-card", String(i), `aria-pressed="${selected === i}"`)).join("")}</div>${selected !== null ? `<article class="role-clue"><h3>${ROLES[selected]} 친구만 읽고 설명해요</h3><p>${cards[selected]}</p>${b("카드 덮기", "role-card", "")}</article>` : '<p class="notice">카드를 눌러 맡은 단서를 확인해요.</p>'}${e.coopSolved ? '<p class="opened-device">✓ 친구의 설명으로 도구함을 열었어요!</p>' + b("도구함 살펴보기 →", "inspect", "O06", 'class="primary"') : `<p>확인한 단서: 관찰 ${e.viewedRoles.includes(0) ? "✓" : "○"} · 읽기 ${e.viewedRoles.includes(1) ? "✓" : "○"}</p><output class="team-code" aria-live="polite">${esc(e.coopCode.padEnd(guided ? 2 : 3, "_"))}</output><div class="keypad team-keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "coop-code", String(n))).join("")}</div>`}${b("역할 카드 인쇄", "print-roles")}${b("역할 카드 파일 저장", "download-roles")}`;
+  const tab = (i: number) =>
+    b(
+      `${people[i].student}번 친구 · ${ROLES[i]} 단서${e.viewedRoles.includes(i) ? " ✓" : ""}`,
+      "role-card",
+      String(i),
+      `aria-pressed="${selected === i}"`,
+    );
+  const card =
+    selected !== null && selected < 2
+      ? `<article class="role-clue"><h3 tabindex="-1">${people[selected].student}번 ${ROLES[selected]} 친구가 읽어요</h3><p>${cards[selected]}</p></article>${b(selected === 0 ? "다음: 숫자 단서 읽기 →" : ready ? "다음: 암호 입력하기 →" : "관찰 단서부터 보기 →", "role-card", selected === 0 ? "1" : ready ? "" : "0", 'class="primary"')}`
+      : "";
+  const keypad =
+    selected === null && ready
+      ? `<h3 tabindex="-1" class="coop-input-title">${people[3].student}번 조작 친구가 암호를 눌러요</h3><output class="team-code" aria-live="polite">${esc(e.coopCode.padEnd(guided ? 2 : 3, "_"))}</output><div class="keypad team-keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "coop-code", String(n))).join("")}</div>`
+      : "";
+  return `<h2 id="dialog-title">친구와 도구함 열기</h2>${e.coopSolved ? '<p class="opened-device">✓ 두 친구의 단서를 맞췄어요!</p>' + b("렌즈 찾으러 가기 →", "inspect", "O06", 'class="primary"') : `<p class="notice">${selected !== null && selected >= 2 ? "다른 역할 도움 · 선택" : selected === null && ready ? "3/3 · 두 단서를 숫자로 바꿔요." : selected === 1 ? "2/3 · 숫자 단서를 읽어요." : "1/3 · 기호 순서를 읽어요."}</p>${selected === null && ready ? "" : `<div class="role-card-tabs">${tab(0)}${tab(1)}</div>`}${card}${keypad}${selected === null && ready ? b("단서 다시 보기", "role-card", "0") : ""}${selected === null && !ready ? b("첫 번째 단서 읽기 →", "role-card", "0", 'class="primary"') : ""}`}<details class="optional-controls" data-disclosure="coop-extras"><summary>다른 역할·인쇄 카드 · 선택</summary><div class="role-card-tabs">${tab(2)}${tab(3)}</div>${selected !== null && selected >= 2 ? `<article class="role-clue"><h3 tabindex="-1">${people[selected].student}번 ${ROLES[selected]} 친구가 읽어요</h3><p>${cards[selected]}</p>${b(e.coopSolved ? "설명 카드 닫기" : "두 단서로 돌아가기", "role-card", ready ? "" : "0")}</article>` : ""}${b("역할 카드 인쇄", "print-roles")}${b("역할 카드 파일 저장", "download-roles")}</details>`;
 }
 export function learningPanel(c: ViewContext, html: string) {
   const e = c.learning;
@@ -99,7 +119,7 @@ export function learningPanel(c: ViewContext, html: string) {
         (!e.options.cooperation || e.coopSolved)) ||
       (c.objectId === "O12" && c.state.finalKeyObtained))
   )
-    html += b(
+    html += `<details class="optional-controls" data-disclosure="device-motion"><summary>장치 움직여 보기 · 선택</summary>${b(
       c.objectId === "O04"
         ? "서랍 열고 닫기"
         : c.objectId === "O06"
@@ -108,7 +128,7 @@ export function learningPanel(c: ViewContext, html: string) {
       "operate-device",
       c.objectId!,
       'class="operate-device"',
-    );
+    )}</details>`;
   return html;
 }
 export function pledgeView(c: ViewContext) {

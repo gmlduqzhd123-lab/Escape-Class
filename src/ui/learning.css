@@ -203,3 +203,27 @@
 .escape-play button[hidden] {
   display: none !important;
 }
+
+/* Keep optional lesson tools out of the next required action. */
+.optional-controls {
+  margin: 16px 0;
+}
+.optional-controls > summary {
+  min-height: 44px;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 750;
+  line-height: 1.6;
+  color: var(--green);
+}
+.optional-controls > summary:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.lesson-options > .lesson-settings {
+  border: 0;
+  box-shadow: none;
+  margin: 12px 0 0;
+  padding: 0;
+}

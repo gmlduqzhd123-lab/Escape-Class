@@ -449,6 +449,13 @@ function findFocus(value: string) {
   );
 }
 function render(focusKey?: string) {
+  const expanded = new Set(
+    [
+      ...root.querySelectorAll<HTMLDetailsElement>(
+        "details[data-disclosure][open]",
+      ),
+    ].map((el) => el.dataset.disclosure),
+  );
   if (saveBlocked && route() === "/play") c.modal = "save-blocked";
   const a = document.activeElement as HTMLElement | null;
   const focus = focusKey ?? a?.dataset.focus;
@@ -504,6 +511,11 @@ function render(focusKey?: string) {
     : markup;
   mountDeviceAudit();
   mountScene();
+  root
+    .querySelectorAll<HTMLDetailsElement>("details[data-disclosure]")
+    .forEach((el) => {
+      if (expanded.has(el.dataset.disclosure)) el.open = true;
+    });
   const device = document.querySelector<HTMLElement>(".zoom-device");
   if (device && device.dataset.device === deviceKey)
     device.scrollTop = deviceScroll;
@@ -551,6 +563,19 @@ function render(focusKey?: string) {
 }
 function openModal(name: string) {
   if (name === "hint") c.bonusHintLevel = 0;
+  if (name === "team-puzzle" && c.learning) {
+    const e = c.learning;
+    c.roleCard =
+      e.coopSolved || (e.viewedRoles.includes(0) && e.viewedRoles.includes(1))
+        ? null
+        : e.viewedRoles.includes(0)
+          ? 1
+          : 0;
+    if (c.roleCard !== null && !e.viewedRoles.includes(c.roleCard))
+      e.viewedRoles.push(c.roleCard);
+    if (checkCooperation(e)) e.coopSolved = true;
+    persist();
+  }
   dialogReturnFocus =
     (document.activeElement as HTMLElement)?.dataset.focus ?? "";
   c.modal = name;
@@ -939,6 +964,9 @@ async function handle(action: string, value: string) {
       }
       persist();
       render();
+      document
+        .querySelector<HTMLElement>(".role-clue h3, .coop-input-title")
+        ?.focus();
       return;
     case "role-shift":
       if (c.learning) {

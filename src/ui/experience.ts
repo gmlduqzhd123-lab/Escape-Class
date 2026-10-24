@@ -34,6 +34,15 @@ export function objective(s: Progress): [string, string] {
   return ["열쇠로 출구를 열면 탈출 성공이에요!", "O12"];
 }
 export function hintTarget(c: ViewContext) {
+  if (
+    c.learning?.options.cooperation &&
+    !c.learning.coopSolved &&
+    c.state?.solvedPuzzleIds.includes("P1") &&
+    !c.state.inventory.some((id) => id.endsWith("lens")) &&
+    (!c.objectId || ["O05", "O06"].includes(c.objectId)) &&
+    c.device !== "bonus"
+  )
+    return "cooperation";
   if (c.device === "bonus")
     return (
       ({ O02: "B3", O06: "B2", O12: "B4" } as Record<string, string>)[
