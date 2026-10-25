@@ -31,6 +31,7 @@ export interface ClassroomScene {
 }
 
 type Options = {
+  cipherDigits?: number[];
   initialPose?: ScenePose | null;
   onPoseChange?: (pose: ScenePose) => void;
   episodeId?: EpisodeId;
@@ -85,6 +86,25 @@ export function createClassroomScene(
 ): ClassroomScene {
   const scene = new THREE.Scene();
   const pack = episode(options.episodeId ?? "classroom");
+  const stopName = (id: string) =>
+    pack.shell === "classroom"
+      ? STOPS[id].name
+      : ((
+          {
+            center: `${pack.room} 가운데`,
+            middle: "가운데 통로",
+            front: `${pack.objects.O01} 앞`,
+            plant: "창가",
+            door: "출구 앞",
+            basket: pack.shell === "gym" ? "벤치 옆" : "반납함 옆",
+            tools: "도구함 앞",
+            lockers: "사물함 앞",
+            tablet: pack.shell === "gym" ? "계획판 앞" : "태블릿 앞",
+            desk: pack.shell === "gym" ? "기록대 앞" : "독서대 앞",
+            back: `${pack.room} 뒤편`,
+            books: pack.shell === "gym" ? "응원 자료함 앞" : "책장 앞",
+          } as Record<string, string>
+        )[id] ?? STOPS[id].name);
   const sceneObjects = OBJECTS.map((o) => ({
     ...o,
     name: pack.objects[o.id] ?? o.name,
@@ -149,15 +169,20 @@ export function createClassroomScene(
     <button type="button" data-scene-place="back" aria-label="교실 뒤편으로 이동">교실 뒤편으로</button>
   </div>
   <p class="classroom-3d-instruction" aria-live="polite">물건이나 이름표를 누르면 가까이 가서 살펴봐요.</p>`;
-  if (pack.shell === "library")
-    host.innerHTML = host.innerHTML.replaceAll("교실", "도서관");
+  if (pack.shell !== "classroom")
+    host.innerHTML = host.innerHTML.replaceAll("교실", pack.room);
+  if (pack.shell !== "classroom")
+    host.innerHTML = host.innerHTML.replaceAll(
+      "칠판 앞으로",
+      `${pack.objects.O01} 앞으로`,
+    );
   const stage = host.querySelector<HTMLElement>(".classroom-3d-stage")!;
   const labels = host.querySelector<HTMLElement>(".classroom-3d-labels")!;
   const instruction = host.querySelector<HTMLElement>(
     ".classroom-3d-instruction",
   )!;
   const location = host.querySelector<HTMLElement>(".classroom-location-name")!;
-  location.textContent = STOPS[currentStop].name.replace("교실", pack.room);
+  location.textContent = stopName(currentStop);
   const movingLabel = host.querySelector<HTMLElement>(".classroom-3d-moving")!;
   const canvas = renderer.domElement;
   canvas.className = "classroom-3d-canvas";
@@ -426,6 +451,32 @@ export function createClassroomScene(
   floorGrid.instanceMatrix.needsUpdate = true;
   floorGrid.receiveShadow = quality.shadows;
   scene.add(floorGrid);
+  if (pack.shell === "gym") {
+    for (const x of [-2.4, 2.4])
+      box(scene, [0.065, 0.016, 6.5], [x, 0.017, 0], "#78956e");
+    for (const z of [-3.25, 0, 3.25])
+      box(scene, [4.8, 0.016, 0.065], [0, 0.017, z], "#78956e");
+    const circle = mesh(
+      new THREE.TorusGeometry(0.9, 0.018, 5, 40),
+      mat("#78956e"),
+    );
+    circle.rotation.x = Math.PI / 2;
+    circle.position.y = 0.03;
+    for (const z of [-5.25, 5.25]) {
+      const hoopX = 0;
+      box(scene, [1.4, 0.85, 0.07], [hoopX, 3.25, z], palette.paper);
+      const ring = mesh(
+        new THREE.TorusGeometry(0.27, 0.035, 6, 20),
+        mat("#ae8a50"),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(hoopX, 2.85, z + (z < 0 ? 0.3 : -0.3));
+    }
+    for (const z of [1.9, 3.1]) {
+      box(scene, [0.7, 0.15, 1.3], [4.75, 0.55, z], palette.wood);
+      box(scene, [0.15, 0.55, 1.1], [4.8, 0.26, z], palette.green);
+    }
+  }
   box(scene, [11.2, 3.8, 0.16], [0, 1.85, -5.6], palette.cream);
   box(scene, [11.2, 3.8, 0.16], [0, 1.85, 5.6], palette.cream);
   box(scene, [0.16, 3.8, 11.2], [-5.6, 1.85, 0], palette.cream);
@@ -469,7 +520,11 @@ export function createClassroomScene(
     ctx.fillRect(0, 0, w, h);
     text(
       ctx,
-      pack.shell === "library" ? "함께 읽는 도서관" : "우리들의 우정 교실",
+      pack.shell === "gym"
+        ? "모두 함께 뛰는 체육관"
+        : pack.shell === "library"
+          ? "함께 읽는 도서관"
+          : "우리들의 우정 교실",
       w / 2,
       70,
       56,
@@ -500,7 +555,14 @@ export function createClassroomScene(
   panel(bulletin, [1.95, 1.5], [0, 2.05, 0.08], (ctx, w, h) => {
     ctx.fillStyle = "#c6a477";
     ctx.fillRect(0, 0, w, h);
-    text(ctx, "함께 만드는 축제", w / 2, 50, 37, palette.paper);
+    text(
+      ctx,
+      pack.shell === "gym" ? "함께 뛰는 축제" : "함께 만드는 축제",
+      w / 2,
+      50,
+      37,
+      palette.paper,
+    );
     for (let i = 0; i < 3; i++) {
       ctx.save();
       ctx.translate(145 + i * 235, 220);
@@ -542,7 +604,11 @@ export function createClassroomScene(
     text(ctx, "함께", 530, 165, 80);
     text(
       ctx,
-      pack.shell === "library" ? "읽고 싶어" : "만들고 싶어",
+      pack.shell === "gym"
+        ? "함께 뛰고 싶어"
+        : pack.shell === "library"
+          ? "읽고 싶어"
+          : "만들고 싶어",
       530,
       265,
       56,
@@ -563,7 +629,9 @@ export function createClassroomScene(
         ctx.strokeRect(c * 256 + 10, r * 128 + 5, 236, 118);
         text(
           ctx,
-          String([7, 2, 9, 4, 6, 1, 8, 3, 5][r * 3 + c]),
+          String(
+            (options.cipherDigits ?? [7, 2, 9, 4, 6, 1, 8, 3, 5])[r * 3 + c],
+          ),
           c * 256 + 128,
           r * 128 + 64,
           75,
@@ -683,6 +751,14 @@ export function createClassroomScene(
   const screen = panel(device, [0.72, 0.5], [0, 0.15, -0.035], (ctx, w, h) => {
     ctx.fillStyle = "#dfebd7";
     ctx.fillRect(0, 0, w, h);
+    if (pack.shell === "gym") {
+      text(ctx, "모두에게 같은 기회", w / 2, 68, 35);
+      [0, 1, 2, 3].forEach((friend, i) =>
+        animalFace(ctx, 110 + i * 180, 205, 110, friend),
+      );
+      text(ctx, "두 팀에 한 번씩 참여해요", w / 2, 330, 33);
+      return;
+    }
     text(ctx, "친구에게 보내기 전에", w / 2, 68, 35);
     animalFace(ctx, 180, 205, 145, 0);
     animalFace(ctx, 580, 205, 145, 1);
@@ -703,7 +779,7 @@ export function createClassroomScene(
     ctx.moveTo(110, 220);
     ctx.lineTo(650, 220);
     ctx.stroke();
-    ["교실", "복도", "교무실", "상담실"].forEach((word, i) => {
+    [pack.room, "복도", "교무실", "상담실"].forEach((word, i) => {
       ctx.fillStyle = ["#edd694", "#d6e2c5", "#d6e2c5", "#e9c6a8"][i];
       ctx.fillRect(50 + i * 180, 153, 128, 128);
       text(ctx, word, 114 + i * 180, 217, 31);
@@ -729,11 +805,21 @@ export function createClassroomScene(
   // Shelf faces the aisle, leaving the rear corridor clear.
   books.rotation.y = Math.PI / 2;
   const plant = makeObject("O11", [-4.7, 0, -3.8]);
+  let gymFlag: THREE.Mesh | undefined;
   cylinder(plant, 0.48, 0.48, 0.08, [0, 0.08, 0], "#af8758");
   cylinder(plant, 0.37, 0.25, 0.55, [0, 0.39, 0], "#c8926b");
   cylinder(plant, 0.4, 0.4, 0.1, [0, 0.68, 0], "#dcad7d");
   cylinder(plant, 0.035, 0.045, 1.1, [0, 1.1, 0], "#6a8051", 6);
-  for (let i = 0; i < 7; i++) {
+  if (pack.shell === "gym") {
+    box(plant, [0.055, 1.8, 0.055], [0, 1.5, 0], palette.wood);
+    gymFlag = panel(plant, [0.85, 0.55], [0.43, 2.05, 0], (ctx, w, h) => {
+      ctx.fillStyle = palette.green;
+      ctx.fillRect(0, 0, w, h);
+      text(ctx, "함께!", w / 2, h / 2, 110, palette.paper);
+    });
+    gymFlag.visible = false;
+  }
+  for (let i = 0; pack.shell !== "gym" && i < 7; i++) {
     const leaf = mesh(
       new THREE.SphereGeometry(0.3, 8, 6),
       mat(i % 2 ? "#6c8e58" : "#8ba169"),
@@ -944,9 +1030,9 @@ export function createClassroomScene(
     const button = document.createElement("button");
     button.type = "button";
     button.className = "classroom-move-label";
-    button.setAttribute("aria-label", `${stop.name} 이동`);
-    button.title = `${stop.name} 이동`;
-    button.innerHTML = `<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="8" cy="8" rx="3" ry="5" transform="rotate(-18 8 8)"/><ellipse cx="16" cy="15" rx="3" ry="5" transform="rotate(18 16 15)"/></svg><span>${stopLabels[id]}<small>가기</small></span>`;
+    button.setAttribute("aria-label", `${stopName(id)} 이동`);
+    button.title = `${stopName(id)} 이동`;
+    button.innerHTML = `<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="8" cy="8" rx="3" ry="5" transform="rotate(-18 8 8)"/><ellipse cx="16" cy="15" rx="3" ry="5" transform="rotate(18 16 15)"/></svg><span>${pack.shell === "classroom" ? stopLabels[id] : stopName(id)}<small>가기</small></span>`;
     labels.append(button);
     button.addEventListener("click", () => navigate(id));
     moveMarkers.push({
@@ -1232,7 +1318,7 @@ export function createClassroomScene(
       // last safe stop so the position, place name, and next route agree.
       camera.position.set(STOPS[currentStop].x, 1.8, STOPS[currentStop].z);
     }
-    location.textContent = STOPS[currentStop].name.replace("교실", pack.room);
+    location.textContent = stopName(currentStop);
     instruction.textContent = "물건이나 이름표를 누르면 가까이 가서 살펴봐요.";
   }
   function route(from: string, to: string) {
@@ -1292,7 +1378,7 @@ export function createClassroomScene(
     setMoving(true);
     const destinationName = object
       ? sceneObjects.find((item) => item.id === object.id)!.name
-      : STOPS[id].name;
+      : stopName(id);
     movingLabel.textContent = object
       ? `${destinationName} 살펴보러 가요…`
       : `${destinationName}까지 가고 있어요…`;
@@ -1302,7 +1388,7 @@ export function createClassroomScene(
     const finish = () => {
       if (token !== journey || !active || disposed) return;
       currentStop = id;
-      location.textContent = STOPS[id].name.replace("교실", pack.room);
+      location.textContent = stopName(id);
       const target = object?.look ?? destinationLook;
       const direction = target?.clone().sub(camera.position).normalize();
       const finalYaw = reset
@@ -1498,6 +1584,7 @@ export function createClassroomScene(
   document.addEventListener("fullscreenchange", resize);
   window.visualViewport?.addEventListener("resize", resize);
   function setState(next: ClassroomState) {
+    if (gymFlag) gymFlag.visible = next.finalKeyObtained;
     if (state.drawerOpen !== next.drawerOpen)
       deviceTargets.drawer = next.drawerOpen ? 1 : 0;
     if (state.toolTaken !== next.toolTaken)

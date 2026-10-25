@@ -21,6 +21,8 @@ import {
 } from "../puzzles/judges";
 import { button as b, esc, animal, icon } from "./helpers";
 import type { ViewContext } from "./views";
+import { digit, displayCode, orderCards } from "../game/advancement";
+import { gymTeams } from "./advancement";
 const disabled = (v: boolean) => (v ? "disabled" : "");
 const done = (s: Progress, id: PuzzleId) => s.solvedPuzzleIds.includes(id);
 const head = (name: string, text: string) =>
@@ -60,12 +62,15 @@ function p1(s: Progress, c: ViewContext) {
    .join("")}</div>
  ${
    !d
-     ? `<p class="device-feedback ${p.order.length === 3 && !correct ? "needs-fix" : ""}" role="status">${p.order.length === 3 && !correct ? "기호가 이어지지 않아요. 위 메모를 눌러 빼고 다시 골라요." : `메모 ${p.order.length}/3 · 메모를 누르면 다음 빈칸에 놓여요.`}</p><div class="clue-cards compact-cards">${CLUES.filter(
-         (card) =>
-           s.discoveredClueIds.includes(card.id) &&
-           !p.order.includes(card.id) &&
-           (c.learning?.options.grade !== "guided" ||
-             !["P1-C2", "P1-C4"].includes(card.id)),
+     ? `<p class="device-feedback ${p.order.length === 3 && !correct ? "needs-fix" : ""}" role="status">${p.order.length === 3 && !correct ? "기호가 이어지지 않아요. 위 메모를 눌러 빼고 다시 골라요." : `메모 ${p.order.length}/3 · 메모를 누르면 다음 빈칸에 놓여요.`}</p><div class="clue-cards compact-cards">${orderCards(
+         CLUES.filter(
+           (card) =>
+             s.discoveredClueIds.includes(card.id) &&
+             !p.order.includes(card.id) &&
+             (c.learning?.options.grade !== "guided" ||
+               !["P1-C2", "P1-C4"].includes(card.id)),
+         ),
+         c.learning,
        )
          .map((card) =>
            b(
@@ -100,7 +105,7 @@ function p2(s: Progress, c: ViewContext) {
              ([x, y]) => x === (i % 3) + 1 && y === Math.floor(i / 3) + 1,
            )
          : -1;
-       return `<span class="${wi >= 0 ? "window-cell" : "covered-cell"}">${wi >= 0 ? `<small>창 ${wi + 1}</small>${n}` : p.lensUsed ? "·" : n}</span>`;
+       return `<span class="${wi >= 0 ? "window-cell" : "covered-cell"}">${wi >= 0 ? `<small>창 ${wi + 1}</small>${digit(c.learning, n)}` : p.lensUsed ? "·" : digit(c.learning, n)}</span>`;
      })
      .join("")}</span>`,
    p.lensUsed ? "lens-rotate" : "place-lens",
@@ -108,8 +113,8 @@ function p2(s: Progress, c: ViewContext) {
    `class="lens-board" aria-label="${p.lensUsed ? "투명 렌즈를 시계 방향으로 회전" : "렌즈 올리기"}" ${disabled(d || (!p.lensUsed && !owned))}`,
  )}</div>
  <div class="lens-controls">${p.lensUsed ? b("↻ 렌즈 돌리기", "lens-rotate", "", 'class="primary" ' + disabled(d)) : owned ? b("◎ 렌즈 올리기", "place-lens", "O04", 'class="primary"') : ""}</div>
- ${ready ? `<div class="window-reading" aria-label="렌즈에 보이는 세 숫자">${[7, 1, 3].map((n, i) => `<span>창 ${i + 1}<strong>${n}</strong></span>`).join("")}</div>` : '<p class="notice">렌즈의 ▲ 표시가 위를 향하면 숫자를 누를 수 있어요.</p>'}
- <div class="code-display" aria-live="polite">${esc(p.code.padEnd(3, "_"))}</div><div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "code", String(n), disabled(d || !ready))).join("")}</div>`;
+ ${ready ? `<div class="window-reading" aria-label="렌즈에 보이는 세 숫자">${[7, 1, 3].map((n, i) => `<span>창 ${i + 1}<strong>${digit(c.learning, n)}</strong></span>`).join("")}</div>` : '<p class="notice">렌즈의 ▲ 표시가 위를 향하면 숫자를 누를 수 있어요.</p>'}
+ <div class="code-display" aria-live="polite">${esc(displayCode(c.learning, p.code).padEnd(3, "_"))}</div><div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "code", String(n), disabled(d || !ready))).join("")}</div>`;
   });
 }
 function p3(s: Progress, c: ViewContext) {
@@ -173,8 +178,10 @@ function p5(s: Progress, c: ViewContext) {
       ask = ["교무실", "상담실"].includes(p.place),
       started = p.sentence[0] === "R0";
     const placeName = (place: string) =>
-      place === "교실" && c.learning?.options.episode === "library"
-        ? "도서관"
+      place === "교실" && c.learning?.options.episode !== "classroom"
+        ? c.learning?.options.episode === "gym"
+          ? "체육관"
+          : "도서관"
         : place;
     const dialog =
       p.place === "담임 자리"
@@ -268,7 +275,9 @@ export function objectContent(
     case "O07":
       return p3(s, c);
     case "O08":
-      return p4(s);
+      return c.learning?.options.episode === "gym"
+        ? locked(s, "P4", () => gymTeams(c))
+        : p4(s);
     case "O09":
       return p5(s, c);
     case "O10":

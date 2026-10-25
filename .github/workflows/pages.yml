@@ -31,6 +31,10 @@ jobs:
         run: npm run build
         env:
           PAGES_BASE: ${{ steps.pages.outputs.base_path }}/
+      - name: Verify all offline lesson assets
+        run: npm run test:offline
+      - name: Check asset size budget
+        run: npm run measure
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
         with:
           path: dist

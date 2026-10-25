@@ -103,7 +103,7 @@ npm run build
 Remove-Item Env:PAGES_BASE
 ```
 
-Vite의 [공식 GitHub Pages 안내](https://vite.dev/guide/static-deploy.html#github-pages)를 기준으로 구성했습니다. 서비스 워커와 완전한 오프라인 최초 시작은 후속 범위입니다.
+Vite의 [공식 GitHub Pages 안내](https://vite.dev/guide/static-deploy.html#github-pages)를 기준으로 구성했습니다. 오프라인 수업은 먼저 온라인에서 수업 안내 → 필수 파일 준비·확인을 완료합니다. 준비한 브라우저에서는 새로고침과 지연 3D 파일 로딩을 포함해 연결 없이 진행할 수 있습니다.
 
 ## 저장과 개인정보
 
@@ -120,3 +120,8 @@ Vite의 [공식 GitHub Pages 안내](https://vite.dev/guide/static-deploy.html#g
 ## 고도화 완료 점검 1.4.5
 
 이어하기·협동 해금·역할 교대·힌트 시간·3D 진행 표시·카드 저장을 보완했습니다. [2~10번 완료 점검](docs/UPGRADE-COMPLETION-1.4.5.md)을 참고하세요. 실기기 검증은 추후 진행합니다.
+
+
+## 고도화 1.5.0
+
+직접 조작 연습, 탐색 지도, 원인별 도움, 해결 해설, 선택형 대화, 체육관 에피소드, 변형 연습, 교사용 진행 확인, 오프라인 준비, 수업 이야기 편집을 추가했습니다. 사용 위치·파일 제한·검증 범위는 [고도화 10가지 안내](docs/UPGRADE-1.5.md)를 참고하세요. `npm run build` 뒤 `npm run test:offline`으로 실제 빌드된 오프라인 처리 검사를 실행합니다.

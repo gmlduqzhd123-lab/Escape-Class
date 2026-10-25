@@ -1,5 +1,12 @@
 import { inlineFeedback } from "./visibility";
 import { episode } from "../content/episodes";
+import { tutorial, spaceMap, friendTalk, learningHints } from "./advancement";
+import {
+  diagnose,
+  displayCode,
+  EXPLANATIONS,
+  type LessonPack,
+} from "../game/advancement";
 import { renderPlay, hintTarget, objective } from "./experience";
 import { lessonSetup, teamSummary, teamPuzzle, pledgeView } from "./learning";
 import type { DeviceAudit } from "./learning";
@@ -18,6 +25,11 @@ import { exportReason } from "../ranking/service";
 import type { AggregateState } from "../tools/aggregate";
 import { button as b, esc, icon, animal, room, time } from "./helpers";
 export interface ViewContext {
+  tutorialStep?: number;
+  authorDraft?: LessonPack | null;
+  authorStatus?: string;
+  offlineStatus?: string;
+  offlineBusy?: boolean;
   learning?: Experience | null;
   lessonDraft?: LessonOptions;
   roleCard?: number | null;
@@ -30,6 +42,7 @@ export interface ViewContext {
   device: "main" | "bonus";
   bonusHintLevel: number;
   reward: {
+    puzzle?: string;
     title: string;
     text: string;
     next: string;
@@ -82,7 +95,7 @@ export function setup(c: ViewContext) {
   const schoolCard = c.schools.length
     ? `<div class="surface"><h2>활동 학교 선택</h2><label for="school-search">등록 학교 검색</label><input id="school-search" data-input="school-query" value="${esc(c.schoolQuery)}" placeholder="등록된 학교 이름 찾기" autocomplete="off" /><div id="school-options" class="school-options">${schoolOptions(c, matches)}</div><p class="notice">${c.config?.activeRound?.acceptingResults ? esc(c.config.activeRound.label) + " · 결과 접수 중" : "연습 모드로 시작해요."}</p></div>`
     : "";
-  return `<main id="main" class="narrow setup-screen"><a class="back-link" href="#/">← 시작 화면</a><span class="eyebrow">시작하기 전에 · 1 / 2</span><h1>우리 모둠, 준비됐나요?</h1><p>${c.schools.length ? "학교 선택은 소속 인증이 아니에요. 학교 없이도 모든 퍼즐을 풀 수 있어요." : "학교 선택이나 이름 입력 없이 바로 시작할 수 있어요."}</p>${schoolCard}<div class="surface"><h2>편안하게 활동해요</h2><div class="setup-controls"><label class="check-label"><input type="checkbox" data-setting="setup-sound" ${c.setupSound ? "checked" : ""} /> 효과음 켜기 (기본 끄기)</label><label class="check-label"><input type="checkbox" data-setting="setup-reduced" ${c.setupReduced ? "checked" : ""} /> 움직임 줄이기</label></div><p>이야기와 모든 단서는 소리 없이도 읽을 수 있어요.</p></div>${lessonSetup(c, true)}${b("이야기와 조작 안내 보기 →", "setup-next", "", 'class="primary large start-next"')}</main>`;
+  return `<main id="main" class="narrow setup-screen"><a class="back-link" href="#/">← 시작 화면</a><span class="eyebrow">시작하기 전에 · 1 / 2</span><h1>우리 모둠, 준비됐나요?</h1><p>${c.schools.length ? "학교 선택은 소속 인증이 아니에요. 학교 없이도 모든 퍼즐을 풀 수 있어요." : "학교 선택이나 이름 입력 없이 바로 시작할 수 있어요."}</p>${schoolCard}<div class="surface"><h2>편안하게 활동해요</h2><div class="setup-controls"><label class="check-label"><input type="checkbox" data-setting="setup-sound" ${c.setupSound ? "checked" : ""} /> 효과음 켜기 (기본 끄기)</label><label class="check-label"><input type="checkbox" data-setting="setup-reduced" ${c.setupReduced ? "checked" : ""} /> 움직임 줄이기</label></div><p>이야기와 모든 단서는 소리 없이도 읽을 수 있어요.</p></div>${c.authorDraft && c.lessonDraft?.authored ? `<p class="setup-custom">수업 파일 적용 · ${esc(c.authorDraft.title)} · 연습 활동 ${b("기본 이야기 사용", "author-clear")}</p>` : ""}${lessonSetup(c, true)}${b("이야기와 조작 안내 보기 →", "setup-next", "", 'class="primary large start-next"')}</main>`;
 }
 export function schoolOptions(
   c: ViewContext,
@@ -93,7 +106,7 @@ export function schoolOptions(
   return `${b(`학교 없이 체험 ${c.setupSchool === null ? "✓ 선택됨" : ""}`, "choose-school", "", `aria-pressed="${c.setupSchool === null}"`)}${matches.map((s) => b(`${esc(s.name)} ${c.setupSchool === s.schoolId ? "✓ 선택됨" : ""}`, "choose-school", s.schoolId, `aria-pressed="${c.setupSchool === s.schoolId}"`)).join("")}${!c.schools.length ? '<p class="muted">아직 등록된 학교가 없어요. 학교 없이 체험을 선택해 주세요.</p>' : !matches.length ? "<p>검색 결과가 없어요.</p>" : ""}`;
 }
 export function intro(c: ViewContext) {
-  return `<main id="main" class="narrow intro-screen"><span class="eyebrow">모험의 시작 · 2 / 2</span><h1>우정 열쇠가 사라졌어요!</h1><div class="story-characters">${["토끼", "곰", "여우", "다람쥐"].map((n) => animal(n, 80)).join("")}</div><div class="surface"><p>친구사랑 축제의 마지막 활동은 가상 교실 방탈출이에요.</p><p>장치를 풀어 우정 조각 다섯 개를 모으고, 숨겨진 열쇠를 찾아요.</p><p><strong>진짜 교실 문은 잠그지 않아요.</strong> 언제든 쉬거나 어른에게 도움을 요청할 수 있어요.</p></div><div class="instructions"><div>${icon("note", 32)}<h2>둘러보기</h2><p>좌우 버튼을 누르거나 화면을 밀어요.</p></div><div>${icon("bag", 32)}<h2>이동하기</h2><p>‘이동’을 눌러 장소를 골라요.</p></div><div>${icon("hint", 32)}<h2>살펴보기</h2><p>물건이나 이름을 눌러요. 못 찾겠으면 ‘다음’ 표시를 찾아요.</p></div></div><p>시간은 ‘게임 시작’부터 흘러요. ‘메뉴’나 ‘화면 줄이기’로 전체화면을 나갈 수 있어요.</p><p>모둠의 1~4번 자리를 정해요. 다음 조작 친구는 화면에서 알려 줘요.</p>${b("게임 시작 →", "start", "", 'class="primary large start-next"')}</main>`;
+  return `<main id="main" class="narrow intro-screen"><span class="eyebrow">모험의 시작 · 2 / 2</span><h1>${esc(c.learning?.extras.custom?.title ?? "우정 열쇠가 사라졌어요!")}</h1><div class="story-characters">${["토끼", "곰", "여우", "다람쥐"].map((n) => animal(n, 80)).join("")}</div><div class="surface"><p>${esc(c.learning?.extras.custom?.intro ?? "친구사랑 축제의 마지막 활동은 가상 교실 방탈출이에요.")}</p><p>장치를 풀어 우정 조각 다섯 개를 모으고, 숨겨진 열쇠를 찾아요.</p><p><strong>진짜 교실 문은 잠그지 않아요.</strong> 언제든 쉬거나 어른에게 도움을 요청할 수 있어요.</p></div><div class="instructions"><div>${icon("note", 32)}<h2>둘러보기</h2><p>좌우 버튼을 누르거나 화면을 밀어요.</p></div><div>${icon("bag", 32)}<h2>이동하기</h2><p>‘이동’을 눌러 장소를 골라요.</p></div><div>${icon("hint", 32)}<h2>살펴보기</h2><p>물건이나 이름을 눌러요. 못 찾겠으면 ‘다음’ 표시를 찾아요.</p></div></div><p>시간은 ‘게임 시작’부터 흘러요. ‘메뉴’나 ‘화면 줄이기’로 전체화면을 나갈 수 있어요.</p><p>모둠의 1~4번 자리를 정해요. 다음 조작 친구는 화면에서 알려 줘요.</p>${b("게임 시작 →", "start", "", 'class="primary large start-next"')}${b("30초 조작 연습 · 선택", "modal", "tutorial")}</main>`;
 }
 export function play(c: ViewContext) {
   return renderPlay(c);
@@ -133,6 +146,12 @@ export function modalShell(c: ViewContext) {
 export function modalContent(c: ViewContext) {
   const s = c.state;
   switch (c.modal) {
+    case "tutorial":
+      return tutorial(c);
+    case "space-map":
+      return spaceMap(c);
+    case "friend-talk":
+      return friendTalk(c);
     case "save-blocked":
       return `<h2 id="dialog-title">진행 기록을 보호하고 있어요</h2><p>다른 탭에서 이 게임을 진행 중이거나 저장 기록이 바뀌었어요. 이 탭에서는 덮어쓰지 않아요.</p><p>진행 중인 다른 탭을 닫은 뒤 다시 확인해 주세요.</p>${b("다른 탭을 닫았어요 · 다시 확인", "save-retry", "", 'class="primary"')}${b("시작 화면으로", "home")}`;
     case "team-puzzle":
@@ -140,11 +159,11 @@ export function modalContent(c: ViewContext) {
     case "team":
       return `<h2 id="dialog-title">우리 모둠의 역할</h2>${teamSummary(c)}`;
     case "navigation":
-      return `<h2 id="dialog-title">어디로 갈까요?</h2><p>가고 싶은 곳을 눌러요.</p><div class="explore-choices">${b("칠판 앞으로", "go-place", "front")}${b("창가로", "go-place", "plant")}${b("교실 뒤편으로", "go-place", "back")}${b("가운데로 돌아가기", "go-place", "center")}</div>`;
+      return `<h2 id="dialog-title">어디로 갈까요?</h2><p>가고 싶은 곳을 눌러요.</p>${b("한눈에 보는 탐색 지도", "modal", "space-map", 'class="primary"')}<div class="explore-choices">${b("칠판 앞으로", "go-place", "front")}${b("창가로", "go-place", "plant")}${b("교실 뒤편으로", "go-place", "back")}${b("가운데로 돌아가기", "go-place", "center")}</div>`;
     case "game-menu":
-      return `<h2 id="dialog-title">탐색 메뉴</h2><p>단서를 다시 읽거나 모둠 역할을 확인해요.</p><div class="explore-choices">${b("단서 노트", "modal", "notes")}${b("물건 목록", "modal", "objects")}${b("우리 모둠 역할", "modal", "team")}${b("활동 설정", "modal", "settings")}${b(c.immersive ? "화면 줄이기" : "전체화면", "fullscreen", "", `aria-pressed="${c.immersive}"`)}${b(c.sceneMode === "3d" ? "그림으로 보기" : "입체로 보기", "scene-mode", "", `aria-label="${c.sceneMode === "3d" ? "그림 교실로 전환" : "입체 교실로 전환"}"`)}</div>`;
+      return `<h2 id="dialog-title">탐색 메뉴</h2><p>단서를 다시 읽거나 모둠 역할을 확인해요.</p><details class="optional-controls"><summary>연습·교사용 도구 · 선택</summary>${b("30초 조작 연습", "modal", "tutorial")}${b("친구에게 말 걸기", "modal", "friend-talk")}${b("이 기기의 진행 확인", "teacher-progress")}</details><div class="explore-choices">${b("단서 노트", "modal", "notes")}${b("물건 목록", "modal", "objects")}${b("우리 모둠 역할", "modal", "team")}${b("활동 설정", "modal", "settings")}${b(c.immersive ? "화면 줄이기" : "전체화면", "fullscreen", "", `aria-pressed="${c.immersive}"`)}${b(c.sceneMode === "3d" ? "그림으로 보기" : "입체로 보기", "scene-mode", "", `aria-label="${c.sceneMode === "3d" ? "그림 교실로 전환" : "입체 교실로 전환"}"`)}</div>`;
     case "reward":
-      return `<h2 id="dialog-title">${esc(c.reward?.title)}</h2><div class="reward-piece">${icon("key", 70)}</div><p>${esc(c.reward?.text)}</p>${c.reward?.roleNotice ? `<p class="notice" role="status">${esc(c.reward.roleNotice)}</p>` : ""}${b(`${OBJECTS.find((o) => o.id === c.reward?.next)?.name ?? "다음 단서"} 살펴보기 →`, "follow-clue", c.reward?.next ?? "", 'class="primary"')}${b("교실로 돌아가기", "reward-room")}`;
+      return `<h2 id="dialog-title">${esc(c.reward?.title)}</h2><div class="reward-piece">${icon("key", 70)}</div><p>${esc(c.reward?.text)}</p>${c.reward?.puzzle ? `<aside class="why-it-works"><strong>함께 알아낸 점</strong><p>${esc(c.learning?.options.episode === "gym" && c.reward.puzzle === "P4" ? "두 팀의 인원이 같고 네 친구가 한 번씩 참여하도록 골랐어요." : EXPLANATIONS[c.reward.puzzle])}</p></aside>` : ""}${c.reward?.roleNotice ? `<p class="notice" role="status">${esc(c.reward.roleNotice)}</p>` : ""}${b(`${OBJECTS.find((o) => o.id === c.reward?.next)?.name ?? "다음 단서"} 살펴보기 →`, "follow-clue", c.reward?.next ?? "", 'class="primary"')}${b("교실로 돌아가기", "reward-room")}`;
     case "objects": {
       const target = s ? objective(s)[1] : null;
       const ordered = [
@@ -187,13 +206,14 @@ export function modalContent(c: ViewContext) {
       if (id === "cooperation")
         return `<h2 id="dialog-title">도구함 힌트</h2><p>먼저 기호 순서를 읽고, 다음 친구가 기호를 숫자로 바꿔요. 두 단서를 확인한 뒤 암호를 눌러요.</p>${b("두 단서 차례로 읽기 →", "modal", "team-puzzle", 'class="primary"')}<p class="muted">힌트는 점수를 깎지 않아요.</p>`;
       const level = s.hints[id] ?? c.bonusHintLevel;
-      return `<h2 id="dialog-title">${({ P1: "반쪽 메모", P2: "투명 렌즈", P3: "우정 공", P4: "도움 연결망", P5: "도움 지도", final: "마지막 조합", B1: "책장 그림", B2: "도구함 라벨", B3: "초대장", B4: "기호 잠금장치" } as Record<string, string>)[id]} 힌트</h2><p>힌트 사용은 점수와 순위에 영향을 주지 않아요.</p>${HINTS[
-        id
-      ]
+      return `<h2 id="dialog-title">${({ P1: "반쪽 메모", P2: "투명 렌즈", P3: "우정 공", P4: "도움 연결망", P5: "도움 지도", final: "마지막 조합", B1: "책장 그림", B2: "도구함 라벨", B3: "초대장", B4: "기호 잠금장치" } as Record<string, string>)[id]} 힌트</h2><p>힌트 사용은 점수와 순위에 영향을 주지 않아요.</p><article class="hint-step"><strong>지금 확인할 부분</strong><p>${esc(diagnose(s, c.learning, c.objectId))}</p>${c.learning?.extras.custom ? `<p>우리 수업 도움: ${esc(c.learning.extras.custom.hints[id as keyof LessonPack["hints"]] ?? "")}</p>` : ""}</article>${learningHints(
+        c,
+        id,
+      )
         .slice(0, level)
         .map(
           (text, i) =>
-            `<article class="hint-step" tabindex="-1" role="region" aria-label="${i + 1}단계 힌트"><strong>${i + 1}단계 · ${["살펴볼 위치", "연결 원리", "실제 해결 방법"][i]}</strong><p>${esc(text)}</p></article>`,
+            `<article class="hint-step" tabindex="-1" role="region" aria-label="${i + 1}단계 힌트"><strong>${i + 1}단계 · ${["살펴볼 위치", "연결 원리", "실제 해결 방법"][i]}</strong><p>${esc((c.learning?.options.variation || c.learning?.options.episode === "gym") && id === "P2" && i === 2 ? `창 번호 순서로 ${displayCode(c.learning, "713")}을 눌러요.` : text)}</p></article>`,
         )
         .join(
           "",

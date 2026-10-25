@@ -1,11 +1,20 @@
 import type { Progress } from "./model";
 import { type EpisodeId, episode, EPISODES } from "../content/episodes";
+import {
+  digit,
+  practiceOptions,
+  validateLessonPack,
+  escapeLessonText,
+  type LessonPack,
+} from "./advancement";
 export type LessonOptions = {
   grade: "guided" | "standard";
   minutes: 15 | 25 | 40;
   hints: "suggest" | "request";
   cooperation: boolean;
   episode: EpisodeId;
+  variation?: boolean;
+  authored?: boolean;
 };
 export const DEFAULT_LESSON: LessonOptions = {
   grade: "standard",
@@ -45,6 +54,12 @@ export type Experience = {
   coopCode: string;
   coopSolved: boolean;
   pledge: number | null;
+  extras: {
+    seed: number;
+    conversation: number | null;
+    tutorialDone: boolean;
+    custom: LessonPack | null;
+  };
   view: {
     objectId: string | null;
     device: "main" | "bonus";
@@ -56,7 +71,10 @@ export type Experience = {
 };
 export function createExperience(
   options: LessonOptions = { ...DEFAULT_LESSON },
+  previousSeed = 0,
 ): Experience {
+  let seed = options.variation ? 1 + Math.floor(Math.random() * 9) : 0;
+  if (options.variation && seed === previousSeed) seed = (seed % 9) + 1;
   return {
     version: 1,
     options: { ...options },
@@ -65,6 +83,12 @@ export function createExperience(
     coopCode: "",
     coopSolved: false,
     pledge: null,
+    extras: {
+      seed,
+      conversation: null,
+      tutorialDone: false,
+      custom: null,
+    },
     view: {
       objectId: null,
       device: "main",
@@ -129,6 +153,35 @@ export function validateExperience(value: unknown): Experience {
   )
     throw Error("협동 기록 오류");
   const restored = structuredClone(v);
+  if (
+    (v.options.variation !== undefined &&
+      typeof v.options.variation !== "boolean") ||
+    (v.options.authored !== undefined &&
+      typeof v.options.authored !== "boolean")
+  )
+    throw Error("연습 설정 오류");
+  restored.extras ??= {
+    seed: 0,
+    conversation: null,
+    tutorialDone: false,
+    custom: null,
+  };
+  const x = restored.extras;
+  if (
+    !Number.isInteger(x.seed) ||
+    x.seed < 0 ||
+    x.seed > 9 ||
+    (v.options.variation && x.seed === 0) ||
+    (x.conversation !== null && ![0, 1, 2].includes(x.conversation)) ||
+    typeof x.tutorialDone !== "boolean"
+  )
+    throw Error("학습 기록 오류");
+  if (x.custom) x.custom = validateLessonPack(x.custom);
+  if (
+    !!v.options.authored !== !!x.custom ||
+    (x.custom && x.custom.episode !== v.options.episode)
+  )
+    throw Error("수업 파일과 이야기 설정이 달라요.");
   // Older sidecars have no scroll position. A bad visual offset must never
   // discard otherwise valid puzzle progress or lesson options.
   restored.view.panelScroll =
@@ -143,12 +196,21 @@ export function cooperationAnswer(e: Experience) {
   const pack = episode(e.options.episode);
   return pack.coopSequence
     .slice(0, e.options.grade === "guided" ? 2 : 3)
-    .map((symbol) => pack.coopDigits[symbol])
+    .map((symbol) =>
+      String(
+        e.options.variation
+          ? digit(e, Number(pack.coopDigits[symbol]))
+          : pack.coopDigits[symbol],
+      ),
+    )
     .join("");
 }
 export function cooperationLegend(e: Experience) {
   return Object.entries(episode(e.options.episode).coopDigits)
-    .map(([symbol, digit]) => `${symbol}=${digit}`)
+    .map(
+      ([symbol, value]) =>
+        `${symbol}=${e.options.variation ? digit(e, Number(value)) : value}`,
+    )
     .join(" · ");
 }
 export function checkCooperation(e: Experience) {
@@ -166,7 +228,7 @@ export function roleAssignments(
   return ROLES.map((role, i) => ({ role, student: ((i + turn) % 4) + 1 }));
 }
 export function isPracticeLesson(o: LessonOptions) {
-  return o.grade === "guided" || o.cooperation || o.episode !== "classroom";
+  return !!practiceOptions(o);
 }
 export function shouldSuggestHint(
   idleMs: number,
@@ -213,5 +275,5 @@ export function progressMarker(s: Progress) {
 }
 export function practiceCard(e: Experience) {
   const pledge = PLEDGES[e.pledge ?? 0];
-  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>우리 모둠의 작은 실천</title><style>body{font-family:system-ui,'Malgun Gothic',sans-serif;background:#f8f6ee;color:#254e45;padding:32px}article{border:3px solid #6b8654;border-radius:24px;padding:36px;max-width:720px;margin:auto;background:#fffef8}h1{font-size:32px}p{font-size:26px;line-height:1.8}.small{font-size:16px}@media print{body{padding:0;background:white}article{break-inside:avoid}}</style><article><p class="small">${episode(e.options.episode).title} · 함께 정한 약속</p><h1>우리 모둠의 작은 실천</h1><p>${pledge}</p><p class="small">서로 실천한 순간을 발견하면 고마운 마음을 전해요.</p><p class="small">개인 이름·점수·학생 평가를 넣지 않은 모둠 활동 카드입니다.</p></article></html>`;
+  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>우리 모둠의 작은 실천</title><style>body{font-family:system-ui,'Malgun Gothic',sans-serif;background:#f8f6ee;color:#254e45;padding:32px}article{border:3px solid #6b8654;border-radius:24px;padding:36px;max-width:720px;margin:auto;background:#fffef8}h1{font-size:32px}p{font-size:26px;line-height:1.8}.small{font-size:16px}@media print{body{padding:0;background:white}article{break-inside:avoid}}</style><article><p class="small">${escapeLessonText(e.extras.custom?.title ?? episode(e.options.episode).title)} · 함께 정한 약속</p><h1>우리 모둠의 작은 실천</h1><p>${pledge}</p><p class="small">서로 실천한 순간을 발견하면 고마운 마음을 전해요.</p><p class="small">개인 이름·점수·학생 평가를 넣지 않은 모둠 활동 카드입니다.</p></article></html>`;
 }

@@ -6,6 +6,9 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
   addEventListener("load", () =>
     navigator.serviceWorker
       .register(`${import.meta.env.BASE_URL}sw.js`)
+      .then((registration) =>
+        registration.active?.postMessage({ type: "AUTO_PREPARE" }),
+      )
       .catch(() => {}),
   );
 }
@@ -14,6 +17,21 @@ import "./ui/touch.css";
 import "./ui/learning.css";
 import "./ui/exploration.css";
 import "./ui/phone-landscape.css";
+import "./ui/advancement.css";
+import {
+  editor,
+  teacherProgress,
+  offlineSection,
+  customizeHtml,
+} from "./ui/advancement";
+import {
+  defaultLessonPack,
+  parseLessonPack,
+  validateLessonPack,
+  inputDigit,
+  digit,
+} from "./game/advancement";
+import { prepareOffline } from "./offline";
 import {
   createExperience,
   createHintClock,
@@ -330,6 +348,9 @@ function mountScene() {
         return;
       }
       classroom = createClassroomScene(sceneHost, {
+        cipherDigits: [7, 2, 9, 4, 6, 1, 8, 3, 5].map((n) =>
+          digit(c.learning, n),
+        ),
         episodeId: c.learning?.options.episode ?? "classroom",
         initialPose: c.learning?.view.pose ?? null,
         onPoseChange: (pose) => {
@@ -378,6 +399,7 @@ function tick() {
     c.state &&
     active(c.state) &&
     route() === "/play" &&
+    c.modal !== "tutorial" &&
     !document.hidden &&
     !phonePortrait.matches,
   );
@@ -501,7 +523,7 @@ function render(focusKey?: string) {
       ? (c.lessonDraft?.episode ?? "classroom")
       : (c.learning?.options.episode ?? "classroom"),
   );
-  document.title = `교실 탈출 · ${pack.title}`;
+  document.title = `교실 탈출 · ${c.learning?.extras.custom?.title ?? pack.title}`;
   const landscapeBlocked =
     current === "/play" &&
     c.state &&
@@ -527,7 +549,13 @@ function render(focusKey?: string) {
   else if (current === "/result" && c.state?.phase === "escaped")
     content = result(c);
   else if (current === "/rankings") content = rankings(c);
-  else if (current === "/teacher") content = teacher(c);
+  else if (current === "/teacher")
+    content = teacher(c).replace(
+      "</main>",
+      `<section class="surface"><h2>교사용 도구</h2><p><a href="#/lesson-editor">수업 이야기 편집·파일 불러오기 →</a></p>${b("이 기기의 진행 확인", "teacher-progress")}</section>${offlineSection(c)}</main>`,
+    );
+  else if (current === "/lesson-editor") content = editor(c);
+  else if (current === "/progress") content = teacherProgress(c);
   else if (current === "/device-check") content = deviceView(c.deviceAudit!);
   else if (current === "/tools/results") content = toolsView(c);
   else content = home(c);
@@ -543,10 +571,14 @@ function render(focusKey?: string) {
   sceneHost?.remove();
   const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${modalShell(c)}</dialog>` : ""}`;
   root.innerHTML = ["/", "/play", "/intro", "/result"].includes(current)
-    ? adaptEpisodeHtml(
-        markup,
+    ? customizeHtml(
+        adaptEpisodeHtml(
+          markup,
+          c.learning?.options.episode ?? "classroom",
+          OBJECTS,
+        ),
+        c.learning?.extras.custom,
         c.learning?.options.episode ?? "classroom",
-        OBJECTS,
       )
     : markup;
   root.classList.toggle(
@@ -634,6 +666,7 @@ function render(focusKey?: string) {
   root.scrollTop = changedDevice ? 0 : appScroll;
 }
 function openModal(name: string) {
+  if (name === "tutorial") tick();
   if (name === "hint") c.bonusHintLevel = 0;
   if (name === "team-puzzle" && c.learning) {
     const e = c.learning;
@@ -652,6 +685,7 @@ function openModal(name: string) {
     dialogReturnFocus =
       (document.activeElement as HTMLElement)?.dataset.focus ?? "";
   c.modal = name;
+  if (name === "tutorial") tick();
   render();
 }
 function closeModal() {
@@ -764,6 +798,7 @@ async function bootstrap() {
         ? (c.learning.view.selected as ItemId)
         : null;
       c.sceneMode = c.learning.view.sceneMode;
+      c.authorDraft = c.learning.extras.custom;
       c.reflection = null;
       lastMarker = progressMarker(c.state);
     }
@@ -920,6 +955,7 @@ function finishPuzzle(id: PuzzleId) {
   c.held = null;
   c.selected = null;
   c.reward = {
+    puzzle: id,
     title: FRAGMENTS[PUZZLES.indexOf(id)] + " 조각을 찾았어요!",
     text: texts[PUZZLES.indexOf(id)],
     next: nexts[PUZZLES.indexOf(id)],
@@ -995,6 +1031,103 @@ async function handle(action: string, value: string) {
     return;
   }
   switch (action) {
+    case "demo-object":
+    case "demo-move":
+    case "demo-bag":
+    case "demo-use": {
+      const actions = ["demo-object", "demo-move", "demo-bag", "demo-use"];
+      if (c.modal !== "tutorial" || actions[c.tutorialStep ?? 0] !== action)
+        return;
+      c.tutorialStep = (c.tutorialStep ?? 0) + 1;
+      if (c.tutorialStep === 4 && c.learning) {
+        c.learning.extras.tutorialDone = true;
+        persist();
+      }
+      render();
+      document
+        .querySelector<HTMLElement>(".demo-stage h3")
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    case "talk-choice":
+      if (c.learning && s && active(s) && ["0", "1", "2"].includes(value)) {
+        c.learning.extras.conversation = Number(value);
+        persist();
+        render();
+        const reply = root.querySelector<HTMLElement>(".friend-reply");
+        reply?.focus({ preventScroll: true });
+        reply?.scrollIntoView({ block: "start", behavior: "instant" });
+      }
+      return;
+    case "teacher-progress":
+      if (s && active(s)) pause();
+      go("/progress");
+      return;
+    case "offline-prepare": {
+      if (c.offlineBusy) return;
+      c.offlineBusy = true;
+      const status = (text: string) => {
+        c.offlineStatus = text;
+        const node = document.getElementById("offline-status");
+        if (node) node.textContent = text;
+      };
+      try {
+        await prepareOffline(status);
+      } catch (error) {
+        status(
+          error instanceof Error ? error.message : "파일을 준비하지 못했어요.",
+        );
+      } finally {
+        c.offlineBusy = false;
+        render();
+      }
+      return;
+    }
+    case "author-default":
+      c.authorDraft = defaultLessonPack(
+        c.authorDraft?.episode ?? c.lessonDraft?.episode ?? "classroom",
+      );
+      c.authorStatus = "선택한 이야기의 기본 문구를 불러왔어요.";
+      render();
+      return;
+    case "author-clear":
+      c.authorDraft = null;
+      c.lessonDraft!.authored = false;
+      render();
+      return;
+    case "author-export":
+    case "author-apply": {
+      try {
+        const draft = validateLessonPack(
+          c.authorDraft ??
+            defaultLessonPack(c.lessonDraft?.episode ?? "classroom"),
+        );
+        c.authorDraft = draft;
+        if (action === "author-export") {
+          saveText(
+            JSON.stringify(draft, null, 2),
+            "교실탈출-수업설정.json",
+            "application/json",
+          );
+          c.authorStatus =
+            "수업 파일을 저장했어요. 학생 개인정보는 작성하지 않아요.";
+          render();
+        } else {
+          c.lessonDraft = {
+            ...c.lessonDraft!,
+            episode: draft.episode,
+            authored: true,
+          };
+          if (c.saved) openModal("new-confirm");
+          else go("/setup");
+        }
+      } catch (error) {
+        c.authorStatus =
+          error instanceof Error ? error.message : "수업 파일을 확인해요.";
+        render();
+      }
+      return;
+    }
     case "save-retry":
       saveBlocked = !(await saveCoordinator.acquire());
       if (!saveBlocked) {
@@ -1023,6 +1156,7 @@ async function handle(action: string, value: string) {
         if (name === "hints" && ["suggest", "request"].includes(v))
           draft.hints = v as LessonOptions["hints"];
         if (name === "cooperation") draft.cooperation = v === "true";
+        if (name === "variation") draft.variation = v === "true";
         if (name === "episode" && Object.hasOwn(EPISODES, v))
           draft.episode = v as LessonOptions["episode"];
       }
@@ -1217,7 +1351,12 @@ async function handle(action: string, value: string) {
     case "setup-next":
       await data();
       disposeScene();
-      c.learning = createExperience(c.lessonDraft);
+      c.learning = createExperience(
+        c.lessonDraft,
+        c.learning?.extras.seed ?? 0,
+      );
+      if (c.lessonDraft?.authored && c.authorDraft)
+        c.learning.extras.custom = validateLessonPack(c.authorDraft);
       c.state = createProgress(
         isPracticeLesson(c.learning.options)
           ? { ...(c.config ?? PRACTICE_CONFIG), activeRound: null }
@@ -1287,9 +1426,14 @@ async function handle(action: string, value: string) {
           "team-puzzle",
           "navigation",
           "game-menu",
+          "tutorial",
+          "space-map",
+          "friend-talk",
         ].includes(value)
-      )
+      ) {
+        if (value === "tutorial") c.tutorialStep = 0;
         openModal(value);
+      }
       if (value === "hint") {
         c.hintSuggested = false;
         mistakes = 0;
@@ -1448,6 +1592,30 @@ async function handle(action: string, value: string) {
   }
   if (!s || !active(s) || route() !== "/play") return;
   switch (action) {
+    case "gym-team":
+      if (
+        c.learning?.options.episode !== "gym" ||
+        !unlocked(s, "P4") ||
+        s.solvedPuzzleIds.includes("P4")
+      )
+        return;
+      if (value === "0")
+        s.puzzles.p4 = {
+          "photo-1": false,
+          "photo-2": false,
+          "help-1": true,
+          "help-2": true,
+          "help-3": false,
+        };
+      else {
+        say(
+          value === "1"
+            ? "토끼가 두 팀에 들어가고 다람쥐가 빠졌어요. 네 친구가 한 번씩 들어가게 골라요."
+            : "여우가 두 팀에 들어가고 토끼가 빠졌어요. 빠진 친구를 확인해요.",
+        );
+        return;
+      }
+      break;
     case "go-place":
       if (!["front", "plant", "back", "center"].includes(value)) return;
       c.modal = null;
@@ -1705,7 +1873,7 @@ async function handle(action: string, value: string) {
         if (value === "지우기") s.puzzles.p2.code = "";
         else if (/^\d$/.test(value)) {
           if (s.puzzles.p2.code.length === 3) s.puzzles.p2.code = "";
-          s.puzzles.p2.code += value;
+          s.puzzles.p2.code += inputDigit(c.learning, value);
         }
         if (s.puzzles.p2.code.length === 3 && !judgeP2(s))
           say("잠금장치가 열리지 않았어요. 창 번호 순서로 다시 읽어 봐요.");
@@ -1913,6 +2081,19 @@ root.addEventListener("click", (event) => {
 });
 root.addEventListener("input", (event) => {
   const input = event.target as HTMLInputElement;
+  if (input.dataset.author) {
+    const draft =
+      c.authorDraft ?? defaultLessonPack(c.lessonDraft?.episode ?? "classroom");
+    const name = input.dataset.author;
+    if (name === "episode" && Object.hasOwn(EPISODES, input.value))
+      draft.episode = input.value as typeof draft.episode;
+    else if (name === "title" || name === "intro" || name === "speech")
+      draft[name] = input.value;
+    else if (name.startsWith("hint:"))
+      draft.hints[name.slice(5) as keyof typeof draft.hints] = input.value;
+    c.authorDraft = draft;
+    return;
+  }
   if (input.dataset.input === "audit-device") {
     c.deviceAudit!.device = input.value;
     return;
@@ -1935,6 +2116,23 @@ root.addEventListener("input", (event) => {
 });
 root.addEventListener("change", (event) => {
   const input = event.target as HTMLInputElement;
+  if (input.id === "lesson-pack-file") {
+    const file = input.files?.[0];
+    if (!file) return;
+    void (async () => {
+      try {
+        if (file.size > 16384) throw Error("수업 파일은 16KB 이하로 골라요.");
+        c.authorDraft = parseLessonPack(await file.text());
+        c.authorStatus =
+          "수업 파일을 확인했어요. 문구를 검토하고 새 게임에 적용해요.";
+      } catch (error) {
+        c.authorStatus =
+          error instanceof Error ? error.message : "수업 파일을 확인해요.";
+      }
+      render();
+    })();
+    return;
+  }
   if (input.id === "result-files") {
     void importFiles(input.files);
     return;
