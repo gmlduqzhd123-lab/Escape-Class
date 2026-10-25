@@ -101,6 +101,9 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+#app .memo-slots {
+  position: static;
+}
 #app .guided-actions {
   display: grid;
   gap: 14px;
