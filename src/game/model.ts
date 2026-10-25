@@ -109,7 +109,7 @@ export function createProgress(
     exitUsed: false,
     frozenScore: null,
     elapsedMs: 0,
-    settings: { sound: false, reducedMotion: false },
+    settings: { sound: false, reducedMotion: true },
     hints: { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0, final: 0 },
   };
 }

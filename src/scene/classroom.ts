@@ -1454,7 +1454,16 @@ export function createClassroomScene(
   }
   function focusObject(id: string) {
     const object = objects.find((item) => item.id === id);
-    if (object) navigate(object.stop, object);
+    if (!object || !active || disposed) return;
+    cancelJourney();
+    const stop = STOPS[object.stop];
+    currentStop = object.stop;
+    camera.position.set(stop.x, 1.8, stop.z);
+    location.textContent = stopName(currentStop);
+    // Investigation opens in one step. Keep the player's viewing direction
+    // instead of flying and turning the camera before replacing it with a panel.
+    notifyPose();
+    options.onInspect(object.id);
   }
   function resetView() {
     navigate("center", undefined, true);

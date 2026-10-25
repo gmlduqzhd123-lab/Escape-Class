@@ -181,7 +181,7 @@ const c: ViewContext = {
   schoolQuery: "",
   setupSchool: null,
   setupSound: false,
-  setupReduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
+  setupReduced: true,
   ballPath: [],
   ballIndex: -1,
   running: false,
@@ -522,6 +522,13 @@ function render(focusKey?: string) {
   const previousDevice = document.querySelector<HTMLElement>(".zoom-device");
   const deviceKey = previousDevice?.dataset.device;
   const deviceScroll = previousDevice?.scrollTop ?? 0;
+  const previousMemo =
+    previousDevice?.querySelector<HTMLElement>(".memo-board");
+  const memoViewport = `${innerWidth}x${innerHeight}`;
+  const previousMemoHeight =
+    previousMemo?.dataset.layoutViewport === memoViewport
+      ? previousMemo.getBoundingClientRect().height
+      : 0;
   const current = route();
   const pack = episode(
     current === "/setup"
@@ -602,6 +609,12 @@ function render(focusKey?: string) {
       if (expanded.has(el.dataset.disclosure)) el.open = true;
     });
   const device = document.querySelector<HTMLElement>(".zoom-device");
+  const memo = device?.querySelector<HTMLElement>(".memo-board");
+  if (memo) {
+    memo.dataset.layoutViewport = memoViewport;
+    if (device?.dataset.device === deviceKey && previousMemoHeight > 0)
+      memo.style.minHeight = `${Math.ceil(previousMemoHeight)}px`;
+  }
   if (device && device.dataset.device === deviceKey)
     device.scrollTop = deviceScroll;
   const scrollCue = document.querySelector<HTMLElement>(".device-scroll-cue");
@@ -1062,7 +1075,7 @@ async function handle(action: string, value: string) {
         render();
         const reply = root.querySelector<HTMLElement>(".friend-reply");
         reply?.focus({ preventScroll: true });
-        reply?.scrollIntoView({ block: "start", behavior: "instant" });
+        reply?.scrollIntoView({ block: "nearest", behavior: "instant" });
       }
       return;
     case "teacher-progress":
@@ -1478,17 +1491,7 @@ async function handle(action: string, value: string) {
       say("쉬운 난이도로 바꿨어요. 찾은 단서·도구·점수는 그대로예요.");
       return;
     case "resume": {
-      const panel = `${c.objectId}:${c.device}`;
-      const offset = c.learning?.view.panelScroll ?? 0;
-      const transition = fullscreen.enter();
       resume();
-      await transition;
-      if (
-        route() === "/play" &&
-        !c.state?.paused &&
-        panel === `${c.objectId}:${c.device}`
-      )
-        restorePanelScroll(offset);
       return;
     }
     case "save-home":
@@ -1974,7 +1977,7 @@ async function handle(action: string, value: string) {
         const dialog = document.querySelector<HTMLElement>(".npc-dialog h4");
         if (dialog) {
           dialog.focus({ preventScroll: true });
-          dialog.scrollIntoView({ block: "center", behavior: "instant" });
+          dialog.scrollIntoView({ block: "nearest", behavior: "instant" });
         }
       }
       return;
@@ -2064,6 +2067,12 @@ async function handle(action: string, value: string) {
   }
   persist();
   render();
+  if (action === "memo-pick" && !c.modal && !s.solvedPuzzleIds.includes("P1")) {
+    const next = root.querySelector<HTMLButtonElement>(
+      '[data-action="memo-pick"]:not(:disabled)',
+    );
+    next?.focus({ preventScroll: true });
+  }
   if (
     (action === "path-step" || action === "guided-route") &&
     s.puzzles.p3.path.at(-1) === 14 &&
@@ -2078,7 +2087,7 @@ async function handle(action: string, value: string) {
       '[data-action="ball-run"]:not(:disabled)',
     );
     runButton?.focus({ preventScroll: true });
-    runButton?.scrollIntoView({ block: "center", behavior: "instant" });
+    runButton?.scrollIntoView({ block: "nearest", behavior: "instant" });
   }
   if (action === "next-hint") {
     const step = document.querySelector<HTMLElement>(
@@ -2086,7 +2095,7 @@ async function handle(action: string, value: string) {
     );
     if (step) {
       step.focus({ preventScroll: true });
-      step.scrollIntoView({ block: "start", behavior: "instant" });
+      step.scrollIntoView({ block: "nearest", behavior: "instant" });
     }
   }
   if (c.objectId === "O04" && judgeP2(s)) finishPuzzle("P2");
