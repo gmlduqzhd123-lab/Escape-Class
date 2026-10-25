@@ -23,6 +23,11 @@ export const DEFAULT_LESSON: LessonOptions = {
   cooperation: true,
   episode: "classroom",
 };
+export const EASY_LESSON: LessonOptions = {
+  ...DEFAULT_LESSON,
+  grade: "guided",
+  cooperation: false,
+};
 export const ROLES = ["관찰", "읽기", "설명", "조작"] as const;
 export const PLEDGES = [
   "친구의 말을 끝까지 듣고 물어볼게요.",
@@ -263,10 +268,17 @@ export function assistProgress(s: Progress, e: Experience) {
   if (e.options.grade !== "guided") return;
   if (
     s.discoveredClueIds.includes("P1-C1") &&
-    !s.solvedPuzzleIds.includes("P1") &&
-    !s.puzzles.p1.order.length
-  )
-    s.puzzles.p1.order = ["P1-C1"];
+    !s.solvedPuzzleIds.includes("P1")
+  ) {
+    const order = ["P1-C1", "P1-C3", "P1-C5"];
+    let placed = 0;
+    while (
+      placed < order.length &&
+      s.puzzles.p1.order[placed] === order[placed]
+    )
+      placed++;
+    s.puzzles.p1.order = order.slice(0, Math.max(1, placed));
+  }
   if (s.puzzles.p2.lensUsed && !s.solvedPuzzleIds.includes("P2"))
     s.puzzles.p2.rotation = 0;
 }

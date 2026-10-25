@@ -267,15 +267,21 @@ export function createClassroomScene(
     draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
     w = 768,
     h = 384,
+    scale = 1,
   ) {
     const surface = document.createElement("canvas");
-    surface.width = w;
-    surface.height = h;
+    scale = Math.min(
+      scale,
+      renderer.capabilities.maxTextureSize / Math.max(w, h),
+    );
+    surface.width = Math.floor(w * scale);
+    surface.height = Math.floor(h * scale);
     const ctx = surface.getContext("2d")!;
+    ctx.scale(scale, scale);
     draw(ctx, w, h);
     const result = new THREE.CanvasTexture(surface);
     result.colorSpace = THREE.SRGBColorSpace;
-    result.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
+    result.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
     textures.add(result);
     return result;
   }
@@ -286,7 +292,7 @@ export function createClassroomScene(
     draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
   ) {
     const mapped = new THREE.MeshBasicMaterial({
-      map: texture(draw),
+      map: texture(draw, 768, 384, Math.max(size[0], size[1]) >= 1.5 ? 2 : 1),
       side: THREE.DoubleSide,
     });
     const item = mesh(

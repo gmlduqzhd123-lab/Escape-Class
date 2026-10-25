@@ -13,7 +13,7 @@ import { EPISODES, episode } from "../content/episodes";
 
 export function lessonSetup(c: ViewContext, compact = false) {
   const o = c.lessonDraft ?? DEFAULT_LESSON;
-  const html = `<section class="surface lesson-settings"><h2>우리 수업에 맞춰요</h2><p>학년과 시간, 모둠 활동을 골라요. 설정은 새 게임부터 적용돼요.</p><fieldset><legend>학년과 도움</legend>${b("3~4학년 · 차근차근", "lesson", "grade:guided", `aria-pressed="${o.grade === "guided"}"`)}${b("5~6학년 · 스스로", "lesson", "grade:standard", `aria-pressed="${o.grade === "standard"}"`)}</fieldset><fieldset><legend>수업 시간</legend>${[15, 25, 40].map((n) => b(`${n}분`, "lesson", `minutes:${n}`, `aria-pressed="${o.minutes === n}"`)).join("")}<p>${o.minutes === 15 ? "필수 퍼즐에 집중해요. 추가 단서는 숨겨요." : o.minutes === 40 ? "추가 단서와 역할 설명, 실천 약속까지 충분히 나눠요." : "필수 퍼즐과 원하는 추가 단서를 찾아요."}</p></fieldset><fieldset><legend>협동과 힌트</legend>${b(o.cooperation ? "✓ 역할 단서로 도구함 열기" : "역할 단서로 도구함 열기", "lesson", `cooperation:${!o.cooperation}`, `aria-pressed="${o.cooperation}"`)}${b(o.hints === "suggest" ? "✓ 막히면 도움 제안" : "막히면 도움 제안", "lesson", `hints:${o.hints === "suggest" ? "request" : "suggest"}`, `aria-pressed="${o.hints === "suggest"}"`)}</fieldset><fieldset><legend>반복 연습</legend>${b(o.variation ? "✓ 다시 해도 다른 암호·카드" : "다시 해도 다른 암호·카드", "lesson", `variation:${!o.variation}`, `aria-pressed="${!!o.variation}"`)}<p>켜면 연습 활동으로 시작하고, 이어하기에서는 같은 암호를 유지해요.</p></fieldset><fieldset><legend>이야기 선택</legend>${Object.values(
+  const html = `<section class="surface lesson-settings"><h2>우리 수업에 맞춰요</h2><p>학년과 시간, 모둠 활동을 골라요. 설정은 새 게임부터 적용돼요.</p><fieldset><legend>난이도</legend>${b("쉬움 · 차근차근", "lesson", "grade:guided", `aria-pressed="${o.grade === "guided"}"`)}${b("기본 · 스스로", "lesson", "grade:standard", `aria-pressed="${o.grade === "standard"}"`)}</fieldset><fieldset><legend>수업 시간</legend>${[15, 25, 40].map((n) => b(`${n}분`, "lesson", `minutes:${n}`, `aria-pressed="${o.minutes === n}"`)).join("")}<p>${o.minutes === 15 ? "필수 퍼즐에 집중해요. 추가 단서는 숨겨요." : o.minutes === 40 ? "추가 단서와 역할 설명, 실천 약속까지 충분히 나눠요." : "필수 퍼즐과 원하는 추가 단서를 찾아요."}</p></fieldset><fieldset><legend>협동과 힌트</legend>${b(o.cooperation ? "✓ 역할 단서로 도구함 열기" : "역할 단서로 도구함 열기", "lesson", `cooperation:${!o.cooperation}`, `aria-pressed="${o.cooperation}"`)}${b(o.hints === "suggest" ? "✓ 막히면 도움 제안" : "막히면 도움 제안", "lesson", `hints:${o.hints === "suggest" ? "request" : "suggest"}`, `aria-pressed="${o.hints === "suggest"}"`)}</fieldset><fieldset><legend>반복 연습</legend>${b(o.variation ? "✓ 다시 해도 다른 암호·카드" : "다시 해도 다른 암호·카드", "lesson", `variation:${!o.variation}`, `aria-pressed="${!!o.variation}"`)}<p>켜면 연습 활동으로 시작하고, 이어하기에서는 같은 암호를 유지해요.</p></fieldset><fieldset><legend>이야기 선택</legend>${Object.values(
     EPISODES,
   )
     .map((p) =>
@@ -99,8 +99,11 @@ export function learningPanel(c: ViewContext, html: string) {
     const help: Record<string, string> = {
       O02: "첫 메모를 놓았어요. 토끼가 직접 한 말을 찾고, 끝 기호까지 이어요.",
       O04: "렌즈의 위를 맞춰 두었어요. 창 1 → 2 → 3 순서로 숫자를 눌러요.",
-      O07: "시작 부분을 이어 두었어요. 남은 세 친구를 만나고 골대로 가요.",
-      O08: "사진 전달 두 곳은 끄고, 친구와 어른에게 도움을 이어요.",
+      O07: "다음 친구까지 길 이어보기를 눌러요. 네 친구를 만나면 골대로 이어요.",
+      O08:
+        e.options.episode === "gym"
+          ? "네 친구가 한 번씩 들어간 팀을 골라요."
+          : "먼저 사진을 멈추고, 선생님께 도움을 요청해요.",
       O09: "복도를 거쳐 교무실이나 상담실로 가요.",
     };
     if (help[c.objectId ?? ""])

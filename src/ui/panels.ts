@@ -43,6 +43,7 @@ function modeMenu(current: string, bonusName: string, mainName: string) {
 function p1(s: Progress, c: ViewContext) {
   const p = s.puzzles.p1,
     d = done(s, "P1"),
+    guided = c.learning?.options.grade === "guided",
     correct = p.order.join(",") === "P1-C1,P1-C3,P1-C5";
   return `${head("반쪽 메모 맞추기", "같은 모양끼리 이어지는 메모 세 장을 차례로 눌러요.")}${solved(s, "P1")}
  <div class="memo-board"><div class="memo-slots" role="group" aria-label="고른 메모 · 누르면 빼기">${[
@@ -52,11 +53,11 @@ function p1(s: Progress, c: ViewContext) {
      const card = CLUES.find((x) => x.id === p.order[i]);
      return b(
        card
-         ? `<strong>${card.short}</strong><span class="connector">${card.symbol}</span><small>× 빼기</small>`
+         ? `<strong>${card.short}</strong><span class="connector">${card.symbol}</span><small>${guided ? "✓ 놓았어요" : "× 빼기"}</small>`
          : `<small>${i + 1}번째</small><span>＋</span>`,
        "memo-remove",
        String(i),
-       `class="memo-slot" aria-label="${i + 1}번째 메모${card ? " " + card.short + " 빼기" : " 빈칸"}" ${disabled(d || !card)}`,
+       `class="memo-slot" aria-label="${i + 1}번째 메모${card ? " " + card.short + (guided ? " 완료" : " 빼기") : " 빈칸"}" ${disabled(d || !card || guided)}`,
      );
    })
    .join("")}</div>
@@ -67,8 +68,8 @@ function p1(s: Progress, c: ViewContext) {
            (card) =>
              s.discoveredClueIds.includes(card.id) &&
              !p.order.includes(card.id) &&
-             (c.learning?.options.grade !== "guided" ||
-               !["P1-C2", "P1-C4"].includes(card.id)),
+             (!guided ||
+               card.id === ["P1-C1", "P1-C3", "P1-C5"][p.order.length]),
          ),
          c.learning,
        )
@@ -133,7 +134,7 @@ function p3(s: Progress, c: ViewContext) {
    )
    .join(
      "",
-   )}</div><div class="route-board"><svg viewBox="0 0 100 100" preserveAspectRatio="none" class="route-line" aria-hidden="true"><polyline points="${p.path.map((i) => `${(i % 5) * 20 + 10},${Math.floor(i / 5) * 20 + 10}`).join(" ")}"/></svg><div class="ball-grid route-grid" role="group" aria-label="공의 길 만들기">${p.arrows.map((_, i) => (WALLS.includes(i) ? '<div class="wall" aria-label="벽">벽</div>' : b(`<small>${FRIENDS[i] ?? (i === 10 ? "시작" : i === 14 ? "골대" : "")}</small><strong>${c.running && c.ballPath[c.ballIndex] === i ? "●" : i === last && !d ? "●" : i === 14 ? "⚑" : p.path.includes(i) ? ["→", "↓", "←", "↑"][p.arrows[i]] : "·"}</strong>${p.path.includes(i) ? `<span class="step-number">${p.path.indexOf(i) + 1}</span>` : ""}`, "path-step", String(i), `class="tile ${i === 14 ? "goal" : ""} ${p.path.includes(i) ? "visited" : ""} ${adjacent(last, i) && !p.path.includes(i) && last !== 14 ? "next-cell" : ""} ${trace.includes(i) ? "ball-passed" : ""}" aria-label="${(i % 5) + 1}열 ${Math.floor(i / 5) + 1}행 ${FRIENDS[i] ?? ""}${i === 14 ? " 골대" : ""}" ${disabled(d || c.running || (!p.path.includes(i) && !adjacent(last, i)) || (last === 14 && !p.path.includes(i)))}`))).join("")}</div></div>
+   )}</div>${c.learning?.options.grade === "guided" ? `<div class="guided-actions">${b(last === 14 ? "길 확인하기" : Object.keys(FRIENDS).every((cell) => p.path.includes(Number(cell))) ? "골대까지 길 잇기" : "다음 친구까지 길 이어보기", "guided-route", "", `class="primary" ${disabled(d || c.running)}`)}</div>` : ""}<div class="route-board"><svg viewBox="0 0 100 100" preserveAspectRatio="none" class="route-line" aria-hidden="true"><polyline points="${p.path.map((i) => `${(i % 5) * 20 + 10},${Math.floor(i / 5) * 20 + 10}`).join(" ")}"/></svg><div class="ball-grid route-grid" role="group" aria-label="공의 길 만들기">${p.arrows.map((_, i) => (WALLS.includes(i) ? '<div class="wall" aria-label="벽">벽</div>' : b(`<small>${FRIENDS[i] ?? (i === 10 ? "시작" : i === 14 ? "골대" : "")}</small><strong>${c.running && c.ballPath[c.ballIndex] === i ? "●" : i === last && !d ? "●" : i === 14 ? "⚑" : p.path.includes(i) ? ["→", "↓", "←", "↑"][p.arrows[i]] : "·"}</strong>${p.path.includes(i) ? `<span class="step-number">${p.path.indexOf(i) + 1}</span>` : ""}`, "path-step", String(i), `class="tile ${i === 14 ? "goal" : ""} ${p.path.includes(i) ? "visited" : ""} ${adjacent(last, i) && !p.path.includes(i) && last !== 14 ? "next-cell" : ""} ${trace.includes(i) ? "ball-passed" : ""}" aria-label="${(i % 5) + 1}열 ${Math.floor(i / 5) + 1}행 ${FRIENDS[i] ?? ""}${i === 14 ? " 골대" : ""}" ${disabled(d || c.running || (!p.path.includes(i) && !adjacent(last, i)) || (last === 14 && !p.path.includes(i)))}`))).join("")}</div></div>
  <div class="path-actions">${b("↶ 한 칸 취소", "path-undo", "", disabled(d || c.running || p.path.length <= 1))}${b("길 다시 만들기", "path-reset", "", disabled(d || c.running || p.path.length <= 1))}${b(c.running ? "공이 가는 중…" : "공 굴리기 →", "ball-run", "", 'class="primary" ' + disabled(d || c.running || last !== 14))}</div><p class="muted">길을 고치려면 지나온 칸을 누르거나 한 칸 취소를 눌러요.</p>`;
   });
 }
@@ -150,7 +151,13 @@ function wire(
     `class="wire ${kind} ${on ? "connected" : "disconnected"}" role="switch" aria-checked="${on}" aria-label="${{ "photo-1": "기기에서 단체 대화방으로 사진 전달", "photo-2": "단체 대화방에서 다른 대화방으로 사진 전달", "help-1": "친구에게 도움 요청", "help-2": "교무실 선생님에게 도움 요청", "help-3": "상담교사에게 도움 요청" }[id]}" ${disabled(done(s, "P4"))}`,
   );
 }
-function p4(s: Progress) {
+function p4(s: Progress, c: ViewContext) {
+  if (c.learning?.options.grade === "guided")
+    return locked(s, "P4", () => {
+      const stopped = !s.puzzles.p4["photo-1"] && !s.puzzles.p4["photo-2"];
+      const complete = done(s, "P4");
+      return `${head("사진은 멈추고, 도움은 이어요", "먼저 사진을 멈추고, 믿을 수 있는 어른에게 도움을 요청해요.")}${solved(s, "P4")}<div class="guided-actions">${b(stopped ? "✓ 사진 전달을 멈췄어요" : "1. 사진 전달 멈추기", "guided-photo", "", `class="primary" ${disabled(stopped || complete)}`)}${b(complete ? "✓ 친구와 선생님께 도움을 요청했어요" : "2. 친구와 함께 선생님께 도움 요청하기", "guided-help", "", disabled(!stopped || complete))}</div><p class="notice">이미 전달된 사진이 자동으로 삭제되지는 않아요. 도움이 필요하면 어른에게 말해요.</p>`;
+    });
   return locked(
     s,
     "P4",
@@ -277,7 +284,7 @@ export function objectContent(
     case "O08":
       return c.learning?.options.episode === "gym"
         ? locked(s, "P4", () => gymTeams(c))
-        : p4(s);
+        : p4(s, c);
     case "O09":
       return p5(s, c);
     case "O10":

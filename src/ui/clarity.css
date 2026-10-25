@@ -1,0 +1,129 @@
+/* Investigation keeps the room's viewport width and one page scroller. */
+#app .escape-play.device-fill {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  min-height: 100%;
+  margin: 0;
+  padding: clamp(12px, 2vw, 28px);
+}
+#app .device-fill .escape-stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(12px, 1.5vw, 22px);
+}
+#app .device-fill .zoom-vignette {
+  display: none;
+}
+#app .device-fill .zoom-device {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  max-height: none;
+  margin: 16px 0 0;
+  padding: clamp(18px, 2.5vw, 32px);
+  overflow: visible;
+}
+#app .device-fill .escape-bottom {
+  position: static;
+}
+#app .device-fill .chalk-note {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  min-height: clamp(220px, 35dvh, 400px);
+  padding: clamp(22px, 3vw, 40px);
+}
+#app .device-fill :is(.chalk-note, .npc-dialog, .guided-help, .notice) {
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+#app .device-fill :is(.notice, .guided-help, .npc-dialog) {
+  padding: 18px 22px;
+}
+#app .memo-board {
+  padding: clamp(14px, 2vw, 24px);
+}
+#app .compact-cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+}
+/* The older compact-card rule removed padding and made text run inline. */
+#app .memo-board .clue-card.direct-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 14px;
+  height: auto;
+  min-height: 220px;
+  padding: 22px;
+  overflow: visible;
+  white-space: normal;
+  line-height: 1.7;
+}
+#app .memo-board .direct-card > svg {
+  position: static;
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: 32px;
+  height: 32px;
+}
+#app .memo-board .direct-card :is(strong, span, small) {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+#app .memo-board .direct-card strong {
+  min-height: 0;
+  font-size: 18px;
+}
+#app .memo-board .direct-card:disabled {
+  opacity: 1;
+  color: var(--ink);
+}
+#app .memo-board .direct-card > span:not(.join-marks) {
+  font-size: 18px;
+  line-height: 1.75;
+}
+#app .memo-slot {
+  gap: 12px;
+  min-height: 110px;
+  padding: 16px 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+#app .guided-actions {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+}
+#app .guided-actions button {
+  min-height: 56px;
+  padding: 16px 20px;
+  white-space: normal;
+  font-size: 18px;
+  line-height: 1.65;
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  #app .device-fill .escape-hud .eyebrow {
+    display: none;
+  }
+  #app .device-fill .zoom-device {
+    padding: 18px;
+  }
+  #app .device-fill .zoom-top {
+    flex-shrink: 0;
+  }
+  #app .memo-board .clue-card.direct-card {
+    padding: 18px;
+  }
+}

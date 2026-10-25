@@ -18,6 +18,9 @@ import "./ui/learning.css";
 import "./ui/exploration.css";
 import "./ui/phone-landscape.css";
 import "./ui/advancement.css";
+import "./ui/clarity.css";
+import { guidedNetwork, nextGuidedRoute, useEasyMode } from "./game/guidance";
+import { EASY_LESSON } from "./game/learning";
 import {
   editor,
   teacherProgress,
@@ -147,7 +150,7 @@ try {
 } catch {}
 const c: ViewContext = {
   learning: null,
-  lessonDraft: { ...DEFAULT_LESSON },
+  lessonDraft: { ...EASY_LESSON },
   roleCard: null,
   hintSuggested: false,
   deviceAudit: {
@@ -332,7 +335,9 @@ function mountScene() {
   sceneLoading = true;
   const generation = sceneGeneration;
   void import("./scene/classroom")
-    .then(({ createClassroomScene }) => {
+    .then(async ({ createClassroomScene }) => {
+      // Canvas text must use the same loaded Korean font as the interface.
+      await document.fonts.load("700 32px Classroom").catch(() => {});
       if (generation !== sceneGeneration || !sceneHost) return;
       if (
         phonePortrait.matches ||
@@ -789,6 +794,7 @@ async function bootstrap() {
     if (c.state && !c.learning)
       c.learning = createExperience({ ...DEFAULT_LESSON, cooperation: false });
     if (c.learning && c.state) {
+      assistProgress(c.state, c.learning);
       c.lessonDraft = { ...c.learning.options };
       c.objectId = c.learning.view.objectId;
       c.device = c.learning.view.device;
@@ -1464,6 +1470,13 @@ async function handle(action: string, value: string) {
     case "pause":
       pause();
       return;
+    case "easy-mode":
+      if (!s || !c.learning || !useEasyMode(s, c.learning)) return;
+      c.lessonDraft = { ...c.learning.options };
+      persist();
+      render();
+      say("쉬운 난이도로 바꿨어요. 찾은 단서·도구·점수는 그대로예요.");
+      return;
     case "resume": {
       const panel = `${c.objectId}:${c.device}`;
       const offset = c.learning?.view.panelScroll ?? 0;
@@ -1592,6 +1605,31 @@ async function handle(action: string, value: string) {
   }
   if (!s || !active(s) || route() !== "/play") return;
   switch (action) {
+    case "guided-route":
+      if (
+        c.learning?.options.grade !== "guided" ||
+        c.objectId !== "O07" ||
+        !unlocked(s, "P3") ||
+        s.solvedPuzzleIds.includes("P3") ||
+        c.running
+      )
+        return;
+      s.puzzles.p3.path = nextGuidedRoute(s.puzzles.p3.path);
+      s.puzzles.p3.arrows = routeArrows(s.puzzles.p3.path);
+      break;
+    case "guided-photo":
+    case "guided-help":
+      if (
+        !c.learning ||
+        c.objectId !== "O08" ||
+        !guidedNetwork(
+          s,
+          c.learning,
+          action === "guided-photo" ? "photo" : "help",
+        )
+      )
+        return;
+      break;
     case "gym-team":
       if (
         c.learning?.options.episode !== "gym" ||
@@ -1746,6 +1784,7 @@ async function handle(action: string, value: string) {
       const lens = s.inventory.find((id) => id.endsWith("lens")) ?? null;
       const result = applyItem(s, lens, "O04");
       if (result.ok) c.selected = null;
+      if (c.learning) assistProgress(s, c.learning);
       outcome(result);
       return;
     }
@@ -1841,6 +1880,7 @@ async function handle(action: string, value: string) {
     case "apply": {
       const result = applyItem(s, c.selected, value);
       if (result.ok) c.selected = null;
+      if (c.learning) assistProgress(s, c.learning);
       outcome(result);
       return;
     }
@@ -2025,7 +2065,7 @@ async function handle(action: string, value: string) {
   persist();
   render();
   if (
-    action === "path-step" &&
+    (action === "path-step" || action === "guided-route") &&
     s.puzzles.p3.path.at(-1) === 14 &&
     !s.solvedPuzzleIds.includes("P3") &&
     c.objectId === "O07" &&

@@ -109,7 +109,19 @@ export function gymTeams(c: ViewContext) {
     ["토끼·곰", "토끼·여우"],
     ["여우·다람쥐", "곰·여우"],
   ];
-  return `<div class="device-heading"><h3>네 친구에게 같은 기회</h3><p>두 팀은 두 명씩이에요. 네 친구가 한 번씩 모두 들어간 팀 계획을 골라요.</p></div><div class="team-plan-list">${plans.map((teams, i) => b(`<strong>계획 ${i + 1}</strong><span>초록 팀: ${teams[0]}</span><span>노랑 팀: ${teams[1]}</span>`, "gym-team", String(i), `${solved ? "disabled" : ""} class="team-plan"`)).join("")}</div>${solved ? "<p>✓ 네 친구가 한 번씩, 두 팀에 똑같이 참여해요.</p>" : ""}`;
+  return `<div class="device-heading"><h3>네 친구에게 같은 기회</h3><p>두 팀은 두 명씩이에요. 네 친구가 한 번씩 모두 들어간 팀 계획을 골라요.</p></div><div class="team-plan-list">${plans
+    .filter((_, i) => c.learning?.options.grade !== "guided" || i < 2)
+    .map((teams, i) =>
+      b(
+        `<strong>계획 ${i + 1}</strong><span>초록 팀: ${teams[0]}</span><span>노랑 팀: ${teams[1]}</span>`,
+        "gym-team",
+        String(i),
+        `${solved ? "disabled" : ""} class="team-plan"`,
+      ),
+    )
+    .join(
+      "",
+    )}</div>${solved ? "<p>✓ 네 친구가 한 번씩, 두 팀에 똑같이 참여해요.</p>" : ""}`;
 }
 export function customizeHtml(
   html: string,

@@ -6,12 +6,12 @@ export function sceneQuality(
 ) {
   const mobile = touch || Math.min(width, height) <= 600;
   const pixels = Math.max(1, width) * Math.max(1, height);
-  const budget = mobile ? 500_000 : 1_500_000;
+  const budget = mobile ? 1_000_000 : 3_000_000;
   return {
     mobile,
     pixelRatio: Math.min(
       Number.isFinite(dpr) && dpr > 0 ? dpr : 1,
-      mobile ? 1 : 1.5,
+      mobile ? 1.5 : 2,
       Math.sqrt(budget / pixels),
     ),
     shadows: !mobile,
