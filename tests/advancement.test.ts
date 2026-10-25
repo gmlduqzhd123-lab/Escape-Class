@@ -35,6 +35,42 @@ import { adaptEpisodeHtml, EPISODES } from "../src/content/episodes";
 import { OBJECTS } from "../src/content/data";
 import type { ViewContext } from "../src/ui/views";
 import { STOPS } from "../src/game/learning";
+import { inspect, pickMemo, solve } from "../src/game/engine";
+test("all episode maps retain visited marks on the next target across investigation, solving and saved restore", () => {
+  for (const episode of Object.keys(EPISODES) as (keyof typeof EPISODES)[]) {
+    const c = {
+      state: createProgress(PRACTICE_CONFIG),
+      learning: createExperience({ ...createExperience().options, episode }),
+      sceneMode: "3d",
+      objectId: null,
+    } as ViewContext;
+    c.state!.phase = "playing";
+    const row = (id: string) =>
+      spaceMap(c).match(
+        new RegExp(`<button[^>]*data-value="${id}"[^>]*>(.*?)</button>`),
+      )![1];
+    assert.match(row("O02"), /★ 다음 물건/);
+    assert.doesNotMatch(row("O02"), /✓/);
+    inspect(c.state!, "O02");
+    assert.match(row("O02"), /✓ 살펴봄/);
+    assert.match(row("O03"), /★ 다음 물건/);
+    inspect(c.state!, "O03");
+    assert.match(row("O02"), /★ 다음 물건 · ✓ 살펴봄/);
+    assert.match(row("O03"), /✓ 살펴봄/);
+    const html = spaceMap(c);
+    c.state = JSON.parse(JSON.stringify(c.state));
+    c.learning = validateExperience(JSON.parse(JSON.stringify(c.learning)));
+    assert.equal(spaceMap(c), html);
+    for (const id of ["P1-C1", "P1-C3", "P1-C5"]) pickMemo(c.state!, id);
+    assert.equal(solve(c.state!, "P1").ok, true);
+    assert.match(row("O06"), /★ 다음 물건/);
+    assert.doesNotMatch(row("O02"), /★/);
+    assert.match(row("O02"), /✓ 살펴봄/);
+    for (const object of OBJECTS) inspect(c.state!, object.id);
+    for (const object of OBJECTS) assert.match(row(object.id), /✓ 살펴봄/);
+    assert.match(row("O06"), /★ 다음 물건 · ✓ 살펴봄/);
+  }
+});
 test("map follows each saved arrival stop and restores window and back positions on continue", () => {
   for (const episode of Object.keys(EPISODES) as (keyof typeof EPISODES)[]) {
     const e = createExperience({ ...createExperience().options, episode });

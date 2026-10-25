@@ -1125,12 +1125,14 @@ export function createClassroomScene(
       positionLabels();
       labelsDirty = false;
     }
-    if (updateLabels && !tween && !moving)
-      options.onPoseChange?.({
-        stop: currentStop,
-        yaw: normalizeAngle(yaw),
-        pitch,
-      });
+    if (updateLabels && !tween && !moving) notifyPose();
+  }
+  function notifyPose() {
+    options.onPoseChange?.({
+      stop: currentStop,
+      yaw: normalizeAngle(yaw),
+      pitch,
+    });
   }
   const projected = new THREE.Vector3();
   function screenPoint(point: THREE.Vector3) {
@@ -1317,6 +1319,7 @@ export function createClassroomScene(
       // A modal may interrupt a walk halfway through an aisle. Return to its
       // last safe stop so the position, place name, and next route agree.
       camera.position.set(STOPS[currentStop].x, 1.8, STOPS[currentStop].z);
+      notifyPose();
     }
     location.textContent = stopName(currentStop);
     instruction.textContent = "물건이나 이름표를 누르면 가까이 가서 살펴봐요.";
@@ -1406,11 +1409,7 @@ export function createClassroomScene(
         setMoving(false);
         // Opening a panel immediately suspends drawing; save the arrival pose
         // before onInspect makes the scene inactive.
-        options.onPoseChange?.({
-          stop: currentStop,
-          yaw: normalizeAngle(yaw),
-          pitch,
-        });
+        notifyPose();
         instruction.textContent =
           "물건이나 이름표를 누르면 가까이 가서 살펴봐요.";
         requestDraw();
@@ -1430,11 +1429,18 @@ export function createClassroomScene(
       const distance = camera.position.distanceTo(to);
       if (distance < 0.01) {
         currentStop = stopId;
+        location.textContent = stopName(currentStop);
+        notifyPose();
         travel(index + 1);
         return;
       }
       animate(to, yaw, pitch, Math.min(820, distance * 150), () => {
         currentStop = stopId;
+        location.textContent = stopName(currentStop);
+        // A map or pause dialog can stop a walk at the next safe aisle stop.
+        // Publish each reached stop before another leg starts, so the map and
+        // continue use the same location that cancelJourney restores.
+        notifyPose();
         travel(index + 1);
       });
     };
