@@ -8,6 +8,7 @@ import {
   diagnose,
   defaultLessonPack,
   HINT_KEYS,
+  mapLocation,
   type LessonPack,
 } from "../game/advancement";
 import { PUZZLES } from "../game/model";
@@ -46,8 +47,14 @@ export function spaceMap(c: ViewContext) {
   const s = c.state,
     pack = episode(c.learning?.options.episode ?? "classroom");
   const target = s ? objective(s)[1] : "O02";
-  const here = c.objectId ? OBJECTS.find((o) => o.id === c.objectId) : null;
-  return `<h2 id="dialog-title">한눈에 보는 ${pack.room}</h2><p>◎ 지금 위치 · ★ 다음 물건 · ✓ 살펴본 곳</p><p>지도 숫자를 보고, 아래의 큰 물건 이름을 눌러요.</p><div class="map-paper" role="img" aria-label="${pack.room} 안의 물건 위치"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><rect x="2" y="2" width="96" height="96" rx="5" fill="#edf0df" stroke="#8ca28b"/><path d="M50 8V92M8 50H92" stroke="#fffdf4" stroke-width="9"/>${OBJECTS.map((o, i) => `<circle cx="${o.x}" cy="${o.y}" r="${o.id === target ? 5 : 3.5}" fill="${o.id === target ? "#c7a24d" : s?.discoveredClueIds.includes(o.id) ? "#52755e" : "#a7b49a"}"/><text x="${o.x}" y="${o.y + 1.3}" text-anchor="middle" font-size="6" fill="white">${i + 1}</text>`).join("")}<text x="${here?.x ?? 50}" y="${here ? Math.min(94, here.y + 9) : 52}" font-size="7" text-anchor="middle" fill="#214f45">◎</text></svg></div><p>현재: ${esc(here ? here.name : c.learning?.view.pose?.stop === "plant" ? "창가" : `${pack.room} 통로`)}</p><div class="map-object-list">${OBJECTS.map((o, i) => b(`${i + 1}. ${esc(o.name)}<small>${o.id === target ? "★ 다음 물건" : s?.discoveredClueIds.includes(o.id) ? "✓ 살펴봄" : "살펴보기"}</small>`, "inspect", o.id, `class="${o.id === target ? "next-object" : ""}"`)).join("")}</div>`;
+  const here =
+    c.sceneMode === "2d" && c.objectId
+      ? OBJECTS.find((o) => o.id === c.objectId)
+      : null;
+  const location = here
+    ? { x: here.x, y: Math.min(94, here.y + 9), label: here.name }
+    : mapLocation(c.learning);
+  return `<h2 id="dialog-title">한눈에 보는 ${pack.room}</h2><p>◎ 지금 위치 · ★ 다음 물건 · ✓ 살펴본 곳</p><p>지도 숫자를 보고, 아래의 큰 물건 이름을 눌러요.</p><div class="map-paper" role="img" aria-label="${pack.room} 안의 물건 위치. 현재 ${esc(location.label)}"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><rect x="2" y="2" width="96" height="96" rx="5" fill="#edf0df" stroke="#8ca28b"/><path d="M50 8V92M8 50H92" stroke="#fffdf4" stroke-width="9"/>${OBJECTS.map((o, i) => `<circle cx="${o.x}" cy="${o.y}" r="${o.id === target ? 5 : 3.5}" fill="${o.id === target ? "#c7a24d" : s?.discoveredClueIds.includes(o.id) ? "#52755e" : "#a7b49a"}"/><text x="${o.x}" y="${o.y + 1.3}" text-anchor="middle" font-size="6" fill="white">${i + 1}</text>`).join("")}<text class="map-current-position" x="${location.x}" y="${location.y}" font-size="7" text-anchor="middle" fill="#214f45">◎</text></svg></div><p>현재: ${esc(location.label)}</p><div class="map-object-list">${OBJECTS.map((o, i) => b(`${i + 1}. ${esc(o.name)}<small>${o.id === target ? "★ 다음 물건" : s?.discoveredClueIds.includes(o.id) ? "✓ 살펴봄" : "살펴보기"}</small>`, "inspect", o.id, `class="${o.id === target ? "next-object" : ""}"`)).join("")}</div>`;
 }
 export function friendTalk(c: ViewContext) {
   const talk = conversation(c.learning),

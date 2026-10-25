@@ -1,6 +1,6 @@
 import type { Experience, LessonOptions } from "./learning";
 import type { Progress } from "./model";
-import { EPISODES } from "../content/episodes";
+import { episode, EPISODES } from "../content/episodes";
 import { FRIENDS } from "../puzzles/judges";
 
 export type LessonPack = {
@@ -12,6 +12,56 @@ export type LessonPack = {
   hints: Record<"P1" | "P2" | "P3" | "P4" | "P5" | "final", string>;
 };
 export const HINT_KEYS = ["P1", "P2", "P3", "P4", "P5", "final"] as const;
+// The map is a room overview; use the saved arrival stop, independent of the
+// direction the camera faces. These coordinates stay clear of object numbers.
+export function mapLocation(e?: Experience | null) {
+  const pack = episode(e?.options.episode ?? "classroom");
+  const places: Record<string, { x: number; y: number; label: string }> = {
+    center: { x: 50, y: 74, label: `${pack.room} 가운데` },
+    middle: { x: 50, y: 44, label: "가운데 통로" },
+    front: { x: 50, y: 18, label: `${pack.objects.O01 ?? "칠판"} 앞` },
+    plant: { x: 14, y: 18, label: "창가" },
+    door: {
+      x: 84,
+      y: 18,
+      label: pack.shell === "classroom" ? "게시판·출구 앞" : "출구 앞",
+    },
+    basket: {
+      x: 14,
+      y: 44,
+      label:
+        pack.shell === "gym"
+          ? "벤치 옆"
+          : pack.shell === "library"
+            ? "반납함 옆"
+            : "바구니 옆",
+    },
+    tools: { x: 83, y: 44, label: "도구함 앞" },
+    lockers: { x: 83, y: 66, label: "사물함 앞" },
+    tablet: {
+      x: 64,
+      y: 55,
+      label: pack.shell === "gym" ? "계획판 앞" : "태블릿 앞",
+    },
+    desk: {
+      x: 27,
+      y: 76,
+      label:
+        pack.shell === "gym"
+          ? "기록대 앞"
+          : pack.shell === "library"
+            ? "독서대 앞"
+            : "그림 책상 앞",
+    },
+    back: { x: 50, y: 90, label: `${pack.room} 뒤편` },
+    books: {
+      x: 17,
+      y: 90,
+      label: pack.shell === "gym" ? "응원 자료함 앞" : "책장 앞",
+    },
+  };
+  return places[e?.view.pose?.stop ?? "center"] ?? places.center;
+}
 export const escapeLessonText = (text: string) =>
   text.replace(
     /[&<>"']/g,

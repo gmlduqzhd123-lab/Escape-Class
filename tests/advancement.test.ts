@@ -18,6 +18,7 @@ import {
   displayCode,
   orderCards,
   diagnose,
+  mapLocation,
 } from "../src/game/advancement";
 import { createProgress, PRACTICE_CONFIG } from "../src/game/model";
 import { judgeP2 } from "../src/puzzles/judges";
@@ -33,6 +34,39 @@ import {
 import { adaptEpisodeHtml, EPISODES } from "../src/content/episodes";
 import { OBJECTS } from "../src/content/data";
 import type { ViewContext } from "../src/ui/views";
+import { STOPS } from "../src/game/learning";
+test("map follows each saved arrival stop and restores window and back positions on continue", () => {
+  for (const episode of Object.keys(EPISODES) as (keyof typeof EPISODES)[]) {
+    const e = createExperience({ ...createExperience().options, episode });
+    for (const stop of STOPS) {
+      e.view.pose = { stop, yaw: 0.8, pitch: -0.1 };
+      const point = mapLocation(e);
+      assert.ok(point.x > 2 && point.x < 98 && point.y > 2 && point.y < 98);
+      assert.doesNotMatch(point.label, /undefined/);
+      assert.deepEqual(
+        mapLocation(validateExperience(JSON.parse(JSON.stringify(e)))),
+        point,
+      );
+    }
+    const c = { learning: e, sceneMode: "3d", objectId: "O02" } as ViewContext;
+    e.view.pose = { stop: "plant", yaw: 1.2, pitch: 0 };
+    assert.deepEqual(mapLocation(e), { x: 14, y: 18, label: "창가" });
+    assert.match(spaceMap(c), /class="map-current-position" x="14" y="18"/);
+    assert.match(spaceMap(c), /현재: 창가/);
+    e.view.pose.stop = "back";
+    assert.deepEqual(mapLocation(e), {
+      x: 50,
+      y: 90,
+      label: `${EPISODES[episode].room} 뒤편`,
+    });
+    assert.match(spaceMap(c), /class="map-current-position" x="50" y="90"/);
+    e.view.pose = null;
+    assert.equal(mapLocation(e).label, `${EPISODES[episode].room} 가운데`);
+    c.sceneMode = "2d";
+    assert.match(spaceMap(c), /현재: 게시판/);
+    assert.match(spaceMap(c), /class="map-current-position" x="65" y="26"/);
+  }
+});
 test("old sidecars migrate new learning fields without changing existing progress", () => {
   const e = createExperience();
   const old = structuredClone(e) as any;
