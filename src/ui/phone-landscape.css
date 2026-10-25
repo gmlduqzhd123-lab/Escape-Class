@@ -6,6 +6,9 @@
 .phone-scroll-hint {
   display: none;
 }
+#app .escape-play .panel-pause {
+  display: none;
+}
 .inline-feedback[hidden],
 .zoom-top > .inline-feedback,
 .has-open-dialog > #toast {
@@ -238,6 +241,16 @@
     scroll-padding-block: var(--device-scroll-top, 64px) 16px;
     overflow-anchor: none;
     -webkit-overflow-scrolling: touch;
+  }
+  #app.has-device-panel .escape-play .escape-stats [data-action="pause"] {
+    display: none;
+  }
+  #app .zoom-top .panel-pause {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 48px;
+    padding: 8px;
   }
   #app .escape-play button,
   #game-dialog button {

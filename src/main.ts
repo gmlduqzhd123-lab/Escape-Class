@@ -393,12 +393,25 @@ function persist() {
     return;
   }
   if (c.learning) {
+    const panel = root.querySelector<HTMLElement>(".zoom-device");
+    const sameView =
+      c.learning.view.objectId === c.objectId &&
+      c.learning.view.device === c.device;
+    const panelScroll =
+      route() === "/play" && !c.state.paused && !phonePortrait.matches
+        ? panel?.dataset.device === `${c.objectId}:${c.device}`
+          ? Math.max(root.scrollTop, window.scrollY)
+          : 0
+        : sameView
+          ? c.learning.view.panelScroll
+          : 0;
     c.learning.view = {
       ...c.learning.view,
       objectId: c.objectId,
       device: c.device,
       selected: c.selected,
       sceneMode: c.sceneMode,
+      panelScroll,
     };
     const marker = progressMarker(c.state);
     if (marker !== lastMarker) {
@@ -603,8 +616,11 @@ function render(focusKey?: string) {
       fallback.focus({ preventScroll: true });
     }
   }
-  window.scrollTo({ top: scroll, behavior: "instant" });
-  root.scrollTop = appScroll;
+  const changedDevice =
+    !!previousDevice &&
+    previousDevice.dataset.device !== device?.dataset.device;
+  window.scrollTo({ top: changedDevice ? 0 : scroll, behavior: "instant" });
+  root.scrollTop = changedDevice ? 0 : appScroll;
 }
 function openModal(name: string) {
   if (name === "hint") c.bonusHintLevel = 0;
@@ -645,6 +661,8 @@ function closeModal() {
 function pause() {
   if (!c.state || c.state.phase === "escaped") return;
   tick();
+  // Capture the work position before the paused screen replaces its context.
+  persist();
   c.state.paused = true;
   c.running = false;
   c.modal = "pause";
@@ -652,13 +670,22 @@ function pause() {
   persist();
   render();
 }
+function restorePanelScroll(offset: number) {
+  if (!c.objectId || !root.querySelector(".zoom-device")) return;
+  if (root.scrollHeight > root.clientHeight + 2) root.scrollTop = offset;
+  else window.scrollTo({ top: offset, behavior: "instant" });
+}
 function resume() {
   if (!c.state) return;
+  const offset = c.learning?.view.panelScroll ?? 0;
   c.state.paused = false;
   c.modal = null;
   tick();
+  render(c.objectId ? "" : "goal:");
+  if (c.objectId)
+    document.getElementById("panel-title")?.focus({ preventScroll: true });
+  restorePanelScroll(offset);
   persist();
-  render("pause:");
 }
 async function data() {
   c.warnings = [];
@@ -1282,10 +1309,20 @@ async function handle(action: string, value: string) {
     case "pause":
       pause();
       return;
-    case "resume":
-      void fullscreen.enter();
+    case "resume": {
+      const panel = `${c.objectId}:${c.device}`;
+      const offset = c.learning?.view.panelScroll ?? 0;
+      const transition = fullscreen.enter();
       resume();
+      await transition;
+      if (
+        route() === "/play" &&
+        !c.state?.paused &&
+        panel === `${c.objectId}:${c.device}`
+      )
+        restorePanelScroll(offset);
       return;
+    }
     case "save-home":
       void fullscreen.exit();
       c.modal = null;

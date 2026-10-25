@@ -193,7 +193,7 @@ export function modalContent(c: ViewContext) {
         )}${level < 3 ? b(`${level + 1}단계 힌트 보기`, "next-hint", id, 'class="primary"') : "<p>세 단계 힌트를 모두 확인했어요.</p>"}`;
     }
     case "pause":
-      return `<h2 id="dialog-title">잠깐, 쉬어 가요</h2><p>진행은 그대로예요. 활동 시간도 멈춰 있어요.</p><div class="pause-actions">${b("탐색 계속하기", "resume", "", 'class="primary"')}${b("저장하고 시작 화면으로", "save-home")}</div>`;
+      return `<h2 id="dialog-title">잠깐, 쉬어 가요</h2><p>진행은 그대로예요. 활동 시간도 멈춰 있어요.</p><p class="resume-location">이어갈 곳 · <strong>${esc(OBJECTS.find((o) => o.id === c.objectId)?.name ?? "교실 탐색")}</strong></p><div class="pause-actions">${b("탐색 계속하기", "resume", "", 'class="primary"')}${b("저장하고 시작 화면으로", "save-home")}</div>`;
     case "settings":
       return `<h2 id="dialog-title">활동 설정</h2><label class="check-label"><input type="checkbox" data-setting="sound" ${s?.settings.sound ? "checked" : ""} /> 효과음 켜기</label><label class="check-label"><input type="checkbox" data-setting="reduced" ${s?.settings.reducedMotion ? "checked" : ""} /> 움직임 줄이기</label><p>소리 없이도 모든 단서를 읽을 수 있어요. 움직임 줄이기를 켜면 바로 이동해요.</p>`;
     case "exit-confirm":

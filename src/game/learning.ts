@@ -51,6 +51,7 @@ export type Experience = {
     selected: string | null;
     sceneMode: "2d" | "3d";
     pose: ScenePose | null;
+    panelScroll: number;
   };
 };
 export function createExperience(
@@ -70,6 +71,7 @@ export function createExperience(
       selected: null,
       sceneMode: "3d",
       pose: null,
+      panelScroll: 0,
     },
   };
 }
@@ -126,7 +128,16 @@ export function validateExperience(value: unknown): Experience {
       !v.viewedRoles.includes(1))
   )
     throw Error("협동 기록 오류");
-  return structuredClone(v);
+  const restored = structuredClone(v);
+  // Older sidecars have no scroll position. A bad visual offset must never
+  // discard otherwise valid puzzle progress or lesson options.
+  restored.view.panelScroll =
+    Number.isFinite(w.panelScroll) &&
+    w.panelScroll >= 0 &&
+    w.panelScroll <= 100000
+      ? w.panelScroll
+      : 0;
+  return restored;
 }
 export function cooperationAnswer(e: Experience) {
   const pack = episode(e.options.episode);

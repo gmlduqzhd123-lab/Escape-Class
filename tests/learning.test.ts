@@ -156,6 +156,7 @@ test("old progress stays canonical while a matching sidecar restores lesson and 
     s = createProgress(PRACTICE_CONFIG),
     e = createExperience();
   e.view.objectId = "O02";
+  e.view.panelScroll = 487;
   e.view.pose = { stop: "door", yaw: 0.3, pitch: -0.1 };
   storage.setItem(key, JSON.stringify(s));
   writeExperience(storage, key, e);
@@ -165,6 +166,22 @@ test("old progress stays canonical while a matching sidecar restores lesson and 
   );
   storage.setItem(key, JSON.stringify({ ...s, elapsedMs: 100 }));
   assert.equal(readExperience(storage, key), null);
+});
+test("legacy or malformed scroll offsets never discard valid puzzle context", () => {
+  const e = createExperience();
+  e.view.objectId = "O06";
+  e.view.device = "bonus";
+  e.view.panelScroll = 320;
+  assert.equal(validateExperience(e).view.panelScroll, 320);
+  for (const offset of [undefined, -1, Infinity, NaN, 100001, "320"]) {
+    const input = structuredClone(e) as any;
+    if (offset === undefined) delete input.view.panelScroll;
+    else input.view.panelScroll = offset;
+    const restored = validateExperience(input);
+    assert.equal(restored.view.panelScroll, 0);
+    assert.equal(restored.view.objectId, "O06");
+    assert.equal(restored.view.device, "bonus");
+  }
 });
 test("external legacy writes block this writer before it can overwrite a newer save", async () => {
   const storage = new MemoryStore();
