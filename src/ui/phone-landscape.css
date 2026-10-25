@@ -6,6 +6,12 @@
 .phone-scroll-hint {
   display: none;
 }
+.continue-copy small {
+  display: block;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-top: 2px;
+}
 #app .escape-play .panel-pause {
   display: none;
 }

@@ -166,20 +166,24 @@ function mapLegend() {
     )
     .join("")}</div>`;
 }
-function p5(s: Progress) {
+function p5(s: Progress, c: ViewContext) {
   return locked(s, "P5", () => {
     const p = s.puzzles.p5,
       d = done(s, "P5"),
       ask = ["교무실", "상담실"].includes(p.place),
       started = p.sentence[0] === "R0";
+    const placeName = (place: string) =>
+      place === "교실" && c.learning?.options.episode === "library"
+        ? "도서관"
+        : place;
     const dialog =
       p.place === "담임 자리"
         ? `<div class="npc-dialog"><h4 tabindex="-1">지금 자리에 없어요.</h4><p>다른 선생님을 찾아가도 괜찮아요.</p>${b("복도로 돌아가 다른 선생님 찾기 →", "move", "복도", 'class="primary"')}</div>`
         : ask && !d
           ? `<div class="npc-dialog"><span class="npc-face">${icon("adult", 44)}</span><h4 tabindex="-1">${started ? "어떻게 이야기하고 싶나요?" : "어떤 도움이 필요하니?"}</h4>${started ? `<p class="spoken-line">나: ${SENTENCES.R0}</p><div class="sentence-cards">${["R1", "R2"].map((id) => b(SENTENCES[id], "sentence-add", id, 'class="primary"')).join("")}</div><p>편한 방법을 하나 골라요. 둘 다 괜찮아요.</p>` : `<div class="sentence-cards">${b(SENTENCES.R0, "sentence-start", "", 'class="primary"')}</div>`}</div>`
           : "";
-    return `${head("도움이 닿는 지도", ask ? "선생님께 하고 싶은 말을 눌러요." : `지금 ${p.place}에 있어요. 갈 수 있는 장소를 눌러요.`)}${solved(s, "P5")}${dialog}
- <div class="school-map"><svg viewBox="0 0 500 250" preserveAspectRatio="none" aria-hidden="true"><path d="M75 190H250V60M250 190H337V60H425M250 190H425"/></svg><div class="map-places">${(["교실", "복도", "담임 자리", "교무실", "상담실"] as const).map((place) => b(`<span>${place === "교실" ? "▦" : place === "복도" ? "↔" : place === "담임 자리" ? "♙" : "♡"}</span><strong>${place}</strong><small>${place === p.place ? "● 현재 위치" : ADJACENCY[p.place].includes(place) ? "여기로 가기 →" : place === "담임 자리" ? "지금 자리에 없음" : "연결된 길"}</small>`, "move", place, `class="map-room ${place === p.place ? "current" : ""}" ${disabled(d || !ADJACENCY[p.place].includes(place))}`)).join("")}</div></div>${mapLegend()}`;
+    return `${head("도움이 닿는 지도", ask ? "선생님께 하고 싶은 말을 눌러요." : `지금 ${placeName(p.place)}에 있어요. 갈 수 있는 장소를 눌러요.`)}${solved(s, "P5")}${dialog}
+ <div class="school-map"><svg viewBox="0 0 500 250" preserveAspectRatio="none" aria-hidden="true"><path d="M75 190H250V60M250 190H337V60H425M250 190H425"/></svg><div class="map-places">${(["교실", "복도", "담임 자리", "교무실", "상담실"] as const).map((place) => b(`<span>${place === "교실" ? "▦" : place === "복도" ? "↔" : place === "담임 자리" ? "♙" : "♡"}</span><strong>${placeName(place)}</strong><small>${place === p.place ? "● 현재 위치" : ADJACENCY[p.place].includes(place) ? "여기로 가기 →" : place === "담임 자리" ? "지금 자리에 없음" : "연결된 길"}</small>`, "move", place, `class="map-room ${place === p.place ? "current" : ""}" ${disabled(d || !ADJACENCY[p.place].includes(place))}`)).join("")}</div></div>${mapLegend()}`;
   });
 }
 
@@ -266,7 +270,7 @@ export function objectContent(
     case "O08":
       return p4(s);
     case "O09":
-      return p5(s);
+      return p5(s, c);
     case "O10":
       return bonus(
         s,

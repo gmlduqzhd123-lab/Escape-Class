@@ -4,7 +4,13 @@ import { createExperience } from "../src/game/learning";
 import { createProgress, PRACTICE_CONFIG } from "../src/game/model";
 import { teamPuzzle, lessonSetup } from "../src/ui/learning";
 import { hintTarget } from "../src/ui/experience";
-import { modalContent, setup, type ViewContext } from "../src/ui/views";
+import {
+  modalContent,
+  setup,
+  continueLabel,
+  type ViewContext,
+} from "../src/ui/views";
+import { objectContent } from "../src/ui/panels";
 
 function fixture() {
   const state = createProgress(PRACTICE_CONFIG);
@@ -19,6 +25,32 @@ function fixture() {
     bonusHintLevel: 0,
   } as ViewContext;
 }
+test("continue label identifies the saved episode and keeps unsaved games simple", () => {
+  const c = fixture();
+  c.saved = true;
+  c.warnings = [];
+  c.learning!.options.episode = "library";
+  const html = continueLabel(c);
+  assert.match(html, /EP\.02 · 도서관/);
+  c.learning!.options.episode = "classroom";
+  assert.match(continueLabel(c), /EP\.01 · 교실/);
+  c.saved = false;
+  assert.equal(continueLabel(c), "이어하기");
+});
+test("library help map shows the library but keeps canonical movement values", () => {
+  const c = fixture();
+  c.learning!.options.episode = "library";
+  c.state!.solvedPuzzleIds = ["P1", "P2", "P3", "P4"];
+  const html = objectContent(c.state!, "O09", null, [], -1, false, c);
+  assert.match(html, /지금 도서관에 있어요/);
+  assert.match(html, /<strong>도서관<\/strong>/);
+  assert.match(html, /data-action="move" data-value="교실"/);
+  c.learning!.options.episode = "classroom";
+  assert.match(
+    objectContent(c.state!, "O09", null, [], -1, false, c),
+    /지금 교실에 있어요/,
+  );
+});
 test("cooperation shows actual rotated seat numbers and withholds the keypad during reading", () => {
   const c = fixture();
   c.learning!.viewedRoles = [0];

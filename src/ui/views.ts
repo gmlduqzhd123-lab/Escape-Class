@@ -1,4 +1,5 @@
 import { inlineFeedback } from "./visibility";
+import { episode } from "../content/episodes";
 import { renderPlay, hintTarget, objective } from "./experience";
 import { lessonSetup, teamSummary, teamPuzzle, pledgeView } from "./learning";
 import type { DeviceAudit } from "./learning";
@@ -65,8 +66,14 @@ export function header(c: ViewContext) {
 export function footer() {
   return `<footer class="site-footer"><span>교실 탈출 · 친구사랑 협동 챌린지</span><a href="#/teacher">개인정보·저장 안내</a><a href="#/tools/results">결과 파일 집계</a><p class="ys-credit">© 2026 엽쌤. All rights reserved. · <a href="https://gmlduqzhd123-lab.github.io/YScode/" target="_blank" rel="noopener">엽쌤의 다른 앱 보기 →</a></p></footer>`;
 }
+export function continueLabel(c: Pick<ViewContext, "saved" | "learning">) {
+  const pack = episode(c.learning?.options.episode ?? "classroom");
+  return c.saved
+    ? `<span class="continue-copy">이어하기<small>${pack.label} · ${pack.room}</small></span>`
+    : "이어하기";
+}
 export function home(c: ViewContext) {
-  return `<main id="main" class="home"><div class="hero-copy"><span class="pill">친구사랑 협동 방탈출 · EP.01</span><p class="eyebrow hero-overline">작은 배려가 모여, 하나의 열쇠로</p><h1>교실 <span>탈출</span><i class="title-spark">✦</i></h1><h2>사라진 우정 열쇠</h2><p class="hero-description">친구의 이야기에 귀 기울이고,<br>우리의 단서를 모아 교실의 문을 열어요.</p><div class="hero-actions">${b(`새 게임 ${icon("arrow")}`, "new", "", 'class="primary large"')}${b("이어하기", "continue", "", `class="large" ${c.saved ? "" : "disabled"}`)}</div><div class="hero-meta"><span>${icon("clock", 19)} 20~25분</span><span>초등 3~6학년</span><span>모둠당 기기 한 대</span></div></div><div class="hero-art"><div class="art-label"><span class="live-dot"></span>FRIENDSHIP CLASSROOM <small>01</small></div>${room()}<div class="hero-note"><span>오늘의 미션</span><strong>우정 조각 다섯 개를 찾아라!</strong>${icon("key", 34)}</div><div class="character-row">${["토끼", "곰", "여우", "다람쥐"].map((n) => `<span>${animal(n, 57)}</span>`).join("")}<p>우리가 함께<br><strong>도와줄게!</strong></p></div></div><section class="mission-strip"><div><span>01</span><strong>꼼꼼히 살펴보고</strong><p>교실 속 물건에서 단서를 찾아요.</p></div><div><span>02</span><strong>생각을 함께 나누고</strong><p>서로 다른 단서를 연결해 봐요.</p></div><div><span>03</span><strong>다 같이 문을 열어요</strong><p>한 명의 정답보다 우리의 협력이에요.</p></div></section>${c.warnings.length ? `<div class="data-notice">${c.warnings.map((x) => `<p>${esc(x)}</p>`).join("")}${b("정적 데이터 다시 읽기", "reload-data")}</div>` : ""}<p class="privacy-inline">학생 이름이나 개인정보를 입력하지 않아요. 현재 ${c.config?.activeRound?.acceptingResults ? "공식 회차가 열려 있어요." : "연습 모드로 자유롭게 참여할 수 있어요."}</p></main>`;
+  return `<main id="main" class="home"><div class="hero-copy"><span class="pill">친구사랑 협동 방탈출 · EP.01</span><p class="eyebrow hero-overline">작은 배려가 모여, 하나의 열쇠로</p><h1>교실 <span>탈출</span><i class="title-spark">✦</i></h1><h2>사라진 우정 열쇠</h2><p class="hero-description">친구의 이야기에 귀 기울이고,<br>우리의 단서를 모아 교실의 문을 열어요.</p><div class="hero-actions">${b(`새 게임 ${icon("arrow")}`, "new", "", 'class="primary large"')}${b(continueLabel(c), "continue", "", `class="large" ${c.saved ? "" : "disabled"}`)}</div><div class="hero-meta"><span>${icon("clock", 19)} 20~25분</span><span>초등 3~6학년</span><span>모둠당 기기 한 대</span></div></div><div class="hero-art"><div class="art-label"><span class="live-dot"></span>FRIENDSHIP CLASSROOM <small>01</small></div>${room()}<div class="hero-note"><span>오늘의 미션</span><strong>우정 조각 다섯 개를 찾아라!</strong>${icon("key", 34)}</div><div class="character-row">${["토끼", "곰", "여우", "다람쥐"].map((n) => `<span>${animal(n, 57)}</span>`).join("")}<p>우리가 함께<br><strong>도와줄게!</strong></p></div></div><section class="mission-strip"><div><span>01</span><strong>꼼꼼히 살펴보고</strong><p>교실 속 물건에서 단서를 찾아요.</p></div><div><span>02</span><strong>생각을 함께 나누고</strong><p>서로 다른 단서를 연결해 봐요.</p></div><div><span>03</span><strong>다 같이 문을 열어요</strong><p>한 명의 정답보다 우리의 협력이에요.</p></div></section>${c.warnings.length ? `<div class="data-notice">${c.warnings.map((x) => `<p>${esc(x)}</p>`).join("")}${b("정적 데이터 다시 읽기", "reload-data")}</div>` : ""}<p class="privacy-inline">학생 이름이나 개인정보를 입력하지 않아요. 현재 ${c.config?.activeRound?.acceptingResults ? "공식 회차가 열려 있어요." : "연습 모드로 자유롭게 참여할 수 있어요."}</p></main>`;
 }
 export function setup(c: ViewContext) {
   const matches = c.schools.filter(

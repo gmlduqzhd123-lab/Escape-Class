@@ -436,12 +436,17 @@ function persist() {
 function say(message: string) {
   if (/열리지|다시|아니에요|기호가 이어지지/.test(message)) mistakes++;
   c.toast = message;
-  updateFeedback(root, message);
+  const displayMessage = adaptEpisodeHtml(
+    message,
+    c.learning?.options.episode ?? "classroom",
+    OBJECTS,
+  );
+  updateFeedback(root, displayMessage);
   const status = document.getElementById("announcer");
-  if (status) status.textContent = message;
+  if (status) status.textContent = displayMessage;
   const toast = document.getElementById("toast");
   if (toast) {
-    toast.textContent = message;
+    toast.textContent = displayMessage;
     toast.hidden = false;
   }
   clearTimeout(toastTimeout);
@@ -491,6 +496,12 @@ function render(focusKey?: string) {
   const deviceKey = previousDevice?.dataset.device;
   const deviceScroll = previousDevice?.scrollTop ?? 0;
   const current = route();
+  const pack = episode(
+    current === "/setup"
+      ? (c.lessonDraft?.episode ?? "classroom")
+      : (c.learning?.options.episode ?? "classroom"),
+  );
+  document.title = `교실 탈출 · ${pack.title}`;
   const landscapeBlocked =
     current === "/play" &&
     c.state &&
@@ -531,7 +542,7 @@ function render(focusKey?: string) {
   );
   sceneHost?.remove();
   const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${modalShell(c)}</dialog>` : ""}`;
-  root.innerHTML = ["/play", "/intro", "/result"].includes(current)
+  root.innerHTML = ["/", "/play", "/intro", "/result"].includes(current)
     ? adaptEpisodeHtml(
         markup,
         c.learning?.options.episode ?? "classroom",
@@ -1845,6 +1856,22 @@ async function handle(action: string, value: string) {
   }
   persist();
   render();
+  if (
+    action === "path-step" &&
+    s.puzzles.p3.path.at(-1) === 14 &&
+    !s.solvedPuzzleIds.includes("P3") &&
+    c.objectId === "O07" &&
+    c.device === "main" &&
+    matchMedia(
+      "(orientation: landscape) and (max-height: 600px) and (max-width: 1000px)",
+    ).matches
+  ) {
+    const runButton = root.querySelector<HTMLButtonElement>(
+      '[data-action="ball-run"]:not(:disabled)',
+    );
+    runButton?.focus({ preventScroll: true });
+    runButton?.scrollIntoView({ block: "center", behavior: "instant" });
+  }
   if (action === "next-hint") {
     const step = document.querySelector<HTMLElement>(
       "#game-dialog .hint-step:last-of-type",

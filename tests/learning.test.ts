@@ -267,6 +267,20 @@ test("library rendering preserves object IDs/actions and changes authored story 
     "반납함 옆에서 책갈피 조각 · 독서대 암호판 · ← 도서관으로",
   );
 });
+test("library movement and route feedback use library words without changing actions", () => {
+  assert.equal(
+    adaptEpisodeHtml(
+      "교실에 도착했어요. 네 친구를 모두 만나 골대에 도착했어요!",
+      "library",
+      OBJECTS,
+    ),
+    "도서관에 도착했어요. 네 친구를 모두 만나 도착점에 도착했어요!",
+  );
+  const room =
+    '<button data-action="move" data-value="교실">도서관</button><p>지금 도서관에 있어요.</p>';
+  assert.equal(adaptEpisodeHtml(room, "library", OBJECTS), room);
+  assert.equal(adaptEpisodeHtml("골대", "classroom", OBJECTS), "골대");
+});
 test("pledge export contains the chosen practice and no names, scores or script", () => {
   const e = createExperience();
   e.pledge = 2;
