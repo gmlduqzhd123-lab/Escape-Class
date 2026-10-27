@@ -278,22 +278,32 @@ export function createClassroomScene(
     item.position.set(at[0], at[1], at[2]);
     return item;
   }
+  // Panels draw in a fixed 768×384 space. The canvas itself matches the plane's
+  // shape and size, so that space is stretched; text() undoes the stretch per glyph.
+  const LOGICAL_W = 768,
+    LOGICAL_H = 384;
+  const glyphStretch = new WeakMap<HTMLCanvasElement, number>();
   function texture(
     draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
-    w = 768,
-    h = 384,
-    scale = 1,
+    size: number[],
   ) {
     const surface = document.createElement("canvas");
-    scale = Math.min(
-      scale,
-      renderer.capabilities.maxTextureSize / Math.max(w, h),
+    const aspect = size[0] / size[1];
+    const max = Math.min(2048, renderer.capabilities.maxTextureSize);
+    // About 700 texels per metre, at least 768 on the long side and 512 on the short.
+    const long = Math.min(max, Math.max(768, Math.max(...size) * 700));
+    let width = aspect >= 1 ? long : long * aspect;
+    let height = aspect >= 1 ? long / aspect : long;
+    const grow = Math.min(
+      Math.max(1, 512 / Math.min(width, height)),
+      max / Math.max(width, height),
     );
-    surface.width = Math.floor(w * scale);
-    surface.height = Math.floor(h * scale);
+    surface.width = Math.round(width * grow);
+    surface.height = Math.round(height * grow);
     const ctx = surface.getContext("2d")!;
-    ctx.scale(scale, scale);
-    draw(ctx, w, h);
+    ctx.scale(surface.width / LOGICAL_W, surface.height / LOGICAL_H);
+    glyphStretch.set(surface, aspect / (LOGICAL_W / LOGICAL_H));
+    draw(ctx, LOGICAL_W, LOGICAL_H);
     const result = new THREE.CanvasTexture(surface);
     result.colorSpace = THREE.SRGBColorSpace;
     result.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
@@ -307,7 +317,7 @@ export function createClassroomScene(
     draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
   ) {
     const mapped = new THREE.MeshBasicMaterial({
-      map: texture(draw, 768, 384, Math.max(size[0], size[1]) >= 1.5 ? 2 : 1),
+      map: texture(draw, size),
       side: THREE.DoubleSide,
     });
     const item = mesh(
@@ -326,12 +336,30 @@ export function createClassroomScene(
     y: number,
     size: number,
     color = palette.ink,
+    maxWidth = Infinity,
   ) {
+    // Pre-squeeze glyphs against the panel stretch so they read at true proportions,
+    // and shrink (never distort) text that would then run past the panel edge.
+    const squeeze = 1 / (glyphStretch.get(ctx.canvas) ?? 1);
+    const font = (px: number) =>
+      `700 ${px}px Classroom, "Malgun Gothic", sans-serif`;
+    ctx.font = font(size);
+    // Measure where the text really lands, since some notes draw inside a rotation.
+    const m = ctx.getTransform(),
+      base = ctx.canvas.width / LOGICAL_W,
+      at = (m.a * x + m.c * y + m.e) / base,
+      local = Math.hypot(m.a, m.b) / base;
+    const room = Math.min(2 * Math.min(at, LOGICAL_W - at) * 0.94, maxWidth);
+    const wide = ctx.measureText(value).width * squeeze * local;
+    if (room > 0 && wide > room) ctx.font = font(size * (room / wide));
+    ctx.save();
     ctx.fillStyle = color;
-    ctx.font = `700 ${size}px Classroom, "Malgun Gothic", sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(value, x, y);
+    ctx.translate(x, y);
+    ctx.scale(squeeze, 1);
+    ctx.fillText(value, 0, 0);
+    ctx.restore();
   }
   function animalFace(
     ctx: CanvasRenderingContext2D,
@@ -342,7 +370,9 @@ export function createClassroomScene(
   ) {
     ctx.save();
     ctx.translate(x, y);
-    ctx.scale(size / 100, size / 100);
+    // Like text(), undo the panel stretch so faces keep their round shape.
+    const squeeze = 1 / (glyphStretch.get(ctx.canvas) ?? 1);
+    ctx.scale((size / 100) * squeeze, size / 100);
     const color = ["#f3e5d5", "#c79665", "#df8855", "#b68f6c"][type % 4];
     ctx.fillStyle = color;
     ctx.strokeStyle = "#695447";
@@ -591,7 +621,15 @@ export function createClassroomScene(
       ctx.fillStyle = ["#fff6cf", "#edf2df", "#f8e3d8"][i];
       ctx.fillRect(-92, -115, 184, 230);
       animalFace(ctx, 0, -28, 100, i);
-      text(ctx, ["친구의 이야기", "함께해요!", "초대장"][i], 0, 69, 23);
+      text(
+        ctx,
+        ["친구의 이야기", "함께해요!", "초대장"][i],
+        0,
+        69,
+        23,
+        palette.ink,
+        166,
+      );
       ctx.fillStyle = "#e99873";
       ctx.beginPath();
       ctx.arc(0, -108, 9, 0, Math.PI * 2);
@@ -621,8 +659,9 @@ export function createClassroomScene(
   const note = panel(basket, [0.44, 0.46], [0.38, 1.18, 0.3], (ctx, w, h) => {
     ctx.fillStyle = palette.paper;
     ctx.fillRect(0, 0, w, h);
-    animalFace(ctx, 200, 200, 260, 0);
-    text(ctx, "함께", 530, 165, 80);
+    // The note is nearly square: face on top, words below, all at true proportions.
+    animalFace(ctx, w / 2, 112, 165, 0);
+    text(ctx, "함께", w / 2, 262, 66);
     text(
       ctx,
       pack.shell === "gym"
@@ -630,9 +669,9 @@ export function createClassroomScene(
         : pack.shell === "library"
           ? "읽고 싶어"
           : "만들고 싶어",
-      530,
-      265,
-      56,
+      w / 2,
+      334,
+      52,
     );
   });
   note.rotation.y = Math.PI / 2 - 0.35;
@@ -704,7 +743,7 @@ export function createClassroomScene(
     (ctx, w, h) => {
       ctx.fillStyle = "#f7f2de";
       ctx.fillRect(0, 0, w, h);
-      text(ctx, "친구의 물건은 허락을 받고", w / 2, h / 2, 49);
+      text(ctx, "친구의 물건은 허락을 받고", w / 2, h / 2, 130);
     },
   );
   nameCards.rotation.y = -Math.PI / 2;
@@ -933,11 +972,11 @@ export function createClassroomScene(
     const surface = map.image as HTMLCanvasElement;
     const ctx = surface.getContext("2d")!;
     ctx.fillStyle = "#fff6d7";
-    ctx.fillRect(0, 0, surface.width, surface.height);
+    ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
     text(
       ctx,
       pack.shell === "library" ? "책갈피 조합판" : "우정 조합판",
-      surface.width / 2,
+      LOGICAL_W / 2,
       90,
       65,
     );
@@ -957,7 +996,7 @@ export function createClassroomScene(
       next.finalCombined
         ? "지도 완성!"
         : `조각 ${next.solvedPuzzleIds.length}/5`,
-      surface.width / 2,
+      LOGICAL_W / 2,
       320,
       55,
     );
