@@ -2,7 +2,10 @@ type Options = {
   enabled: () => boolean;
   onLook: (dx: number, dy: number, touch: boolean) => void;
   onTap: (x: number, y: number) => void;
+  /** Two-finger pinch: called with the distance ratio since the last move. */
+  onZoom?: (factor: number) => void;
 };
+type Point = { id: number; x: number; y: number };
 
 /** Pointer Events keep touch scrolling, scene swipes and native button taps separate. */
 export function bindSceneGestures(stage: HTMLElement, options: Options) {
@@ -18,6 +21,9 @@ export function bindSceneGestures(stage: HTMLElement, options: Options) {
     scrolling: boolean;
   } | null = null;
   let suppressClick = false;
+  let pinch: { a: Point; b: Point; distance: number } | null = null;
+  const spread = (p: NonNullable<typeof pinch>) =>
+    Math.hypot(p.a.x - p.b.x, p.a.y - p.b.y);
 
   function clear() {
     const previous = pointer;
@@ -31,10 +37,19 @@ export function bindSceneGestures(stage: HTMLElement, options: Options) {
     clear();
   }
   const down = (event: PointerEvent) => {
-    // A second finger belongs to a browser gesture, never an investigation.
+    // A second finger zooms the scene (when supported), never an investigation.
     if (event.pointerType === "touch" && !event.isPrimary) {
+      const first = pointer;
       cancel();
       suppressClick = true;
+      if (first?.touch && options.onZoom && options.enabled() && !pinch) {
+        pinch = {
+          a: { id: first.id, x: first.lastX, y: first.lastY },
+          b: { id: event.pointerId, x: event.clientX, y: event.clientY },
+          distance: 0,
+        };
+        pinch.distance = spread(pinch);
+      }
       return;
     }
     if (!options.enabled() || event.button !== 0 || !event.isPrimary) return;
@@ -48,7 +63,7 @@ export function bindSceneGestures(stage: HTMLElement, options: Options) {
       lastY: event.clientY,
       touch: event.pointerType === "touch",
       label: !!(event.target as Element).closest(
-        ".classroom-object-label, .classroom-move-label",
+        ".classroom-object-label, .classroom-move-label, .classroom-3d-zoom",
       ),
       dragging: false,
       scrolling: false,
@@ -56,6 +71,17 @@ export function bindSceneGestures(stage: HTMLElement, options: Options) {
     if (!pointer.label) stage.setPointerCapture(event.pointerId);
   };
   const move = (event: PointerEvent) => {
+    if (pinch) {
+      const end = [pinch.a, pinch.b].find((p) => p.id === event.pointerId);
+      if (!end) return;
+      end.x = event.clientX;
+      end.y = event.clientY;
+      const distance = spread(pinch);
+      if (pinch.distance > 0 && distance > 0 && options.enabled())
+        options.onZoom?.(distance / pinch.distance);
+      pinch.distance = distance;
+      return;
+    }
     if (!pointer || event.pointerId !== pointer.id || !options.enabled())
       return;
     const dx = event.clientX - pointer.x;
@@ -78,7 +104,12 @@ export function bindSceneGestures(stage: HTMLElement, options: Options) {
     pointer.lastX = event.clientX;
     pointer.lastY = event.clientY;
   };
+  const endPinch = (event: PointerEvent) => {
+    if (pinch?.a.id === event.pointerId || pinch?.b.id === event.pointerId)
+      pinch = null;
+  };
   const up = (event: PointerEvent) => {
+    endPinch(event);
     if (!pointer || pointer.id !== event.pointerId) return;
     const label = pointer.label;
     const tapped =
@@ -100,6 +131,7 @@ export function bindSceneGestures(stage: HTMLElement, options: Options) {
     }
   };
   const pointerCancel = (event: PointerEvent) => {
+    endPinch(event);
     if (event.pointerId === pointer?.id) cancel();
   };
   const lostCapture = (event: PointerEvent) => {

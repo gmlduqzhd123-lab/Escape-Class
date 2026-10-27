@@ -27,11 +27,13 @@ function fixture() {
   const label = { closest: () => label };
   const looks: number[][] = [];
   const taps: number[][] = [];
+  const zooms: number[] = [];
   let enabled = true;
   const controller = bindSceneGestures(stage as unknown as HTMLElement, {
     enabled: () => enabled,
     onLook: (x, y, touch) => looks.push([x, y, Number(touch)]),
     onTap: (x, y) => taps.push([x, y]),
+    onZoom: (factor) => zooms.push(factor),
   });
   function send(type: string, values: Record<string, unknown> = {}) {
     const event = new Event(type, { cancelable: true });
@@ -55,6 +57,7 @@ function fixture() {
     label,
     looks,
     taps,
+    zooms,
     controller,
     send,
     disable: () => {
@@ -115,6 +118,32 @@ test("a second finger cancels investigation and the next single tap still works"
   f.send("pointerdown");
   f.send("pointerup");
   assert.equal(f.taps.length, 1);
+});
+test("two-finger pinch zooms by the spread ratio and never looks or taps", () => {
+  const f = fixture();
+  f.send("pointerdown", { clientX: 100 });
+  f.send("pointerdown", { pointerId: 2, isPrimary: false, clientX: 200 });
+  // Spread 100 → 150 → 300: factors 1.5 then 2.
+  f.send("pointermove", { pointerId: 2, isPrimary: false, clientX: 250 });
+  f.send("pointermove", { clientX: -50 });
+  assert.deepEqual(f.zooms, [1.5, 2]);
+  f.send("pointerup", { pointerId: 2, isPrimary: false });
+  f.send("pointermove", { clientX: 0 });
+  f.send("pointerup");
+  assert.equal(f.zooms.length, 2);
+  assert.equal(f.looks.length + f.taps.length, 0);
+  // After both fingers lift, a single tap investigates again.
+  f.send("pointerdown");
+  f.send("pointerup");
+  assert.equal(f.taps.length, 1);
+});
+test("a paused scene ignores pinch zoom", () => {
+  const f = fixture();
+  f.send("pointerdown", { clientX: 100 });
+  f.disable();
+  f.send("pointerdown", { pointerId: 2, isPrimary: false, clientX: 200 });
+  f.send("pointermove", { pointerId: 2, isPrimary: false, clientX: 300 });
+  assert.deepEqual(f.zooms, []);
 });
 test("cancellation and capture loss ignore other pointers and cancel the active one", () => {
   const f = fixture();

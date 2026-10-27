@@ -839,7 +839,8 @@ async function bootstrap() {
       )
         ? (c.learning.view.selected as ItemId)
         : null;
-      c.sceneMode = c.learning.view.sceneMode;
+      // Every launch opens the 3D room; a picture-mode choice lasts only for its session.
+      c.sceneMode = "3d";
       // A copy: editor input must not mutate the running game's saved lesson pack.
       c.authorDraft = c.learning.extras.custom
         ? structuredClone(c.learning.extras.custom)
@@ -1048,6 +1049,7 @@ function checkDevice() {
     render();
   }
 }
+let launchImmersion = true;
 let refreshing = false;
 /** Refreshes data before a step; false while one is already running or once the user has moved to another screen. */
 async function refreshForStep() {
@@ -1465,6 +1467,7 @@ async function handle(action: string, value: string) {
       if (s?.phase === "intro") {
         c.modal = null;
         if (!phonePortrait.matches) {
+          launchImmersion = false;
           void fullscreen.enter();
           s.phase = "playing";
           s.paused = false;
@@ -1556,6 +1559,12 @@ async function handle(action: string, value: string) {
       say("쉬운 난이도로 바꿨어요. 찾은 단서·도구·점수는 그대로예요.");
       return;
     case "resume": {
+      // The first resume after launching enters fullscreen (browsers need this tap);
+      // later resumes respect a player who left fullscreen on purpose.
+      if (launchImmersion && !phonePortrait.matches && route() === "/play") {
+        launchImmersion = false;
+        void fullscreen.enter();
+      }
       resume();
       return;
     }
