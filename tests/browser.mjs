@@ -549,13 +549,18 @@ try {
     updatedAt: null,
     records: [],
   };
-  let dataDown = false;
-  await official.route("**/data/game-config.json", (r) =>
-    dataDown ? r.abort() : r.fulfill({ json: config }),
-  );
-  await official.route("**/data/schools.json", (r) =>
-    dataDown ? r.abort() : r.fulfill({ json: schools }),
-  );
+  let dataDown = false,
+    dataSlow = false;
+  const wait = () =>
+    dataSlow ? new Promise((done) => setTimeout(done, 1500)) : null;
+  await official.route("**/data/game-config.json", async (r) => {
+    await wait();
+    return dataDown ? r.abort() : r.fulfill({ json: config });
+  });
+  await official.route("**/data/schools.json", async (r) => {
+    await wait();
+    return dataDown ? r.abort() : r.fulfill({ json: schools });
+  });
   await official.route("**/data/rankings.json", (r) =>
     r.fulfill({ json: empty }),
   );
@@ -620,6 +625,20 @@ try {
   assert.equal(blipped.roundId, "fixture-round");
   await op.evaluate(() => localStorage.clear());
   pass("data refresh failure at game start keeps the chosen school and round");
+  // Leaving the setup screen during a slow refresh must not be pulled back into the game.
+  await op.goto(base);
+  await od.act("new");
+  dataSlow = true;
+  await od.act("setup-next");
+  await expect(
+    op.locator('button[data-action="setup-next"]').first(),
+  ).toBeDisabled();
+  await op.goto(base + "#/teacher");
+  await op.waitForTimeout(2500);
+  dataSlow = false;
+  assert.equal(new URL(op.url()).hash, "#/teacher");
+  assert.equal(await saved(op), null);
+  pass("a slow setup refresh locks its button and respects leaving the screen");
   await op.setViewportSize({ width: 740, height: 360 });
   await start(op, od, "FIXTURE-1");
   await play(op, { prefix: "mobile" });

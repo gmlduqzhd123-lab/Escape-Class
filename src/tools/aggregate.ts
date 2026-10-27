@@ -84,7 +84,15 @@ export function resolveConflict(
   const c = state.conflicts[index];
   if (!c) return;
   c.choice = choice;
-  // Recompute in import order so every explicitly selected decision is reproducible.
+  // Only one candidate can replace a school's record; choosing one keeps the existing record against the others.
+  if (choice === "replace")
+    for (const other of state.conflicts)
+      if (
+        other !== c &&
+        other.schoolId === c.schoolId &&
+        other.choice === "replace"
+      )
+        other.choice = "keep";
 }
 export function aggregateFile(
   state: AggregateState,
@@ -94,6 +102,11 @@ export function aggregateFile(
   const roundId = currentRound(config);
   if (state.conflicts.some((c) => c.choice === null))
     throw new Error("모든 충돌에서 기존 유지 또는 새 결과 교체를 선택해요.");
+  const replaced = state.conflicts
+    .filter((c) => c.choice === "replace")
+    .map((c) => c.schoolId);
+  if (new Set(replaced).size !== replaced.length)
+    throw new Error("한 학교에는 새 결과 교체를 하나만 선택해요.");
   const records = state.records.map((r) => ({ ...r }));
   for (const c of state.conflicts)
     if (c.choice === "replace") {

@@ -1048,6 +1048,26 @@ function checkDevice() {
     render();
   }
 }
+let refreshing = false;
+/** Refreshes data before a step; false while one is already running or once the user has moved to another screen. */
+async function refreshForStep() {
+  if (refreshing) return false;
+  refreshing = true;
+  const from = route();
+  root
+    .querySelectorAll<HTMLButtonElement>(
+      '[data-action="continue"], [data-action="setup-next"]',
+    )
+    .forEach((el) => {
+      el.disabled = true;
+    });
+  try {
+    await data();
+  } finally {
+    refreshing = false;
+  }
+  return route() === from;
+}
 async function handle(action: string, value: string) {
   tick();
   clearTimeout(toastTimeout);
@@ -1368,7 +1388,7 @@ async function handle(action: string, value: string) {
       render();
       return;
     case "continue": {
-      await data();
+      if (!(await refreshForStep())) return;
       if (!c.state) return;
       say("현재 설정을 확인했어요. 이어하기는 일시정지 상태로 시작해요.");
       try {
@@ -1397,7 +1417,7 @@ async function handle(action: string, value: string) {
       render();
       return;
     case "setup-next":
-      await data();
+      if (!(await refreshForStep())) return;
       if (
         c.setupSchool &&
         !c.schools.some((x) => x.schoolId === c.setupSchool)

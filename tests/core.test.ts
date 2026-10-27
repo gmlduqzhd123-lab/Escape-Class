@@ -434,6 +434,20 @@ test("AC22: duplicates collapse and conflicting school requires explicit decisio
   assert.equal(aggregateFile(state, config, schools).records[0].score, 90);
   resolveConflict(state, 0, "replace");
   assert.equal(aggregateFile(state, config, schools).records[0].score, 95);
+  // A second candidate for the same school: one replace wins, the other reverts to keep.
+  mergeEntry(state, {
+    name: "lower",
+    row: { ...row, score: 80, bonusCount: 0 },
+  });
+  assert.equal(state.conflicts.length, 2);
+  resolveConflict(state, 1, "replace");
+  assert.deepEqual(
+    state.conflicts.map((c) => c.choice),
+    ["keep", "replace"],
+  );
+  assert.equal(aggregateFile(state, config, schools).records[0].score, 80);
+  state.conflicts[0].choice = "replace";
+  assert.throws(() => aggregateFile(state, config, schools));
 });
 test("AC23: competition ranking 100,95,95,90 → 1,2,2,4", () => {
   const file = {
