@@ -420,14 +420,21 @@ try {
   }
   await page.keyboard.press("Escape");
   await expect(d.room()).toBeVisible();
-  const returnedFocus = await page.evaluate(() => ({
-    key: document.activeElement?.getAttribute("data-focus"),
-    inRoom: Boolean(document.activeElement?.closest("#classroom-scene")),
-  }));
-  assert.ok(
-    returnedFocus.key === "inspect:O02" || returnedFocus.inRoom,
-    "Escape returns focus to the inspected object or the 3D room",
-  );
+  // The 3D room mounts asynchronously, so focus can land a moment after the room shows.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            document.activeElement?.getAttribute("data-focus") ===
+              "inspect:O02" ||
+            Boolean(document.activeElement?.closest("#classroom-scene")),
+        ),
+      {
+        message: "Escape returns focus to the inspected object or the 3D room",
+      },
+    )
+    .toBe(true);
   await page.locator(".skip-link").focus();
   await page.keyboard.press("Enter");
   assert.equal(await page.evaluate(() => document.activeElement?.id), "main");
