@@ -90,7 +90,7 @@ npm run test:browser
 
 1. 이 프로젝트 내용 전체를 실제 대상 저장소 루트에 넣고 저장소 절차에 따라 커밋·푸시합니다.
 2. 저장소 Settings → Pages → Source를 **GitHub Actions**로 설정합니다.
-3. `.github/workflows/pages.yml`은 `main` 푸시 또는 수동 실행 시 정적 빌드와 Pages 배포만 수행합니다. 결과 접수 기능은 없습니다.
+3. `.github/workflows/pages.yml`은 단위 검사·빌드·오프라인 자산·용량 검사와 Chrome 전체 플레이 검사(`npm run test:browser`)를 수행합니다. 풀 리퀘스트에서는 검사만 하고(`/classroom-escape/` 경로로 빌드), `main` 푸시 또는 수동 실행 시 모든 검사를 통과한 경우에만 Pages에 배포합니다. 브라우저 검사가 실패하면 화면 증거를 `browser-evidence-*` 아티팩트로 7일간 보관합니다. 결과 접수 기능은 없습니다.
 4. 워크플로가 `configure-pages`의 실제 `base_path`를 `PAGES_BASE`에 전달합니다. 저장소 이름을 코드에 추측해 넣지 않습니다. 로컬 빌드 기본값은 상대 경로 `./`입니다.
 5. 기본 브랜치가 `main`이 아니면 워크플로 트리거를 실제 브랜치로 바꿉니다.
 6. 배포 완료 후 Actions가 돌려주는 실제 `page_url`에서 새 게임, `#/play` 새로고침, 자산·JSON 읽기, 이어하기를 다시 확인합니다.

@@ -2,20 +2,19 @@ name: Build and deploy static classroom
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
 concurrency:
-  group: pages
+  group: ${{ github.event_name == 'pull_request' && format('verify-{0}', github.ref) || 'pages' }}
   cancel-in-progress: true
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -26,19 +25,48 @@ jobs:
       - name: Check puzzle and save compatibility
         run: npm test
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
+        if: github.event_name != 'pull_request'
         id: pages
       - name: Build with actual Pages deployment path
         run: npm run build
         env:
-          PAGES_BASE: ${{ steps.pages.outputs.base_path }}/
+          PAGES_BASE: ${{ steps.pages.outputs.base_path || '/classroom-escape' }}/
       - name: Verify all offline lesson assets
         run: npm run test:offline
       - name: Check asset size budget
         run: npm run measure
+      - name: Play the whole game in a real browser
+        env:
+          # The runner image ships Google Chrome, so no Playwright browser download is needed.
+          EDGE_PATH: /usr/bin/google-chrome
+          APP_URL: http://127.0.0.1:4173${{ steps.pages.outputs.base_path || '/classroom-escape' }}/
+          EVIDENCE_DIR: work/browser-ci
+        run: |
+          node scripts/serve.mjs &
+          for i in $(seq 30); do curl -sf "$APP_URL" > /dev/null && break; sleep 1; done
+          npm run test:browser
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: failure()
+        with:
+          name: browser-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: work/browser-ci
+          retention-days: 7
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+        if: github.event_name != 'pull_request'
         with:
           path: dist
           name: classroom-pages-${{ github.run_id }}-${{ github.run_attempt }}
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
         id: deployment
         with:
