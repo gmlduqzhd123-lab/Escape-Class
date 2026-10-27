@@ -196,6 +196,14 @@ const c: ViewContext = {
 let dialogReturnFocus = "";
 let panelReturnFocus = "";
 let toastTimeout: ReturnType<typeof setTimeout>;
+let announceTimeout: ReturnType<typeof setTimeout>;
+const announcer = Object.assign(document.createElement("div"), {
+  id: "announcer",
+  className: "sr-only",
+});
+announcer.setAttribute("role", "status");
+announcer.setAttribute("aria-live", "polite");
+document.body.append(announcer);
 let toolContext = "";
 const phonePortrait = matchMedia(
   "(max-width: 600px) and (orientation: portrait), (max-width: 1024px) and (orientation: portrait) and (any-pointer: coarse)",
@@ -469,8 +477,12 @@ function say(message: string) {
     OBJECTS,
   );
   updateFeedback(root, displayMessage);
-  const status = document.getElementById("announcer");
-  if (status) status.textContent = displayMessage;
+  // Write after the current render settles so screen readers notice the change.
+  announcer.textContent = "";
+  clearTimeout(announceTimeout);
+  announceTimeout = setTimeout(() => {
+    announcer.textContent = displayMessage;
+  }, 80);
   const toast = document.getElementById("toast");
   if (toast) {
     toast.textContent = displayMessage;
@@ -581,7 +593,9 @@ function render(focusKey?: string) {
     ["/", "/setup", "/intro"].includes(current),
   );
   sceneHost?.remove();
-  const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="announcer" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${modalShell(c)}</dialog>` : ""}`;
+  // Keep the one live region alive across re-renders (innerHTML would discard it).
+  document.body.append(announcer);
+  const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${modalShell(c)}</dialog>` : ""}`;
   root.innerHTML = ["/", "/play", "/intro", "/result"].includes(current)
     ? customizeHtml(
         adaptEpisodeHtml(
@@ -649,9 +663,13 @@ function render(focusKey?: string) {
       observer.disconnect();
     };
   }
+  // Inside #app so it stays exposed while #app is fullscreen.
+  root.append(announcer);
   const dialog = document.querySelector<HTMLDialogElement>("#game-dialog");
   if (dialog) {
     dialog.showModal();
+    // A modal makes the page outside it inert, so announcements must come from inside.
+    dialog.append(announcer);
     dialog.scrollTop = dialogScroll;
     dialog.addEventListener("cancel", (event) => {
       event.preventDefault();
@@ -750,21 +768,26 @@ function resume() {
   restorePanelScroll(offset);
   persist();
 }
+let schoolsKnown = false;
 async function data() {
   c.warnings = [];
   const results = await Promise.allSettled([readConfig(), readSchools()]);
-  c.config = results[0].status === "fulfilled" ? results[0].value : null;
-  c.schools = results[1].status === "fulfilled" ? results[1].value : [];
+  // A failed refresh keeps the last good data, so a network blip cannot drop a chosen school or round.
+  if (results[0].status === "fulfilled") c.config = results[0].value;
+  if (results[1].status === "fulfilled") {
+    c.schools = results[1].value;
+    schoolsKnown = true;
+  }
   if (!c.config)
     c.warnings.push(
       "회차 설정을 읽지 못했어요. 연습은 가능하지만 공식 내보내기는 사용할 수 없어요.",
     );
-  if (results[1].status === "rejected")
+  if (!schoolsKnown)
     c.warnings.push(
       "학교 목록을 읽지 못했어요. 학교 없이 체험으로 진행할 수 있어요.",
     );
   c.ranking = null;
-  if (c.config && results[1].status === "fulfilled")
+  if (c.config && schoolsKnown)
     try {
       c.ranking = await readRanking(c.config, c.schools);
     } catch {
@@ -817,7 +840,10 @@ async function bootstrap() {
         ? (c.learning.view.selected as ItemId)
         : null;
       c.sceneMode = c.learning.view.sceneMode;
-      c.authorDraft = c.learning.extras.custom;
+      // A copy: editor input must not mutate the running game's saved lesson pack.
+      c.authorDraft = c.learning.extras.custom
+        ? structuredClone(c.learning.extras.custom)
+        : c.learning.extras.custom;
       c.reflection = null;
       lastMarker = progressMarker(c.state);
     }
@@ -1176,8 +1202,11 @@ async function handle(action: string, value: string) {
           draft.hints = v as LessonOptions["hints"];
         if (name === "cooperation") draft.cooperation = v === "true";
         if (name === "variation") draft.variation = v === "true";
-        if (name === "episode" && Object.hasOwn(EPISODES, v))
+        if (name === "episode" && Object.hasOwn(EPISODES, v)) {
           draft.episode = v as LessonOptions["episode"];
+          // An applied lesson pack belongs to one story; switching stories leaves it behind.
+          if (c.authorDraft?.episode !== draft.episode) draft.authored = false;
+        }
       }
       render();
       return;
@@ -1369,7 +1398,23 @@ async function handle(action: string, value: string) {
       return;
     case "setup-next":
       await data();
+      if (
+        c.setupSchool &&
+        !c.schools.some((x) => x.schoolId === c.setupSchool)
+      ) {
+        say(
+          "선택한 학교를 확인하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.",
+        );
+        render();
+        return;
+      }
       disposeScene();
+      // Saves require options.authored to match an attached pack of the same story.
+      if (
+        c.lessonDraft?.authored &&
+        c.authorDraft?.episode !== c.lessonDraft.episode
+      )
+        c.lessonDraft.authored = false;
       c.learning = createExperience(
         c.lessonDraft,
         c.learning?.extras.seed ?? 0,
