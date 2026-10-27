@@ -459,19 +459,22 @@ try {
   await page.keyboard.press("Escape");
   await expect(d.room()).toBeVisible();
   // The 3D room mounts asynchronously, so focus can land a moment after the room shows.
+  const focusAfterEscape = () =>
+    page.evaluate(() => {
+      const el = document.activeElement;
+      return {
+        ok:
+          el?.getAttribute("data-focus") === "inspect:O02" ||
+          Boolean(el?.closest("#classroom-scene")),
+        // Reported on failure so a CI-only miss shows where focus went.
+        where: `${el?.tagName} ${el?.className} ${el?.getAttribute("data-focus")} · modal=${document.querySelector("#game-dialog")?.getAttribute("data-kind") ?? "none"} · ${location.hash}`,
+      };
+    });
   await expect
-    .poll(
-      () =>
-        page.evaluate(
-          () =>
-            document.activeElement?.getAttribute("data-focus") ===
-              "inspect:O02" ||
-            Boolean(document.activeElement?.closest("#classroom-scene")),
-        ),
-      {
-        message: "Escape returns focus to the inspected object or the 3D room",
-      },
-    )
+    .poll(async () => {
+      const f = await focusAfterEscape();
+      return f.ok || f.where;
+    })
     .toBe(true);
   await page.locator(".skip-link").focus();
   await page.keyboard.press("Enter");
