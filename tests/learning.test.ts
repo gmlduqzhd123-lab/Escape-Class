@@ -13,10 +13,11 @@ import {
   isPracticeLesson,
   createHintClock,
   cooperationLegend,
+  PLEDGES,
 } from "../src/game/learning";
 import { adaptEpisodeHtml, EPISODES } from "../src/content/episodes";
-import { OBJECTS } from "../src/content/data";
-import { rolesDocument } from "../src/ui/learning";
+import { OBJECTS, REFLECTIONS } from "../src/content/data";
+import { rolesDocument, lessonMaterialsDocument } from "../src/ui/learning";
 import { createProgress, PRACTICE_CONFIG } from "../src/game/model";
 import { inspect, pickMemo, solve } from "../src/game/engine";
 import { validateProgress } from "../src/storage/progress";
@@ -71,6 +72,16 @@ test("every episode's printed and on-screen symbol dictionary matches its cooper
       assert.ok(rolesDocument(e).includes(pack.title));
     }
   }
+});
+test("lesson materials pack prints flow, role cards, every pledge and reflection on separate pages", () => {
+  const e = createExperience();
+  const doc = lessonMaterialsDocument(e);
+  assert.equal(doc.match(/<section/g)?.length, 4);
+  for (const card of rolesDocument(e).match(/<article>.*?<\/article>/g)!)
+    assert.ok(doc.includes(card));
+  for (const text of [...PLEDGES, ...REFLECTIONS])
+    assert.ok(doc.includes(text));
+  assert.doesNotMatch(doc, /<img|<script/);
 });
 test("cooperative code requires the observation and reading cards, not a guessed number alone", () => {
   const e = createExperience();

@@ -1612,6 +1612,60 @@ dialog .bag-item {
     scroll-behavior: auto !important;
   }
 }
+/* Celebrations: a friendship piece pops in and glows; the escape key spins in.
+   The in-app "움직임 줄이기" (on by default) keeps only the gentle glow, and the
+   system reduced-motion preference turns everything off (rule above). */
+@keyframes piece-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) rotate(-25deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08) rotate(4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes key-arrive {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-200deg);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1.06) rotate(-6deg);
+  }
+  100% {
+    transform: rotate(-12deg);
+  }
+}
+@keyframes warm-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 #f2cf6a00;
+  }
+  50% {
+    box-shadow: 0 0 0 16px #f2cf6a55;
+  }
+}
+.reward-piece {
+  animation:
+    piece-pop 0.55s cubic-bezier(0.2, 0.8, 0.3, 1.2) both,
+    warm-glow 1.6s ease-in-out 0.5s 2;
+}
+.result-header .celebration {
+  animation:
+    key-arrive 0.8s cubic-bezier(0.2, 0.8, 0.3, 1.1) both,
+    warm-glow 1.6s ease-in-out 0.7s 3;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reduce-motion .reward-piece,
+  .reduce-motion .result-header .celebration {
+    animation: warm-glow 1.6s ease-in-out 2 !important;
+  }
+}
 @media (min-width: 1700px) {
   .home {
     padding-top: 85px;

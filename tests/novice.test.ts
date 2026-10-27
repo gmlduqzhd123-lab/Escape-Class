@@ -90,7 +90,7 @@ test("a cooperative lock directs help to the missing cooperation step rather tha
   c.learning!.coopSolved = true;
   assert.equal(hintTarget(c), "P2");
 });
-test("student setup keeps the current lesson visible while teacher choices start collapsed", () => {
+test("student setup asks grade and lesson length up front while other choices start collapsed", () => {
   const c = fixture();
   c.lessonDraft = {
     ...c.learning!.options,
@@ -99,9 +99,17 @@ test("student setup keeps the current lesson visible while teacher choices start
     episode: "library",
   };
   const html = lessonSetup(c, true);
-  assert.match(html, /수업 설정 바꾸기 · 차근차근 · 15분 · EP.02/);
+  const [quick, folded] = html.split("<details");
+  // Grade and length are visible, with the current choice pressed.
+  assert.match(quick, /몇 학년인가요\?/);
+  assert.match(quick, /data-value="grade:guided"[^>]*aria-pressed="true"/);
+  assert.match(quick, /data-value="minutes:15"[^>]*aria-pressed="true"/);
+  // Everything else starts folded, summarised by the chosen story, and is not repeated.
+  assert.match(folded, /더 자세히 · 협동·이야기 선택 · EP.02/);
   assert.match(html, /<details[^>]*data-disclosure="lesson-settings">/);
   assert.doesNotMatch(html, /<details[^>]*\bopen\b/);
+  assert.doesNotMatch(folded, /data-value="grade:|data-value="minutes:/);
+  assert.match(folded, /data-value="official"/);
 });
 
 test("compact guest preparation preserves school choice when a registry is present", () => {

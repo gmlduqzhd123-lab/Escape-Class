@@ -10,10 +10,13 @@ import {
   type Experience,
 } from "../game/learning";
 import { EPISODES, episode } from "../content/episodes";
+import { REFLECTIONS } from "../content/data";
 
 export function lessonSetup(c: ViewContext, compact = false) {
   const o = c.lessonDraft ?? DEFAULT_LESSON;
-  const html = `<section class="surface lesson-settings"><h2>우리 수업에 맞춰요</h2><p>학년과 시간, 모둠 활동을 골라요. 설정은 새 게임부터 적용돼요.</p><fieldset><legend>난이도</legend>${b("쉬움 · 차근차근", "lesson", "grade:guided", `aria-pressed="${o.grade === "guided"}"`)}${b("기본 · 스스로", "lesson", "grade:standard", `aria-pressed="${o.grade === "standard"}"`)}</fieldset><fieldset><legend>수업 시간</legend>${[15, 25, 40].map((n) => b(`${n}분`, "lesson", `minutes:${n}`, `aria-pressed="${o.minutes === n}"`)).join("")}<p>${o.minutes === 15 ? "필수 퍼즐에 집중해요. 추가 단서는 숨겨요." : o.minutes === 40 ? "추가 단서와 역할 설명, 실천 약속까지 충분히 나눠요." : "필수 퍼즐과 원하는 추가 단서를 찾아요."}</p></fieldset><fieldset><legend>협동과 힌트</legend>${b(o.cooperation ? "✓ 역할 단서로 도구함 열기" : "역할 단서로 도구함 열기", "lesson", `cooperation:${!o.cooperation}`, `aria-pressed="${o.cooperation}"`)}${b(o.hints === "suggest" ? "✓ 막히면 도움 제안" : "막히면 도움 제안", "lesson", `hints:${o.hints === "suggest" ? "request" : "suggest"}`, `aria-pressed="${o.hints === "suggest"}"`)}</fieldset><fieldset><legend>반복 연습</legend>${b(o.variation ? "✓ 다시 해도 다른 암호·카드" : "다시 해도 다른 암호·카드", "lesson", `variation:${!o.variation}`, `aria-pressed="${!!o.variation}"`)}<p>켜면 연습 활동으로 시작하고, 이어하기에서는 같은 암호를 유지해요.</p></fieldset><fieldset><legend>이야기 선택</legend>${Object.values(
+  const gradeField = `<fieldset><legend>${compact ? "몇 학년인가요?" : "난이도"}</legend>${b(compact ? "3·4학년 · 차근차근" : "쉬움 · 차근차근", "lesson", "grade:guided", `aria-pressed="${o.grade === "guided"}"`)}${b(compact ? "5·6학년 · 스스로" : "기본 · 스스로", "lesson", "grade:standard", `aria-pressed="${o.grade === "standard"}"`)}</fieldset>`;
+  const minutesField = `<fieldset><legend>${compact ? "몇 분 수업인가요?" : "수업 시간"}</legend>${[15, 25, 40].map((n) => b(`${n}분`, "lesson", `minutes:${n}`, `aria-pressed="${o.minutes === n}"`)).join("")}<p>${o.minutes === 15 ? "필수 퍼즐에 집중해요. 추가 단서는 숨겨요." : o.minutes === 40 ? "추가 단서와 역할 설명, 실천 약속까지 충분히 나눠요." : "필수 퍼즐과 원하는 추가 단서를 찾아요."}</p></fieldset>`;
+  const rest = `<fieldset><legend>협동과 힌트</legend>${b(o.cooperation ? "✓ 역할 단서로 도구함 열기" : "역할 단서로 도구함 열기", "lesson", `cooperation:${!o.cooperation}`, `aria-pressed="${o.cooperation}"`)}${b(o.hints === "suggest" ? "✓ 막히면 도움 제안" : "막히면 도움 제안", "lesson", `hints:${o.hints === "suggest" ? "request" : "suggest"}`, `aria-pressed="${o.hints === "suggest"}"`)}</fieldset><fieldset><legend>반복 연습</legend>${b(o.variation ? "✓ 다시 해도 다른 암호·카드" : "다시 해도 다른 암호·카드", "lesson", `variation:${!o.variation}`, `aria-pressed="${!!o.variation}"`)}<p>켜면 연습 활동으로 시작하고, 이어하기에서는 같은 암호를 유지해요.</p></fieldset><fieldset><legend>이야기 선택</legend>${Object.values(
     EPISODES,
   )
     .map((p) =>
@@ -26,9 +29,11 @@ export function lessonSetup(c: ViewContext, compact = false) {
     )
     .join(
       "",
-    )}<p>${episode(o.episode).intro}</p></fieldset><p class="muted">차근차근·협동·추가 에피소드·변형·수업 파일은 연습 활동이에요. 점수는 학생 평가에 쓰지 않아요.</p>${b("기본 공식 규칙으로 맞추기", "lesson", "official")}</section>`;
+    )}<p>${episode(o.episode).intro}</p></fieldset><p class="muted">차근차근·협동·추가 에피소드·변형·수업 파일은 연습 활동이에요. 점수는 학생 평가에 쓰지 않아요.</p>${b("기본 공식 규칙으로 맞추기", "lesson", "official")}`;
+  const html = `<section class="surface lesson-settings"><h2>우리 수업에 맞춰요</h2><p>학년과 시간, 모둠 활동을 골라요. 설정은 새 게임부터 적용돼요.</p>${gradeField}${minutesField}${rest}</section>`;
+  // The setup screen asks only grade and lesson length up front; everything else stays folded.
   return compact
-    ? `<details class="surface lesson-options optional-controls" data-disclosure="lesson-settings"><summary>수업 설정 바꾸기 · ${o.grade === "guided" ? "차근차근" : "스스로"} · ${o.minutes}분 · ${episode(o.episode).label}</summary>${html}</details>`
+    ? `<section class="surface lesson-settings quick-lesson"><h2>우리 반에 맞춰요</h2>${gradeField}${minutesField}</section><details class="surface lesson-options optional-controls" data-disclosure="lesson-settings"><summary>더 자세히 · 협동·이야기 선택 · ${episode(o.episode).label}</summary><section class="surface lesson-settings">${rest}</section></details>`
     : html;
 }
 export function teamSummary(c: ViewContext) {
@@ -141,11 +146,49 @@ export function pledgeView(c: ViewContext) {
   const selected = c.learning?.pledge;
   return `<section class="surface pledge-section"><h2>우리 모둠의 작은 실천</h2><p>모두 실천할 수 있는 약속 하나를 골라요. 개인 이름이나 점수는 카드에 넣지 않아요.</p><div class="pledge-options">${PLEDGES.map((p, i) => b(p, "pledge", String(i), `aria-pressed="${selected === i}"`)).join("")}</div>${selected !== null && selected !== undefined ? `<article class="pledge-preview" tabindex="-1" role="region" aria-label="선택한 실천 카드"><small>함께 정한 약속</small><h3>${PLEDGES[selected]}</h3><p>실천한 순간을 발견하면 고마운 마음을 전해요.</p></article>${b("실천 카드 인쇄 / PDF", "print-pledge")}${b("실천 카드 파일 저장", "download-pledge")}` : ""}</section>`;
 }
-export function rolesDocument(e: Experience) {
+function roleCards(e: Experience) {
   const seq = episode(e.options.episode)
     .coopSequence.slice(0, e.options.grade === "guided" ? 2 : 3)
     .join(" → ");
-  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>모둠 역할 카드</title><style>body{font-family:system-ui,'Malgun Gothic',sans-serif;color:#254e45;padding:24px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:20px}article{border:2px dashed #6e855c;border-radius:16px;padding:25px;break-inside:avoid}p{font-size:22px;line-height:1.8}</style><h1>나눠 가지고 서로 설명해요</h1><p>${esc(e.extras.custom?.title ?? episode(e.options.episode).title)}</p><div class="cards">${[`${seq} 순서로 기호를 읽어 주세요.`, `${cooperationLegend(e)}. 친구가 말한 기호를 숫자로 바꿔요.`, `두 친구의 설명을 연결하고 서로 확인해요.`, `친구의 설명을 들은 뒤 ${e.options.grade === "guided" ? 2 : 3}자리 암호를 눌러요.`].map((t, i) => `<article><h2>${i + 1}. ${ROLES[i]} 친구</h2><p>${t}</p></article>`).join("")}</div></html>`;
+  return [
+    `${seq} 순서로 기호를 읽어 주세요.`,
+    `${cooperationLegend(e)}. 친구가 말한 기호를 숫자로 바꿔요.`,
+    `두 친구의 설명을 연결하고 서로 확인해요.`,
+    `친구의 설명을 들은 뒤 ${e.options.grade === "guided" ? 2 : 3}자리 암호를 눌러요.`,
+  ]
+    .map(
+      (t, i) =>
+        `<article><h2>${i + 1}. ${ROLES[i]} 친구</h2><p>${t}</p></article>`,
+    )
+    .join("");
+}
+const PRINT_STYLE =
+  "body{font-family:system-ui,'Malgun Gothic',sans-serif;color:#254e45;padding:24px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:20px}article{border:2px dashed #6e855c;border-radius:16px;padding:25px;break-inside:avoid}p{font-size:22px;line-height:1.8}";
+export function rolesDocument(e: Experience) {
+  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>모둠 역할 카드</title><style>${PRINT_STYLE}</style><h1>나눠 가지고 서로 설명해요</h1><p>${esc(e.extras.custom?.title ?? episode(e.options.episode).title)}</p><div class="cards">${roleCards(e)}</div></html>`;
+}
+/** One printable pack: lesson flow, role cards, pledge cards and reflection sentences. */
+export function lessonMaterialsDocument(e: Experience) {
+  const title = esc(e.extras.custom?.title ?? episode(e.options.episode).title);
+  const flow = [
+    [
+      "도입 · 5분",
+      "“친구를 존중하는 행동은 무엇일까?” 이야기하고 가상 교실 활동임을 안내해요.",
+    ],
+    [
+      "게임 · 25분",
+      "조사 → 단서 읽기 → 이유 나누기 → 조작을 함께 해요. 힌트는 감점이 없어요.",
+    ],
+    [
+      "되돌아보기 · 5분",
+      "모둠의 작은 실천을 하나 고르고, 가상 상황에서 한 선택을 나눠요.",
+    ],
+    [
+      "정리 · 5분",
+      "다음에 해 볼 실천을 정하고, 필요하면 이 앱의 활동 기록을 지워요.",
+    ],
+  ];
+  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>수업 자료 묶음</title><style>${PRINT_STYLE}section{break-after:page}section:last-child{break-after:auto}ol li{font-size:19px;line-height:1.7;margin-bottom:8px}.pledges article p,.reflect article p{font-size:24px}.note{font-size:15px;color:#4d6158}</style><section><h1>교실 탈출 · 수업 자료</h1><p>${title}</p><h2>40분 수업 흐름</h2><ol>${flow.map(([h, t]) => `<li><strong>${h}</strong> — ${t}</li>`).join("")}</ol><h2>편안하게 참여하는 약속</h2><p class="note">실제 피해 경험이나 실제 친구 관계를 발표하도록 요구하지 않아요. 사과·용서는 완료 조건이 아니에요. 점수는 퍼즐 해결 기록이며 학생 평가에 쓰지 않아요.</p></section><section><h1>모둠 역할 카드</h1><p class="note">이름 대신 모둠 자리 1~4번을 정하고, 퍼즐을 풀 때마다 역할을 한 칸씩 바꿔요.</p><div class="cards">${roleCards(e)}</div></section><section class="pledges"><h1>우리 모둠의 작은 실천 카드</h1><p class="note">점선을 따라 잘라 모둠이 고른 약속 하나를 붙여 두어요.</p><div class="cards">${PLEDGES.map((p) => `<article><p>${p}</p></article>`).join("")}</div></section><section class="reflect"><h1>되돌아보기 문장</h1><p class="note">한 문장을 골라 모둠에서 나눠 봐요. 결과 파일이나 평가에 넣지 않아요.</p><div class="cards">${REFLECTIONS.map((r) => `<article><p>${r}</p></article>`).join("")}</div></section></html>`;
 }
 export const DEVICE_CHECKS = [
   "가로로 돌렸을 때 안내가 닫히고 교실이 보여요.",
