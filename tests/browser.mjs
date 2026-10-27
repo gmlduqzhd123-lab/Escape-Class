@@ -388,7 +388,12 @@ try {
   await page.setViewportSize({ width: 740, height: 360 });
   await d.act("new");
   await d.act("new-confirmed");
-  await d.act("setup-next");
+  // The fresh game can re-render the setup step while it opens, so confirm it advanced.
+  const intro = page.getByRole("heading", { name: "우정 열쇠가 사라졌어요!" });
+  await expect(async () => {
+    if (!(await intro.isVisible())) await d.act("setup-next");
+    await expect(intro).toBeVisible({ timeout: 1000 });
+  }).toPass();
   await d.act("start");
   await d.inspect("O02");
   // Fullscreen and its fill-screen fallback consume Escape themselves. Leave
