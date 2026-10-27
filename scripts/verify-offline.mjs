@@ -16,7 +16,8 @@ const checks = [];
 async function harness(corrupt = false) {
   const handlers = {},
     buckets = new Map();
-  let offline = false;
+  let offline = false,
+    stalled = false;
   const key = (r, ignore = false) => {
     const u = new URL(typeof r === "string" ? r : r.url, scope);
     if (ignore) u.search = "";
@@ -54,6 +55,7 @@ async function harness(corrupt = false) {
   await caches.open("unrelated-school-app");
   const fetch = async (request) => {
     if (offline) throw Error("network disconnected");
+    if (stalled) return new Promise(() => {});
     const url = new URL(
       typeof request === "string" ? request : request.url,
       scope,
@@ -88,6 +90,7 @@ async function harness(corrupt = false) {
       Array,
       Number,
       Promise,
+      setTimeout,
       encodeURIComponent,
     }),
   );
@@ -112,6 +115,9 @@ async function harness(corrupt = false) {
     event,
     disconnect() {
       offline = true;
+    },
+    stall() {
+      stalled = true;
     },
   };
 }
@@ -187,6 +193,39 @@ assert.equal(
   undefined,
 );
 checks.push("Requests to other origins are not intercepted");
+const prefix = "escape-class-" + encodeURIComponent(new URL(scope).pathname);
+const upgraded = await harness();
+await upgraded.caches.open(prefix + "-0000000000000001");
+await upgraded.caches.open(prefix + "-0000000000000002");
+await upgraded.event("install");
+assert.deepEqual(
+  (await upgraded.caches.keys()).filter((k) => k.startsWith(prefix)),
+  [prefix + "-0000000000000002", prefix + "-" + manifest.revision],
+);
+checks.push("Preparing a new revision keeps only the previous one");
+const slow = await harness();
+await slow.event("install");
+slow.stall();
+const started = Date.now();
+const stalledPage = await slow.event("fetch", {
+  request: { url: scope + "index.html", method: "GET", mode: "navigate" },
+});
+assert.match(await stalledPage.text(), /index-.*\.js/);
+assert.ok(Date.now() - started < 5000);
+const hashedAsset = manifest.files.find((f) =>
+  /^assets\/.+-[\w-]{8}\./.test(f.url),
+);
+assert.equal(
+  (
+    await slow.event("fetch", {
+      request: { url: scope + hashedAsset.url, method: "GET", mode: "cors" },
+    })
+  ).status,
+  200,
+);
+checks.push(
+  "A stalled network falls back to the prepared cache within seconds",
+);
 await mkdir(proof, { recursive: true });
 await writeFile(
   join(proof, "offline-engine.json"),

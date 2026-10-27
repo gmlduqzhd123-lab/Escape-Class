@@ -95,7 +95,9 @@
 .adventure-controls {
   flex-wrap: wrap;
 }
-.adventure-controls > button { min-width: 44px; }
+.adventure-controls > button {
+  min-width: 44px;
+}
 #app:is(:fullscreen, .immersive-fallback) .escape-bottom {
   bottom: 0;
 }

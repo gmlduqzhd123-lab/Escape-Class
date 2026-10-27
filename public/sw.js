@@ -5,6 +5,19 @@ const PREFIX =
 const MANIFEST = new URL("offline-manifest.json", ROOT).href;
 let current;
 let preparing;
+const NETWORK_WAIT_MS = 3000;
+/** This deployment's caches, newest revision first. */
+async function owned() {
+  return (await caches.keys())
+    .filter((key) => key.startsWith(PREFIX))
+    .reverse();
+}
+async function prune(keep = 2) {
+  const stale = (await owned())
+    .filter((key) => key !== current)
+    .slice(keep - 1);
+  await Promise.all(stale.map((key) => caches.delete(key)));
+}
 async function manifest() {
   try {
     const response = await fetch(MANIFEST, { cache: "no-store" });
@@ -31,8 +44,12 @@ async function manifest() {
     }
     return data;
   } catch (error) {
-    const cached = await caches.match(MANIFEST, { ignoreVary: true });
-    if (cached) return cached.json();
+    for (const key of await owned()) {
+      const cached = await (
+        await caches.open(key)
+      ).match(MANIFEST, { ignoreVary: true });
+      if (cached) return cached.json();
+    }
     throw error;
   }
 }
@@ -70,6 +87,8 @@ async function prepare(notify = () => {}) {
         }),
       );
       current = PREFIX + data.revision;
+      // sw.js rarely changes, so activate alone would never clear older revisions.
+      await prune();
       notify({
         type: "ready",
         total: data.files.length,
@@ -95,13 +114,7 @@ self.addEventListener("install", (event) =>
 self.addEventListener("activate", (event) =>
   event.waitUntil(
     (async () => {
-      const owned = (await caches.keys()).filter((key) =>
-        key.startsWith(PREFIX),
-      );
-      const remove = owned
-        .filter((key) => key !== current)
-        .slice(0, Math.max(0, owned.length - 3));
-      await Promise.all(remove.map((key) => caches.delete(key)));
+      await prune();
       await self.clients.claim();
     })(),
   ),
@@ -129,33 +142,45 @@ self.addEventListener("fetch", (event) => {
     !url.pathname.startsWith(base.pathname)
   )
     return;
+  // Content-hashed build files never change, so the prepared copy is always right.
+  const hashed = /\/assets\/[^/]+-[\w-]{8}\.[a-z0-9]+$/.test(url.pathname);
   event.respondWith(
     (async () => {
-      try {
-        const response = await fetch(request);
+      if (hashed) return (await cached(request)) ?? fetch(request);
+      const network = fetch(request).then((response) => {
         if (!response.ok) throw Error("network response");
         return response;
+      });
+      network.catch(() => {});
+      try {
+        // A connected but crawling classroom network must not outlast the app's load timeout.
+        const first = await Promise.race([
+          network,
+          new Promise((resolve) => setTimeout(resolve, NETWORK_WAIT_MS)),
+        ]);
+        if (first) return first;
+        return (await cached(request)) ?? (await network);
       } catch (error) {
-        const keys = (await caches.keys())
-          .filter((key) => key.startsWith(PREFIX))
-          .reverse();
-        for (const key of keys) {
-          const cache = await caches.open(key);
-          const hit = await cache.match(request, {
-            ignoreSearch: true,
-            ignoreVary: true,
-          });
-          if (hit) return hit;
-        }
-        if (request.mode === "navigate")
-          for (const key of keys) {
-            const hit = await (
-              await caches.open(key)
-            ).match(new URL("index.html", ROOT).href, { ignoreVary: true });
-            if (hit) return hit;
-          }
+        const hit = await cached(request);
+        if (hit) return hit;
         throw error;
       }
     })(),
   );
 });
+async function cached(request) {
+  const keys = await owned();
+  for (const key of keys) {
+    const hit = await (
+      await caches.open(key)
+    ).match(request, { ignoreSearch: true, ignoreVary: true });
+    if (hit) return hit;
+  }
+  if (request.mode === "navigate")
+    for (const key of keys) {
+      const hit = await (
+        await caches.open(key)
+      ).match(new URL("index.html", ROOT).href, { ignoreVary: true });
+      if (hit) return hit;
+    }
+}
