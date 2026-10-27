@@ -278,6 +278,18 @@ async function play(
   await expect(page.getByRole("dialog")).toContainText("잠깐, 쉬어 가요");
   assert.deepEqual((await saved(page)).puzzles.p3.path, [10, 5]);
   await act("resume");
+  // The first resume after a launch (here a reload) re-enters fullscreen.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          Boolean(document.fullscreenElement) ||
+          document
+            .getElementById("app")
+            ?.classList.contains("immersive-fallback"),
+      ),
+    )
+    .toBe(true);
   await inspect("O07");
   for (const cell of path.slice(2)) await act("path-step", String(cell));
   await layout(page, prefix + " ball");
@@ -466,6 +478,60 @@ try {
   pass(
     "360/768/1440 layout; Escape focus, skip link, optional object list, motion settings and pause",
   );
+  {
+    // Pinch, wheel and buttons zoom the 3D camera between 1x and 2x; moving resets it.
+    const zctx = await browser.newContext({
+      viewport: { width: 740, height: 360 },
+      hasTouch: true,
+    });
+    const zp = await zctx.newPage();
+    track(zp);
+    const zd = driver(zp, false);
+    await start(zp, zd);
+    const stage = zp.locator(".classroom-3d-stage");
+    const zoomLevel = async () => Number(await stage.getAttribute("data-zoom"));
+    await expect(stage).toHaveAttribute("data-zoom", "1.00");
+    const box = await zp.locator(".classroom-3d-canvas").boundingBox();
+    const cx = box.x + box.width / 2,
+      cy = box.y + box.height / 2;
+    const cdp = await zctx.newCDPSession(zp);
+    const touch = (type, spread) =>
+      cdp.send("Input.dispatchTouchEvent", {
+        type,
+        touchPoints:
+          type === "touchEnd"
+            ? []
+            : [
+                { x: cx - spread, y: cy, id: 1 },
+                { x: cx + spread, y: cy, id: 2 },
+              ],
+      });
+    await touch("touchStart", 40);
+    for (const spread of [55, 70, 90]) await touch("touchMove", spread);
+    await touch("touchEnd", 0);
+    // Spreading 80px → 180px asks for 2.25x, which the scene clamps to 2x.
+    await expect(stage).toHaveAttribute("data-zoom", "2.00");
+    await expect(zp.locator('[data-scene-control="zoom-in"]')).toBeDisabled();
+    await zp.locator('[data-scene-control="zoom-out"]').click();
+    await expect(stage).toHaveAttribute("data-zoom", "1.60");
+    await zp.locator('[data-scene-control="zoom-in"]').click();
+    await expect(stage).toHaveAttribute("data-zoom", "2.00");
+    await expect(zp.locator('[data-scene-control="zoom-in"]')).toBeDisabled();
+    await zp.mouse.move(cx, cy);
+    await zp.mouse.wheel(0, 2000);
+    await expect(stage).toHaveAttribute("data-zoom", "1.00");
+    await zp.mouse.wheel(0, -200);
+    await expect.poll(zoomLevel).toBeGreaterThan(1);
+    await zd.act("modal", "navigation");
+    await zd.act("go-place", "front");
+    await expect(stage).toHaveAttribute("data-zoom", "1.00");
+    assert.deepEqual(report.consoleErrors, []);
+    await zctx.close();
+    currentPage = page;
+    pass(
+      "3D camera zoom by pinch, wheel and buttons stays within 1x-2x and resets on moving",
+    );
+  }
   await page.goto(base + "#/rankings");
   await page
     .getByRole("heading", { name: "아직 공식 기록이 없어요" })

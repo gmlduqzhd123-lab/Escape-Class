@@ -113,6 +113,10 @@ export function createClassroomScene(
   const camera = new THREE.PerspectiveCamera(68, 1, 0.08, 45);
   camera.position.set(0, 1.8, 2.8);
   camera.rotation.order = "YXZ";
+  // Camera zoom (1x–2x) narrows the field of view; moving or inspecting resets it.
+  const MAX_ZOOM = 2;
+  let zoom = 1;
+  let baseFov = 68;
   let yaw = 0;
   let pitch = -0.045;
   let currentStop = "center";
@@ -157,6 +161,10 @@ export function createClassroomScene(
     <div class="classroom-3d-location"><span aria-hidden="true">◎</span> <span class="classroom-location-name">교실 가운데</span></div>
     <div class="classroom-3d-labels"></div>
     <div class="classroom-3d-moving" aria-hidden="true" hidden>가까이 가고 있어요…</div>
+    <div class="classroom-3d-zoom" role="group" aria-label="확대·축소">
+      <button type="button" data-scene-control="zoom-in" aria-label="확대"><span aria-hidden="true">＋</span></button>
+      <button type="button" data-scene-control="zoom-out" aria-label="축소" disabled><span aria-hidden="true">－</span></button>
+    </div>
   </div>
   <div class="classroom-3d-controls" aria-label="교실 둘러보기">
     <button type="button" class="classroom-turn" data-scene-control="left" aria-label="왼쪽 보기"><span aria-hidden="true">←</span> 왼쪽 보기</button>
@@ -184,6 +192,13 @@ export function createClassroomScene(
   const location = host.querySelector<HTMLElement>(".classroom-location-name")!;
   location.textContent = stopName(currentStop);
   const movingLabel = host.querySelector<HTMLElement>(".classroom-3d-moving")!;
+  const zoomIn = host.querySelector<HTMLButtonElement>(
+    '[data-scene-control="zoom-in"]',
+  )!;
+  const zoomOut = host.querySelector<HTMLButtonElement>(
+    '[data-scene-control="zoom-out"]',
+  )!;
+  stage.dataset.zoom = "1.00";
   const canvas = renderer.domElement;
   canvas.className = "classroom-3d-canvas";
   canvas.setAttribute("aria-hidden", "true");
@@ -1382,6 +1397,7 @@ export function createClassroomScene(
   ) {
     if (!active || disposed || !STOPS[id]) return;
     cancelJourney();
+    setZoom(1);
     const token = journey;
     const path = route(currentStop, id);
     setMoving(true);
@@ -1465,6 +1481,22 @@ export function createClassroomScene(
     notifyPose();
     options.onInspect(object.id);
   }
+  function zoomedFov() {
+    const half = (baseFov * Math.PI) / 360;
+    return (Math.atan(Math.tan(half) / zoom) * 360) / Math.PI;
+  }
+  function setZoom(next: number) {
+    const value = Math.min(MAX_ZOOM, Math.max(1, next));
+    if (Math.abs(value - zoom) < 0.001) return;
+    zoom = value;
+    stage.dataset.zoom = zoom.toFixed(2);
+    zoomIn.disabled = zoom >= MAX_ZOOM - 0.001;
+    zoomOut.disabled = zoom <= 1.001;
+    camera.fov = zoomedFov();
+    camera.updateProjectionMatrix();
+    positionLabels();
+    requestDraw();
+  }
   function resetView() {
     navigate("center", undefined, true);
   }
@@ -1522,11 +1554,21 @@ export function createClassroomScene(
     if (control === "left") turn(Math.PI / 3);
     if (control === "right") turn(-Math.PI / 3);
     if (control === "center") resetView();
+    if (control === "zoom-in" && active && !moving) setZoom(zoom * 1.25);
+    if (control === "zoom-out" && active && !moving) setZoom(zoom / 1.25);
   };
+  const onWheel = (event: WheelEvent) => {
+    if (!active || moving || disposed) return;
+    event.preventDefault();
+    const delta = event.deltaY * (event.deltaMode === 1 ? 16 : 1);
+    setZoom(zoom * Math.exp(-delta * 0.002));
+  };
+  stage.addEventListener("wheel", onWheel, { passive: false });
   host.addEventListener("click", onControlClick);
   const raycaster = new THREE.Raycaster();
   const gestures = bindSceneGestures(stage, {
     enabled: () => active && !moving && !disposed,
+    onZoom: (factor) => setZoom(zoom * factor),
     onLook: (dx, dy, touch) => {
       tween = null;
       yaw -= dx * 0.006;
@@ -1582,7 +1624,8 @@ export function createClassroomScene(
       )
         renderer.setDrawingBufferSize(width, height, ratio);
       camera.aspect = width / height;
-      camera.fov = width < 520 ? 78 : 68;
+      baseFov = width < 520 ? 78 : 68;
+      camera.fov = zoomedFov();
       camera.updateProjectionMatrix();
       camera.rotation.set(pitch, yaw, 0, "YXZ");
       camera.updateMatrixWorld();
@@ -1666,6 +1709,7 @@ export function createClassroomScene(
     document.removeEventListener("fullscreenchange", resize);
     window.visualViewport?.removeEventListener("resize", resize);
     host.removeEventListener("click", onControlClick);
+    stage.removeEventListener("wheel", onWheel);
     gestures.dispose();
     floorGrid.dispose();
     canvas.removeEventListener("webglcontextlost", onContextLost);

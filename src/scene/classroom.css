@@ -30,6 +30,34 @@
   inset: 0;
   pointer-events: none;
 }
+.classroom-3d-zoom {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transform: translateY(-50%);
+}
+.classroom-3d-zoom button {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 1px solid #aabd9c;
+  border-radius: 50%;
+  background: #fffef4ed;
+  box-shadow: 0 3px 12px #2a3c2d24;
+  color: #294b35;
+  font-size: 24px;
+  line-height: 1;
+  touch-action: manipulation;
+}
+.classroom-3d-zoom button:disabled {
+  opacity: 0.45;
+}
 .classroom-3d-location {
   position: absolute;
   left: 12px;

@@ -69,7 +69,8 @@
   .escape-play .classroom-3d-canvas,
   .escape-play .classroom-object-label,
   .escape-play .classroom-move-label {
-    touch-action: pan-y pinch-zoom;
+    /* Two-finger pinch zooms the 3D camera, so the browser must not take it. */
+    touch-action: pan-y;
   }
   .escape-play .classroom-3d-stage.dragging .classroom-3d-canvas {
     cursor: grabbing;
