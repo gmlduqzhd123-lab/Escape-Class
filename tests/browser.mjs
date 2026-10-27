@@ -39,8 +39,8 @@ async function shot(page, name) {
 }
 const saved = (page) =>
   page.evaluate(() => {
-    const key = Object.keys(localStorage).find((k) =>
-      k.startsWith("classroom-escape:"),
+    const key = Object.keys(localStorage).find(
+      (k) => k.startsWith("classroom-escape:") && k.endsWith(":progress:v1"),
     );
     return key ? JSON.parse(localStorage.getItem(key)) : null;
   });
@@ -70,7 +70,11 @@ async function layout(page, name, targets = true) {
       /\b(?:O\d{2}|P[1-5](?:-C[1-5])?|F[1-5]|R[0-2])\b/,
       name + " internal IDs",
     );
-    const tray = await page.locator(".pocket-tray").boundingBox();
+    // The 3D explore view keeps tools in the bottom dock; device views keep the pocket tray.
+    const tray = await page
+      .locator(".pocket-tray, .explore-dock")
+      .first()
+      .boundingBox();
     assert.ok(
       tray.y >= 0 && tray.y + tray.height <= page.viewportSize().height,
       name + " inventory visible",
@@ -95,6 +99,13 @@ function driver(page, keyboard) {
     if (await page.locator('[data-action="close-panel"]').count())
       await act("close-panel");
     await room().waitFor();
+    // The 3D explore dock moved the object list into the game menu.
+    if (
+      !(await page
+        .locator('button[data-action="modal"][data-value="objects"]')
+        .count())
+    )
+      await act("modal", "game-menu");
     await act("modal", "objects");
     await act("inspect", id, page.getByRole("dialog"));
     // In 3D the same accessible object list walks to the target before opening it.

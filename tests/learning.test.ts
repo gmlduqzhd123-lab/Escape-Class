@@ -240,6 +240,13 @@ test("blocked storage remains a playable no-save mode rather than throwing at st
   const c = createSaveCoordinator(bad, "game", () => {});
   assert.equal(await c.acquire(), true);
   assert.equal(c.writable(), true);
+  const denied = {
+    request: () => Promise.reject(Error("SecurityError")),
+  };
+  const d = createSaveCoordinator(bad, "game", () => {}, denied);
+  assert.equal(await d.acquire(), true);
+  assert.equal(d.writable(), true);
+  assert.equal(d.owns(), true);
 });
 test("library rendering preserves object IDs/actions and changes authored story and names", () => {
   const html =

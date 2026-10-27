@@ -50,8 +50,10 @@ export function createSaveCoordinator(
             });
           })
           .catch(() => {
-            blocked = true;
-            resolve(false);
+            // Locks denied (e.g. site data blocked) is not another tab: play on like a lockless browser.
+            owned = true;
+            expected = read();
+            resolve(true);
           });
       });
     },

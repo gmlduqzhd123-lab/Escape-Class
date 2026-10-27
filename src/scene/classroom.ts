@@ -1672,6 +1672,7 @@ export function createClassroomScene(
     for (const geometry of geometries) geometry.dispose();
     for (const material of materials) material.dispose();
     for (const item of textures) item.dispose();
+    renderer.forceContextLoss();
     renderer.dispose();
     scene.clear();
     host.replaceChildren();
