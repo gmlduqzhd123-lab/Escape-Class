@@ -52,18 +52,20 @@ async function layout(page, name, targets = true) {
     false,
     name + " horizontal overflow",
   );
-  if (targets) {
-    const small = await page.locator("button:visible").evaluateAll((els) =>
-      els
-        .map((el) => ({
-          label: el.textContent.trim().slice(0, 45),
-          width: el.getBoundingClientRect().width,
-          height: el.getBoundingClientRect().height,
-        }))
-        .filter((r) => r.width < 43.9 || r.height < 43.9),
-    );
-    assert.deepEqual(small, [], name + " target size");
-  }
+  if (targets)
+    // A re-render can swap buttons mid-measure (detached ones read 0x0), so re-measure until settled.
+    await expect(async () => {
+      const small = await page.locator("button:visible").evaluateAll((els) =>
+        els
+          .map((el) => ({
+            label: el.textContent.trim().slice(0, 45),
+            width: el.getBoundingClientRect().width,
+            height: el.getBoundingClientRect().height,
+          }))
+          .filter((r) => r.width < 43.9 || r.height < 43.9),
+      );
+      assert.deepEqual(small, [], name + " target size");
+    }).toPass({ timeout: 5000 });
   if (await page.locator(".escape-play").count()) {
     // Investigation views scroll as one page since 1.6, so only the explore view pins its tools.
     const pinned = !(await page.locator(".escape-play.device-fill").count());
@@ -128,13 +130,29 @@ function driver(page, keyboard) {
 }
 const path = [10, 5, 0, 1, 2, 7, 12, 17, 22, 23, 24, 19, 14];
 // New games default to the guided difficulty since 1.6; this scenario covers official rules.
+// Setup screens can re-render right after opening (e.g. a storage warning), so each step retries until it lands.
 async function officialRules(page, d) {
-  const disclosure = page.locator('details[data-disclosure="lesson-settings"]');
-  if (await disclosure.count())
-    await disclosure.evaluate((el) => {
-      el.open = true;
-    });
+  const official = page.locator(
+    'button[data-action="lesson"][data-value="official"]',
+  );
+  await expect(async () => {
+    const disclosure = page.locator(
+      'details[data-disclosure="lesson-settings"]',
+    );
+    if (await disclosure.count())
+      await disclosure.evaluate((el) => {
+        el.open = true;
+      });
+    await expect(official).toBeVisible({ timeout: 1000 });
+  }).toPass();
   await d.act("lesson", "official");
+}
+async function toStory(page, d) {
+  const intro = page.getByRole("heading", { name: "우정 열쇠가 사라졌어요!" });
+  await expect(async () => {
+    if (!(await intro.isVisible())) await d.act("setup-next");
+    await expect(intro).toBeVisible({ timeout: 1000 });
+  }).toPass();
 }
 async function start(page, d, school) {
   await page.goto(base);
@@ -144,10 +162,7 @@ async function start(page, d, school) {
   await d.act("new");
   if (school) await d.act("choose-school", school);
   await officialRules(page, d);
-  await d.act("setup-next");
-  await page
-    .getByRole("heading", { name: "우정 열쇠가 사라졌어요!" })
-    .waitFor();
+  await toStory(page, d);
   const before = await saved(page).catch(() => null);
   await page.waitForTimeout(350);
   if (before) assert.equal((await saved(page)).elapsedMs, before.elapsedMs);
@@ -388,7 +403,7 @@ try {
   await page.setViewportSize({ width: 740, height: 360 });
   await d.act("new");
   await d.act("new-confirmed");
-  await d.act("setup-next");
+  await toStory(page, d);
   await d.act("start");
   await d.inspect("O02");
   // Fullscreen and its fill-screen fallback consume Escape themselves. Leave
@@ -407,14 +422,21 @@ try {
   }
   await page.keyboard.press("Escape");
   await expect(d.room()).toBeVisible();
-  const returnedFocus = await page.evaluate(() => ({
-    key: document.activeElement?.getAttribute("data-focus"),
-    inRoom: Boolean(document.activeElement?.closest("#classroom-scene")),
-  }));
-  assert.ok(
-    returnedFocus.key === "inspect:O02" || returnedFocus.inRoom,
-    "Escape returns focus to the inspected object or the 3D room",
-  );
+  // The 3D room mounts asynchronously, so focus can land a moment after the room shows.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            document.activeElement?.getAttribute("data-focus") ===
+              "inspect:O02" ||
+            Boolean(document.activeElement?.closest("#classroom-scene")),
+        ),
+      {
+        message: "Escape returns focus to the inspected object or the 3D room",
+      },
+    )
+    .toBe(true);
   await page.locator(".skip-link").focus();
   await page.keyboard.press("Enter");
   assert.equal(await page.evaluate(() => document.activeElement?.id), "main");
