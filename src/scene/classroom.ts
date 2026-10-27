@@ -289,7 +289,11 @@ export function createClassroomScene(
   ) {
     const surface = document.createElement("canvas");
     const aspect = size[0] / size[1];
-    const max = Math.min(2048, renderer.capabilities.maxTextureSize);
+    // Phones and small tablets get a lower cap to leave GPU memory for the scene.
+    const max = Math.min(
+      quality.mobile ? 1280 : 2048,
+      renderer.capabilities.maxTextureSize,
+    );
     // About 700 texels per metre, at least 768 on the long side and 512 on the short.
     const long = Math.min(max, Math.max(768, Math.max(...size) * 700));
     let width = aspect >= 1 ? long : long * aspect;
@@ -1370,6 +1374,8 @@ export function createClassroomScene(
       .forEach((button) => {
         button.disabled = value;
       });
+    // Re-enabling everything would also unlock a zoom button at its limit.
+    if (!value) syncZoomButtons();
   }
   function cancelJourney(restoreStop = false) {
     journey += 1;
@@ -1511,6 +1517,7 @@ export function createClassroomScene(
     const object = objects.find((item) => item.id === id);
     if (!object || !active || disposed) return;
     cancelJourney();
+    setZoom(1);
     const stop = STOPS[object.stop];
     currentStop = object.stop;
     camera.position.set(stop.x, 1.8, stop.z);
@@ -1524,13 +1531,16 @@ export function createClassroomScene(
     const half = (baseFov * Math.PI) / 360;
     return (Math.atan(Math.tan(half) / zoom) * 360) / Math.PI;
   }
+  function syncZoomButtons() {
+    stage.dataset.zoom = zoom.toFixed(2);
+    zoomIn.disabled = moving || zoom >= MAX_ZOOM - 0.001;
+    zoomOut.disabled = moving || zoom <= 1.001;
+  }
   function setZoom(next: number) {
     const value = Math.min(MAX_ZOOM, Math.max(1, next));
     if (Math.abs(value - zoom) < 0.001) return;
     zoom = value;
-    stage.dataset.zoom = zoom.toFixed(2);
-    zoomIn.disabled = zoom >= MAX_ZOOM - 0.001;
-    zoomOut.disabled = zoom <= 1.001;
+    syncZoomButtons();
     camera.fov = zoomedFov();
     camera.updateProjectionMatrix();
     positionLabels();

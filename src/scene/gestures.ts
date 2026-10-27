@@ -35,6 +35,7 @@ export function bindSceneGestures(stage: HTMLElement, options: Options) {
   function cancel() {
     if (pointer) suppressClick = true;
     clear();
+    pinch = null;
   }
   const down = (event: PointerEvent) => {
     // A second finger zooms the scene (when supported), never an investigation.
@@ -49,9 +50,18 @@ export function bindSceneGestures(stage: HTMLElement, options: Options) {
           distance: 0,
         };
         pinch.distance = spread(pinch);
+        // Keep both fingers on the stage so a lift over the HUD still ends the pinch.
+        for (const id of [first.id, event.pointerId])
+          try {
+            stage.setPointerCapture(id);
+          } catch {
+            // The pointer may already be gone.
+          }
       }
       return;
     }
+    // A new first finger means every earlier finger has lifted, even unseen.
+    if (event.isPrimary) pinch = null;
     if (!options.enabled() || event.button !== 0 || !event.isPrimary) return;
     clear();
     suppressClick = false;
@@ -105,8 +115,11 @@ export function bindSceneGestures(stage: HTMLElement, options: Options) {
     pointer.lastY = event.clientY;
   };
   const endPinch = (event: PointerEvent) => {
-    if (pinch?.a.id === event.pointerId || pinch?.b.id === event.pointerId)
-      pinch = null;
+    if (pinch?.a.id !== event.pointerId && pinch?.b.id !== event.pointerId)
+      return;
+    for (const id of [pinch.a.id, pinch.b.id])
+      if (stage.hasPointerCapture(id)) stage.releasePointerCapture(id);
+    pinch = null;
   };
   const up = (event: PointerEvent) => {
     endPinch(event);

@@ -548,6 +548,9 @@ try {
     await zd.act("modal", "navigation");
     await zd.act("go-place", "front");
     await expect(stage).toHaveAttribute("data-zoom", "1.00");
+    // Arriving re-enables the scene controls, but 1x keeps "축소" disabled.
+    await expect(zp.locator('[data-scene-control="zoom-out"]')).toBeDisabled();
+    await expect(zp.locator('[data-scene-control="zoom-in"]')).toBeEnabled();
     assert.deepEqual(report.consoleErrors, []);
     await zctx.close();
     currentPage = page;
