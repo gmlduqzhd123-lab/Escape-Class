@@ -188,6 +188,8 @@ async function play(
   await layout(page, prefix + " memo");
   await act("modal", "hint");
   await expect(page.getByRole("dialog")).toContainText("반쪽 메모 힌트");
+  // A modal makes the page outside it inert, so the live region must sit inside it.
+  await expect(page.locator("dialog[open] #announcer")).toHaveCount(1);
   await act("next-hint", "P1");
   await act("close-modal");
   // Wrong order can be taken out and placed again, without a submit button.
@@ -238,6 +240,8 @@ async function play(
   );
   for (let i = 0; i < 3; i++) await act("lens-rotate");
   for (const n of ["1", "1", "1"]) await act("code", n);
+  // The wrong-code message must survive the re-render that follows it.
+  await expect(page.locator("#announcer")).not.toBeEmpty();
   assert.equal((await saved(page)).solvedPuzzleIds.length, 1);
   assert.equal(
     await page
@@ -545,11 +549,12 @@ try {
     updatedAt: null,
     records: [],
   };
+  let dataDown = false;
   await official.route("**/data/game-config.json", (r) =>
-    r.fulfill({ json: config }),
+    dataDown ? r.abort() : r.fulfill({ json: config }),
   );
   await official.route("**/data/schools.json", (r) =>
-    r.fulfill({ json: schools }),
+    dataDown ? r.abort() : r.fulfill({ json: schools }),
   );
   await official.route("**/data/rankings.json", (r) =>
     r.fulfill({ json: empty }),
@@ -602,6 +607,19 @@ try {
   pass(
     "official fixture file validation, duplicate/conflict handling and safe local ranking download",
   );
+  // A network blip when the game starts must not drop the chosen school or round.
+  await op.goto(base);
+  await od.act("new");
+  await od.act("choose-school", "FIXTURE-1");
+  await officialRules(op, od);
+  dataDown = true;
+  await toStory(op, od);
+  dataDown = false;
+  const blipped = await saved(op);
+  assert.equal(blipped.schoolId, "FIXTURE-1");
+  assert.equal(blipped.roundId, "fixture-round");
+  await op.evaluate(() => localStorage.clear());
+  pass("data refresh failure at game start keeps the chosen school and round");
   await op.setViewportSize({ width: 740, height: 360 });
   await start(op, od, "FIXTURE-1");
   await play(op, { prefix: "mobile" });
