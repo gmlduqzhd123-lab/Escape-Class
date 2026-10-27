@@ -137,6 +137,26 @@ test("two-finger pinch zooms by the spread ratio and never looks or taps", () =>
   f.send("pointerup");
   assert.equal(f.taps.length, 1);
 });
+test("a pinch whose finger lift was never seen does not block the next swipe", () => {
+  const f = fixture();
+  f.send("pointerdown", { clientX: 100 });
+  f.send("pointerdown", { pointerId: 2, isPrimary: false, clientX: 200 });
+  f.send("pointermove", { pointerId: 2, isPrimary: false, clientX: 260 });
+  assert.equal(f.zooms.length, 1);
+  // Both lifts happen over the HUD and never reach the stage.
+  f.send("pointerdown", { pointerId: 3, clientX: 100 });
+  f.send("pointermove", { pointerId: 3, clientX: 160 });
+  assert.equal(f.looks.length, 1);
+  assert.equal(f.zooms.length, 1);
+});
+test("cancelling the scene gestures also ends a pinch", () => {
+  const f = fixture();
+  f.send("pointerdown", { clientX: 100 });
+  f.send("pointerdown", { pointerId: 2, isPrimary: false, clientX: 200 });
+  f.controller.cancel();
+  f.send("pointermove", { pointerId: 2, isPrimary: false, clientX: 300 });
+  assert.deepEqual(f.zooms, []);
+});
 test("a paused scene ignores pinch zoom", () => {
   const f = fixture();
   f.send("pointerdown", { clientX: 100 });

@@ -503,9 +503,21 @@ function say(message: string) {
 }
 let audio: AudioContext | null = null;
 /** Short synthesized notes; no extra audio files, and only when sound is on. */
+/** Create or wake the audio context inside a tap; iOS keeps it suspended otherwise. */
+function primeAudio() {
+  if (!c.state?.settings.sound) return;
+  try {
+    audio ??= new AudioContext();
+    if (audio.state !== "running") void audio.resume();
+  } catch {
+    // Audio is optional.
+  }
+}
 function notes(freqs: number[], step: number) {
   try {
     audio ??= new AudioContext();
+    // Contexts are suspended after backgrounding or a screen lock; wake before scheduling.
+    if (audio.state !== "running") void audio.resume();
     const start = audio.currentTime + 0.05;
     freqs.forEach((freq, i) => {
       const osc = audio!.createOscillator(),
@@ -871,8 +883,9 @@ async function bootstrap() {
       )
         ? (c.learning.view.selected as ItemId)
         : null;
-      // Every launch opens the 3D room; a picture-mode choice lasts only for its session.
-      c.sceneMode = "3d";
+      // Every launch opens the 3D room; a picture-mode choice lasts only for its
+      // session, so later bootstraps (retry, back-forward restore) keep it.
+      if (firstBoot) c.sceneMode = "3d";
       // A copy: editor input must not mutate the running game's saved lesson pack.
       c.authorDraft = c.learning.extras.custom
         ? structuredClone(c.learning.extras.custom)
@@ -881,6 +894,7 @@ async function bootstrap() {
       lastMarker = progressMarker(c.state);
     }
     c.saved = Boolean(loaded.state);
+    firstBoot = false;
     if (loaded.error)
       c.warnings.push(`이어하기 기록을 사용할 수 없어요: ${loaded.error}`);
     if (c.state?.paused && route() === "/play") c.modal = "pause";
@@ -1081,7 +1095,32 @@ function checkDevice() {
     render();
   }
 }
-let launchImmersion = true;
+let launchImmersion = true,
+  firstBoot = true;
+/** Fullscreen needs a fresh tap; without one (e.g. rotating a phone) wait for the next tap. */
+function enterLaunchImmersion() {
+  if (navigator.userActivation && !navigator.userActivation.isActive) {
+    launchImmersion = true;
+    return;
+  }
+  launchImmersion = false;
+  void fullscreen.enter();
+}
+document.addEventListener(
+  "click",
+  (event) => {
+    if (
+      launchImmersion &&
+      !(event.target as Element).closest?.('[data-action="fullscreen"]') &&
+      !phonePortrait.matches &&
+      route() === "/play" &&
+      c.state?.phase === "playing" &&
+      !c.state.paused
+    )
+      enterLaunchImmersion();
+  },
+  true,
+);
 let refreshing = false;
 /** Refreshes data before a step; false while one is already running or once the user has moved to another screen. */
 async function refreshForStep() {
@@ -1508,8 +1547,8 @@ async function handle(action: string, value: string) {
       if (s?.phase === "intro") {
         c.modal = null;
         if (!phonePortrait.matches) {
-          launchImmersion = false;
-          void fullscreen.enter();
+          primeAudio();
+          enterLaunchImmersion();
           s.phase = "playing";
           s.paused = false;
           hintClock.reset();
@@ -1602,10 +1641,9 @@ async function handle(action: string, value: string) {
     case "resume": {
       // The first resume after launching enters fullscreen (browsers need this tap);
       // later resumes respect a player who left fullscreen on purpose.
-      if (launchImmersion && !phonePortrait.matches && route() === "/play") {
-        launchImmersion = false;
-        void fullscreen.enter();
-      }
+      primeAudio();
+      if (launchImmersion && !phonePortrait.matches && route() === "/play")
+        enterLaunchImmersion();
       resume();
       return;
     }
@@ -2306,7 +2344,10 @@ root.addEventListener("change", (event) => {
     if (name === "setup-sound") c.setupSound = input.checked;
     if (name === "setup-reduced") c.setupReduced = input.checked;
     if (c.state) {
-      if (name === "sound") c.state.settings.sound = input.checked;
+      if (name === "sound") {
+        c.state.settings.sound = input.checked;
+        primeAudio();
+      }
       if (name === "reduced") c.state.settings.reducedMotion = input.checked;
       persist();
     }

@@ -218,6 +218,28 @@
 #app .room-fill [data-scene-control="right"] {
   right: 12px;
 }
+/* Zoom sits just above the right turn button, out of the band where labels float. */
+#app .room-fill .classroom-3d-zoom {
+  top: auto;
+  right: 14px;
+  bottom: 79px;
+  transform: none;
+}
+@media (max-height: 430px) {
+  /* Short landscape phones: smaller (still 44px) and tighter to the corner. */
+  #app .room-fill .classroom-3d-zoom {
+    right: 16px;
+    bottom: 74px;
+    gap: 6px;
+  }
+  #app .room-fill .classroom-3d-zoom button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 22px;
+  }
+}
 #app .room-fill .classroom-turn > span {
   font-size: 26px;
 }
@@ -290,6 +312,9 @@
   }
   #app .room-fill .classroom-3d-controls .classroom-turn {
     bottom: 84px;
+  }
+  #app .room-fill .classroom-3d-zoom {
+    bottom: 148px;
   }
   .explore-selected {
     bottom: 146px;
