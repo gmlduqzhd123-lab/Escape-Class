@@ -65,20 +65,24 @@ async function layout(page, name, targets = true) {
     assert.deepEqual(small, [], name + " target size");
   }
   if (await page.locator(".escape-play").count()) {
+    // Investigation views scroll as one page since 1.6, so only the explore view pins its tools.
+    const pinned = !(await page.locator(".escape-play.device-fill").count());
     assert.doesNotMatch(
       await page.locator(".escape-play").innerText(),
       /\b(?:O\d{2}|P[1-5](?:-C[1-5])?|F[1-5]|R[0-2])\b/,
       name + " internal IDs",
     );
     // The 3D explore view keeps tools in the bottom dock; device views keep the pocket tray.
-    const tray = await page
-      .locator(".pocket-tray, .explore-dock")
-      .first()
-      .boundingBox();
-    assert.ok(
-      tray.y >= 0 && tray.y + tray.height <= page.viewportSize().height,
-      name + " inventory visible",
-    );
+    if (pinned) {
+      const tray = await page
+        .locator(".pocket-tray, .explore-dock")
+        .first()
+        .boundingBox();
+      assert.ok(
+        tray.y >= 0 && tray.y + tray.height <= page.viewportSize().height,
+        name + " inventory visible",
+      );
+    }
   }
 }
 function driver(page, keyboard) {
@@ -88,6 +92,8 @@ function driver(page, keyboard) {
       .locator(
         `button[data-action="${action}"]${value === undefined ? "" : `[data-value="${value}"]`}`,
       )
+      // Layouts can keep a hidden duplicate (e.g. the HUD pause in landscape), so act on what is shown.
+      .filter({ visible: true })
       .first();
     await expect(el).toBeEnabled();
     if (keyboard) {
@@ -121,6 +127,15 @@ function driver(page, keyboard) {
   return { act, inspect, reward, room };
 }
 const path = [10, 5, 0, 1, 2, 7, 12, 17, 22, 23, 24, 19, 14];
+// New games default to the guided difficulty since 1.6; this scenario covers official rules.
+async function officialRules(page, d) {
+  const disclosure = page.locator('details[data-disclosure="lesson-settings"]');
+  if (await disclosure.count())
+    await disclosure.evaluate((el) => {
+      el.open = true;
+    });
+  await d.act("lesson", "official");
+}
 async function start(page, d, school) {
   await page.goto(base);
   await page
@@ -128,6 +143,7 @@ async function start(page, d, school) {
     .waitFor();
   await d.act("new");
   if (school) await d.act("choose-school", school);
+  await officialRules(page, d);
   await d.act("setup-next");
   await page
     .getByRole("heading", { name: "우정 열쇠가 사라졌어요!" })
@@ -319,6 +335,17 @@ async function play(
   await act("escape-confirm");
   await page.getByRole("heading", { name: "함께 열었어요!" }).waitFor();
   assert.equal((await saved(page)).frozenScore, bonusAll ? 100 : 90);
+  // Individual reflection now sits in an optional disclosure below the group pact.
+  await expect(async () => {
+    await page
+      .locator("details[data-disclosure='reflection']")
+      .evaluate((el) => {
+        el.open = true;
+      });
+    await expect(
+      page.locator('button[data-action="reflect"][data-value="3"]'),
+    ).toBeVisible({ timeout: 500 });
+  }).toPass();
   await act("reflect", "3");
   await shot(page, prefix + "-08-result");
   const ended = await saved(page);
@@ -357,7 +384,8 @@ try {
     await layout(page, "home " + width);
     await shot(page, "home-" + width);
   }
-  await page.setViewportSize({ width: 360, height: 900 });
+  // Phones play in landscape; portrait shows the rotate prompt instead of the room.
+  await page.setViewportSize({ width: 740, height: 360 });
   await d.act("new");
   await d.act("new-confirmed");
   await d.act("setup-next");
@@ -391,15 +419,17 @@ try {
   await page.keyboard.press("Enter");
   assert.equal(await page.evaluate(() => document.activeElement?.id), "main");
   assert.equal(new URL(page.url()).hash, "#/play");
-  await d.act("modal", "objects");
+  await d.act("modal", "game-menu");
+  await d.act("modal", "objects", page.getByRole("dialog"));
   assert.equal(await page.locator(".object-picker button").count(), 12);
   await d.act("inspect", "O03", page.getByRole("dialog"));
   await expect(page.locator(".paper-note")).toBeVisible();
   await d.act("modal", "settings");
   assert.equal(await page.locator('[data-setting="sound"]').isChecked(), false);
+  // New games start with reduced motion on since 1.6.1.
   assert.equal(
     await page.locator('[data-setting="reduced"]').isChecked(),
-    false,
+    true,
   );
   await d.act("close-modal");
   await d.act("pause");
@@ -550,6 +580,7 @@ try {
   pass(
     "official fixture file validation, duplicate/conflict handling and safe local ranking download",
   );
+  await op.setViewportSize({ width: 740, height: 360 });
   await start(op, od, "FIXTURE-1");
   await play(op, { prefix: "mobile" });
   await expect(op.locator('[data-action="export"]')).toBeEnabled();
@@ -558,7 +589,7 @@ try {
   json = JSON.parse(await readFile(await (await ev).path(), "utf8"));
   assert.deepEqual(json, result);
   pass(
-    "official fixture full 360px UI play and exact 90-point result download",
+    "official fixture full phone-landscape UI play and exact 90-point result download",
   );
   config = {
     ...fixtureConfig,
