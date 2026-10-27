@@ -128,13 +128,29 @@ function driver(page, keyboard) {
 }
 const path = [10, 5, 0, 1, 2, 7, 12, 17, 22, 23, 24, 19, 14];
 // New games default to the guided difficulty since 1.6; this scenario covers official rules.
+// Setup screens can re-render right after opening (e.g. a storage warning), so each step retries until it lands.
 async function officialRules(page, d) {
-  const disclosure = page.locator('details[data-disclosure="lesson-settings"]');
-  if (await disclosure.count())
-    await disclosure.evaluate((el) => {
-      el.open = true;
-    });
+  const official = page.locator(
+    'button[data-action="lesson"][data-value="official"]',
+  );
+  await expect(async () => {
+    const disclosure = page.locator(
+      'details[data-disclosure="lesson-settings"]',
+    );
+    if (await disclosure.count())
+      await disclosure.evaluate((el) => {
+        el.open = true;
+      });
+    await expect(official).toBeVisible({ timeout: 1000 });
+  }).toPass();
   await d.act("lesson", "official");
+}
+async function toStory(page, d) {
+  const intro = page.getByRole("heading", { name: "우정 열쇠가 사라졌어요!" });
+  await expect(async () => {
+    if (!(await intro.isVisible())) await d.act("setup-next");
+    await expect(intro).toBeVisible({ timeout: 1000 });
+  }).toPass();
 }
 async function start(page, d, school) {
   await page.goto(base);
@@ -144,10 +160,7 @@ async function start(page, d, school) {
   await d.act("new");
   if (school) await d.act("choose-school", school);
   await officialRules(page, d);
-  await d.act("setup-next");
-  await page
-    .getByRole("heading", { name: "우정 열쇠가 사라졌어요!" })
-    .waitFor();
+  await toStory(page, d);
   const before = await saved(page).catch(() => null);
   await page.waitForTimeout(350);
   if (before) assert.equal((await saved(page)).elapsedMs, before.elapsedMs);
@@ -388,12 +401,7 @@ try {
   await page.setViewportSize({ width: 740, height: 360 });
   await d.act("new");
   await d.act("new-confirmed");
-  // The fresh game can re-render the setup step while it opens, so confirm it advanced.
-  const intro = page.getByRole("heading", { name: "우정 열쇠가 사라졌어요!" });
-  await expect(async () => {
-    if (!(await intro.isVisible())) await d.act("setup-next");
-    await expect(intro).toBeVisible({ timeout: 1000 });
-  }).toPass();
+  await toStory(page, d);
   await d.act("start");
   await d.inspect("O02");
   // Fullscreen and its fill-screen fallback consume Escape themselves. Leave
