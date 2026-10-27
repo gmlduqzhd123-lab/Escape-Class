@@ -56,7 +56,12 @@ import {
   experienceKey,
 } from "./storage/session";
 import { adaptEpisodeHtml, episode, EPISODES } from "./content/episodes";
-import { deviceView, DEVICE_CHECKS, rolesDocument } from "./ui/learning";
+import {
+  deviceView,
+  DEVICE_CHECKS,
+  rolesDocument,
+  lessonMaterialsDocument,
+} from "./ui/learning";
 import { updateFeedback, watchStickyHeaders } from "./ui/visibility";
 import { createFullscreenController } from "./ui/fullscreen";
 import type { ClassroomScene } from "./scene/classroom";
@@ -496,9 +501,36 @@ function say(message: string) {
     if (t) t.hidden = true;
   }, 6500);
 }
-function sound() {
-  if (c.state?.settings.sound)
+let audio: AudioContext | null = null;
+/** Short synthesized notes; no extra audio files, and only when sound is on. */
+function notes(freqs: number[], step: number) {
+  try {
+    audio ??= new AudioContext();
+    const start = audio.currentTime + 0.05;
+    freqs.forEach((freq, i) => {
+      const osc = audio!.createOscillator(),
+        gain = audio!.createGain(),
+        at = start + i * step;
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.12, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + step * 1.8);
+      osc.connect(gain).connect(audio!.destination);
+      osc.start(at);
+      osc.stop(at + step * 2);
+    });
+  } catch {
+    // Audio is optional; every cue is also shown on screen.
+  }
+}
+function sound(kind: "ok" | "piece" | "escape" = "ok") {
+  if (!c.state?.settings.sound) return;
+  if (kind === "ok")
     void new Audio(asset("assets/chime.wav")).play().catch(() => {});
+  // A friendship piece rises; escaping plays a short bright fanfare.
+  if (kind === "piece") notes([523.25, 659.25, 783.99], 0.11);
+  if (kind === "escape") notes([523.25, 659.25, 783.99, 1046.5, 1318.5], 0.13);
 }
 function outcome(o: Outcome) {
   persist();
@@ -1011,7 +1043,7 @@ function finishPuzzle(id: PuzzleId) {
   };
   persist();
   openModal("reward");
-  sound();
+  sound("piece");
 }
 function checkDevice() {
   const s = c.state!;
@@ -1034,7 +1066,7 @@ function checkDevice() {
     };
     persist();
     openModal("reward");
-    sound();
+    sound("piece");
   }
   if (
     c.device === "bonus" &&
@@ -1311,6 +1343,15 @@ async function handle(action: string, value: string) {
           preview?.scrollIntoView({ block: "start", behavior: "instant" });
         }
       }
+      return;
+    case "print-materials":
+      openPrint(
+        lessonMaterialsDocument(
+          route() === "/play" && c.learning
+            ? c.learning
+            : createExperience(c.lessonDraft),
+        ),
+      );
       return;
     case "print-roles":
       openPrint(
@@ -2108,7 +2149,7 @@ async function handle(action: string, value: string) {
       if (result.ok) {
         void fullscreen.exit();
         go("/result");
-        sound();
+        sound("escape");
       }
       render();
       say(result.message);

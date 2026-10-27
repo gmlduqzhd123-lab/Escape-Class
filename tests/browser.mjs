@@ -161,6 +161,17 @@ async function start(page, d, school) {
     .waitFor();
   await d.act("new");
   if (school) await d.act("choose-school", school);
+  // Grade and lesson length are answerable without opening anything.
+  await expect(
+    page
+      .locator('button[data-action="lesson"][data-value="grade:standard"]')
+      .first(),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator('button[data-action="lesson"][data-value="minutes:25"]')
+      .first(),
+  ).toBeVisible();
   await officialRules(page, d);
   await toStory(page, d);
   const before = await saved(page).catch(() => null);
@@ -199,6 +210,15 @@ async function play(
   for (const id of ["P1-C1", "P1-C3", "P1-C5"]) await act("memo-pick", id);
   assert.deepEqual((await saved(page)).solvedPuzzleIds, ["P1"]);
   await shot(page, prefix + "-02-reward");
+  // The piece celebrates even with "움직임 줄이기" on (the default), as a gentle
+  // glow; a system reduced-motion preference turns it off entirely.
+  const { animationName, systemReduce } = await page
+    .locator(".reward-piece")
+    .evaluate((el) => ({
+      animationName: getComputedStyle(el).animationName,
+      systemReduce: matchMedia("(prefers-reduced-motion: reduce)").matches,
+    }));
+  assert.match(animationName, systemReduce ? /^none$/ : /warm-glow/);
   await reward(false);
   assert.deepEqual((await saved(page)).solvedPuzzleIds, ["P1"]);
   await inspect("O04");
@@ -439,19 +459,22 @@ try {
   await page.keyboard.press("Escape");
   await expect(d.room()).toBeVisible();
   // The 3D room mounts asynchronously, so focus can land a moment after the room shows.
+  const focusAfterEscape = () =>
+    page.evaluate(() => {
+      const el = document.activeElement;
+      return {
+        ok:
+          el?.getAttribute("data-focus") === "inspect:O02" ||
+          Boolean(el?.closest("#classroom-scene")),
+        // Reported on failure so a CI-only miss shows where focus went.
+        where: `${el?.tagName} ${el?.className} ${el?.getAttribute("data-focus")} · modal=${document.querySelector("#game-dialog")?.getAttribute("data-kind") ?? "none"} · ${location.hash}`,
+      };
+    });
   await expect
-    .poll(
-      () =>
-        page.evaluate(
-          () =>
-            document.activeElement?.getAttribute("data-focus") ===
-              "inspect:O02" ||
-            Boolean(document.activeElement?.closest("#classroom-scene")),
-        ),
-      {
-        message: "Escape returns focus to the inspected object or the 3D room",
-      },
-    )
+    .poll(async () => {
+      const f = await focusAfterEscape();
+      return f.ok || f.where;
+    })
     .toBe(true);
   await page.locator(".skip-link").focus();
   await page.keyboard.press("Enter");
@@ -744,6 +767,12 @@ try {
     .waitFor();
   await layout(page, "teacher tablet");
   await shot(page, "teacher-tablet");
+  // One button prints the whole lesson pack: flow, roles, pledges, reflections.
+  await d.act("print-materials");
+  const pack = page.frameLocator("#lesson-print");
+  await expect(pack.locator("section")).toHaveCount(4);
+  await expect(pack.locator("h1").first()).toHaveText("교실 탈출 · 수업 자료");
+  await page.evaluate(() => document.getElementById("lesson-print")?.remove());
   await page.evaluate(() => localStorage.setItem("other-app-record", "keep"));
   await d.act("erase-confirm");
   await d.act("erase");
