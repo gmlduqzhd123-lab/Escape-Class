@@ -1226,6 +1226,17 @@ export function createClassroomScene(
     const occupied: { x: number; y: number; w: number; h: number }[] = [];
     const width = stage.clientWidth;
     const stageRect = stage.getBoundingClientRect();
+    // Labels never sit on the zoom buttons, even when clamped into that corner.
+    for (const button of [zoomIn, zoomOut]) {
+      const r = button.getBoundingClientRect();
+      if (r.width)
+        occupied.push({
+          x: r.left + r.width / 2 - stageRect.left,
+          y: r.top + r.height / 2 - stageRect.top,
+          w: r.width,
+          h: r.height,
+        });
+    }
     const labelTop =
       location.parentElement!.getBoundingClientRect().bottom -
       stageRect.top +
