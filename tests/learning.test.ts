@@ -79,6 +79,7 @@ test("library and gym wording keeps correct particles and episode places", () =>
     ...Object.values(HINTS).flat(),
     ...CLUES.map((c) => c.text),
     "네 친구를 만나면 골대로 이어요.",
+    "마지막은 골대 ⚑",
     "모두에게 닿는 우정 공",
     "놀이판에 불이 들어왔어요. 네 친구에게 공을 전해요.",
     "아직 공을 받지 못한 친구: 토끼. 네 친구를 모두 만나요.",
@@ -98,7 +99,8 @@ test("library and gym wording keeps correct particles and episode places", () =>
   const gym = adaptEpisodeHtml(all, "gym", OBJECTS);
   assert.match(gym, /자기 차례를 이미 알고/);
   assert.match(gym, /이어달리기 시작을 눌러요/);
-  assert.doesNotMatch(gym, /공을 전해요|공을 받지/);
+  assert.doesNotMatch(gym, /공을 전해요|공을 받지|골대|출발점 옆 칸/);
+  assert.match(gym, /바통 옆 칸/);
   assert.match(adaptEpisodeHtml(all, "library", OBJECTS), /도착점으로 이어요/);
 });
 test("a number takes 을/이 after a final consonant and 를/가 after 2, 4, 5 or 9", () => {

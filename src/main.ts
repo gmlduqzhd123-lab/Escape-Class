@@ -199,6 +199,9 @@ const c: ViewContext = {
   loadError: false,
 };
 let dialogReturnFocus = "";
+// Declared before the fullscreen controller, whose change callback reads it.
+let launchImmersion = true,
+  firstBoot = true;
 let panelReturnFocus = "";
 let toastTimeout: ReturnType<typeof setTimeout>;
 let announceTimeout: ReturnType<typeof setTimeout>;
@@ -248,6 +251,18 @@ const fullscreen = createFullscreenController(root, () => {
       el.textContent = c.immersive ? "화면 줄이기" : "전체화면";
       el.setAttribute("aria-pressed", String(c.immersive));
     });
+  // Leaving fullscreen on purpose ends the launch-time offer to enter it.
+  if (!c.immersive) launchImmersion = false;
+  // A dialog opened just before fullscreen applied sits under #app in the top
+  // layer; reopen it so it stays visible and usable.
+  const dialog =
+    document.querySelector<HTMLDialogElement>("#game-dialog[open]");
+  if (dialog && document.fullscreenElement === root) {
+    const focused = document.activeElement as HTMLElement | null;
+    dialog.close();
+    dialog.showModal();
+    focused?.focus({ preventScroll: true });
+  }
   // Fullscreen may finish after a temporary hidden/orientation state skipped loading.
   mountScene();
   classroom?.resize();
@@ -1095,8 +1110,6 @@ function checkDevice() {
     render();
   }
 }
-let launchImmersion = true,
-  firstBoot = true;
 /** Fullscreen needs a fresh tap; without one (e.g. rotating a phone) wait for the next tap. */
 function enterLaunchImmersion() {
   if (navigator.userActivation && !navigator.userActivation.isActive) {
@@ -1109,9 +1122,14 @@ function enterLaunchImmersion() {
 document.addEventListener(
   "click",
   (event) => {
+    // Not from dialogs (a modal opened in the same tap would sit under the
+    // fullscreen layer) and not from taps that leave play anyway.
     if (
       launchImmersion &&
-      !(event.target as Element).closest?.('[data-action="fullscreen"]') &&
+      !c.modal &&
+      !(event.target as Element).closest?.(
+        '#game-dialog, [data-action="fullscreen"], [data-action="modal"], [data-action="pause"], [data-action="home"], [data-action="save-home"], [data-action="use-exit"]',
+      ) &&
       !phonePortrait.matches &&
       route() === "/play" &&
       c.state?.phase === "playing" &&
@@ -1566,6 +1584,7 @@ async function handle(action: string, value: string) {
       go("/");
       return;
     case "fullscreen":
+      launchImmersion = false;
       // Close the dialog synchronously, before entering the fullscreen top layer.
       // Keep this before the first await so the native request retains activation.
       if (c.modal === "game-menu") {
