@@ -458,14 +458,17 @@ try {
   }
   await page.keyboard.press("Escape");
   await expect(d.room()).toBeVisible();
-  // The 3D room mounts asynchronously, so focus can land a moment after the room shows.
+  // Focus returns to the inspected object, the 3D room, or (while the room is still
+  // mounting, as on fast CI runners) the room's "next object" goal button, the
+  // app's documented fallback.
   const focusAfterEscape = () =>
     page.evaluate(() => {
       const el = document.activeElement;
       return {
         ok:
           el?.getAttribute("data-focus") === "inspect:O02" ||
-          Boolean(el?.closest("#classroom-scene")),
+          Boolean(el?.closest("#classroom-scene")) ||
+          Boolean(el?.matches(".explore-goal")),
         // Reported on failure so a CI-only miss shows where focus went.
         where: `${el?.tagName} ${el?.className} ${el?.getAttribute("data-focus")} · modal=${document.querySelector("#game-dialog")?.getAttribute("data-kind") ?? "none"} · ${location.hash}`,
       };
