@@ -708,7 +708,14 @@ try {
   await op.goto(base);
   await od.act("new");
   await od.act("choose-school", "FIXTURE-1");
+  // The default (guided) lesson is practice; the notice says so until official rules are chosen.
+  await expect(
+    op.locator(".school-options + .notice, .notice").first(),
+  ).toContainText("연습 모드");
   await officialRules(op, od);
+  await expect(op.locator(".notice").first()).toContainText(
+    "공식 규칙으로 시작해요",
+  );
   dataDown = true;
   await toStory(op, od);
   dataDown = false;
