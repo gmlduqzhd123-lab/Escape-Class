@@ -410,7 +410,7 @@ nav a {
 .hero-note span {
   display: block;
   font-size: 12px;
-  color: #8c8159;
+  color: #6e6440;
   margin-bottom: 5px;
 }
 .hero-note strong {
@@ -740,7 +740,7 @@ button[aria-pressed="true"] {
   display: block;
   font-size: 10px;
   font-weight: 500;
-  color: #718168;
+  color: #56664e;
 }
 .object-list button.selected {
   border-color: #557f46;
@@ -866,7 +866,7 @@ button[aria-pressed="true"] {
   border-style: dashed;
 }
 .clue-card > small {
-  color: #7c7c5b;
+  color: #5c5c40;
   font-size: 11px;
 }
 .card-picture {

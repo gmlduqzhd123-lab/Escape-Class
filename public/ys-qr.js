@@ -49,13 +49,26 @@
         img.src = root.getAttribute('data-qr-src') || new URL('qr.svg', location.href).href; // 이 앱 폴더의 파일(오프라인에서도 뜸)
         img.alt = appName() + ' 주소 QR 코드';
         function close() {
-            document.removeEventListener('keydown', onKey);
+            document.removeEventListener('keydown', onKey, true);
             back.remove();
             if (last && last.focus) last.focus();
         }
-        function onKey(e) { if (e.key === 'Escape') close(); }
+        // 창이 열려 있는 동안 Escape·Tab은 이 창만 처리한다(뒤의 게임 화면이 같이 닫히지 않게).
+        function onKey(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                close();
+            } else if (e.key === 'Tab') {
+                var items = back.querySelectorAll('button, a[href]');
+                var first = items[0], end = items[items.length - 1];
+                if (!back.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+                else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); end.focus(); }
+                else if (!e.shiftKey && document.activeElement === end) { e.preventDefault(); first.focus(); }
+            }
+        }
         back.addEventListener('click', function (e) { if (e.target === back || e.target.closest('.yq-close')) close(); });
-        document.addEventListener('keydown', onKey);
+        document.addEventListener('keydown', onKey, true);
         document.body.appendChild(back);
         back.querySelector('.yq-close').focus();
     }

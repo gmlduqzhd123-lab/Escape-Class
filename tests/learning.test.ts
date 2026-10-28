@@ -16,7 +16,8 @@ import {
   PLEDGES,
 } from "../src/game/learning";
 import { adaptEpisodeHtml, EPISODES } from "../src/content/episodes";
-import { OBJECTS, REFLECTIONS } from "../src/content/data";
+import { OBJECTS, REFLECTIONS, HINTS, CLUES } from "../src/content/data";
+import { afterNumber } from "../src/game/advancement";
 import { rolesDocument, lessonMaterialsDocument } from "../src/ui/learning";
 import { createProgress, PRACTICE_CONFIG } from "../src/game/model";
 import { inspect, pickMemo, solve } from "../src/game/engine";
@@ -72,6 +73,39 @@ test("every episode's printed and on-screen symbol dictionary matches its cooper
       assert.ok(rolesDocument(e).includes(pack.title));
     }
   }
+});
+test("library and gym wording keeps correct particles and episode places", () => {
+  const all = [
+    ...Object.values(HINTS).flat(),
+    ...CLUES.map((c) => c.text),
+    "네 친구를 만나면 골대로 이어요.",
+    "모두에게 닿는 우정 공",
+    "놀이판에 불이 들어왔어요. 네 친구에게 공을 전해요.",
+    "아직 공을 받지 못한 친구: 토끼. 네 친구를 모두 만나요.",
+  ].join("\n");
+  for (const id of ["library", "gym"] as const) {
+    const text = adaptEpisodeHtml(all, id, OBJECTS);
+    for (const broken of [
+      /차례을/,
+      /시작를/,
+      /도착점로/,
+      /교실 → 복도/,
+      /모두에게 닿는 모두의/,
+    ])
+      assert.doesNotMatch(text, broken, `${id}: ${broken}`);
+    assert.match(text, new RegExp(`${EPISODES[id].room} → 복도`));
+  }
+  const gym = adaptEpisodeHtml(all, "gym", OBJECTS);
+  assert.match(gym, /자기 차례를 이미 알고/);
+  assert.match(gym, /이어달리기 시작을 눌러요/);
+  assert.doesNotMatch(gym, /공을 전해요|공을 받지/);
+  assert.match(adaptEpisodeHtml(all, "library", OBJECTS), /도착점으로 이어요/);
+});
+test("a number takes 을/이 after a final consonant and 를/가 after 2, 4, 5 or 9", () => {
+  assert.equal(afterNumber("713", "을", "를"), "을");
+  assert.equal(afterNumber("592", "을", "를"), "를");
+  assert.equal(afterNumber("814", "이", "가"), "가");
+  assert.equal(afterNumber("360", "이", "가"), "이");
 });
 test("lesson materials pack prints flow, role cards, every pledge and reflection on separate pages", () => {
   const e = createExperience();

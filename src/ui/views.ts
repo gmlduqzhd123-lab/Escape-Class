@@ -4,6 +4,7 @@ import { tutorial, spaceMap, friendTalk, learningHints } from "./advancement";
 import {
   diagnose,
   displayCode,
+  afterNumber,
   EXPLANATIONS,
   type LessonPack,
 } from "../game/advancement";
@@ -11,6 +12,7 @@ import { renderPlay, hintTarget, objective } from "./experience";
 import { lessonSetup, teamSummary, teamPuzzle, pledgeView } from "./learning";
 import type { DeviceAudit } from "./learning";
 import type { Experience, LessonOptions } from "../game/learning";
+import { isPracticeLesson } from "../game/learning";
 import {
   score,
   PUZZLES,
@@ -93,7 +95,7 @@ export function setup(c: ViewContext) {
     (s) => s.name.includes(c.schoolQuery) || s.schoolId.includes(c.schoolQuery),
   );
   const schoolCard = c.schools.length
-    ? `<div class="surface"><h2>활동 학교 선택</h2><label for="school-search">등록 학교 검색</label><input id="school-search" data-input="school-query" value="${esc(c.schoolQuery)}" placeholder="등록된 학교 이름 찾기" autocomplete="off" /><div id="school-options" class="school-options">${schoolOptions(c, matches)}</div><p class="notice">${c.config?.activeRound?.acceptingResults ? esc(c.config.activeRound.label) + " · 결과 접수 중" : "연습 모드로 시작해요."}</p></div>`
+    ? `<div class="surface"><h2>활동 학교 선택</h2><label for="school-search">등록 학교 검색</label><input id="school-search" data-input="school-query" value="${esc(c.schoolQuery)}" placeholder="등록된 학교 이름 찾기" autocomplete="off" /><div id="school-options" class="school-options">${schoolOptions(c, matches)}</div><p class="notice">${c.config?.activeRound?.acceptingResults ? esc(c.config.activeRound.label) + (c.lessonDraft && isPracticeLesson(c.lessonDraft) ? " · 결과 접수 중이지만 지금 설정은 연습 모드예요. 공식 결과를 내려면 아래 ‘더 자세히’에서 ‘기본 공식 규칙으로 맞추기’를 눌러요." : " · 결과 접수 중 · 공식 규칙으로 시작해요.") : "연습 모드로 시작해요."}</p></div>`
     : "";
   return `<main id="main" class="narrow setup-screen"><a class="back-link" href="#/">← 시작 화면</a><span class="eyebrow">시작하기 전에 · 1 / 2</span><h1>우리 모둠, 준비됐나요?</h1><p>${c.schools.length ? "학교 선택은 소속 인증이 아니에요. 학교 없이도 모든 퍼즐을 풀 수 있어요." : "학교 선택이나 이름 입력 없이 바로 시작할 수 있어요."}</p>${schoolCard}<div class="surface"><h2>편안하게 활동해요</h2><div class="setup-controls"><label class="check-label"><input type="checkbox" data-setting="setup-sound" ${c.setupSound ? "checked" : ""} /> 효과음 켜기 (기본 끄기)</label><label class="check-label"><input type="checkbox" data-setting="setup-reduced" ${c.setupReduced ? "checked" : ""} /> 움직임 줄이기</label></div><p>이야기와 모든 단서는 소리 없이도 읽을 수 있어요.</p></div>${c.authorDraft && c.lessonDraft?.authored ? `<p class="setup-custom">수업 파일 적용 · ${esc(c.authorDraft.title)} · 연습 활동 ${b("기본 이야기 사용", "author-clear")}</p>` : ""}${lessonSetup(c, true)}${b("이야기와 조작 안내 보기 →", "setup-next", "", 'class="primary large start-next"')}</main>`;
 }
@@ -213,7 +215,7 @@ export function modalContent(c: ViewContext) {
         .slice(0, level)
         .map(
           (text, i) =>
-            `<article class="hint-step" tabindex="-1" role="region" aria-label="${i + 1}단계 힌트"><strong>${i + 1}단계 · ${["살펴볼 위치", "연결 원리", "실제 해결 방법"][i]}</strong><p>${esc((c.learning?.options.variation || c.learning?.options.episode === "gym") && id === "P2" && i === 2 ? `창 번호 순서로 ${displayCode(c.learning, "713")}을 눌러요.` : text)}</p></article>`,
+            `<article class="hint-step" tabindex="-1" role="region" aria-label="${i + 1}단계 힌트"><strong>${i + 1}단계 · ${["살펴볼 위치", "연결 원리", "실제 해결 방법"][i]}</strong><p>${esc((c.learning?.options.variation || c.learning?.options.episode === "gym") && id === "P2" && i === 2 ? `창 번호 순서로 ${displayCode(c.learning, "713")}${afterNumber(displayCode(c.learning, "713"), "을", "를")} 눌러요.` : text)}</p></article>`,
         )
         .join(
           "",

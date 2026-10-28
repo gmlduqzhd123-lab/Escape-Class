@@ -139,6 +139,10 @@ export function inputDigit(e: Experience | null | undefined, n: string) {
 export function displayCode(e: Experience | null | undefined, code: string) {
   return code.replace(/\d/g, (n) => String(digit(e, Number(n))));
 }
+/** Korean particle after a spoken number: 2·4·5·9 (이·사·오·구) end without a final consonant. */
+export function afterNumber(code: string, withFinal: string, without: string) {
+  return /[2459]$/.test(code) ? without : withFinal;
+}
 export function orderCards<T>(cards: T[], e?: Experience | null) {
   if (!e?.options.variation || cards.length < 2) return cards;
   const hash = (value: T) => {
@@ -172,7 +176,7 @@ export function diagnose(
       ? "먼저 가방의 렌즈를 암호판에 올려요."
       : s.puzzles.p2.rotation !== 0
         ? "숫자보다 먼저 렌즈의 ▲ 표시를 위로 돌려요."
-        : `창 1 → 2 → 3 순서예요. 지금 렌즈에는 ${displayCode(e, "713").split("").join(" · ")}이 보여요.`;
+        : `창 1 → 2 → 3 순서예요. 지금 렌즈에는 ${displayCode(e, "713").split("").join(" · ")}${afterNumber(displayCode(e, "713"), "이", "가")} 보여요.`;
   if (object === "O07") {
     const missing = Object.entries(FRIENDS)
       .filter(([n]) => !s.puzzles.p3.path.includes(Number(n)))

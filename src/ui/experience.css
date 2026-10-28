@@ -171,12 +171,12 @@
   white-space: nowrap;
   writing-mode: vertical-rl;
   letter-spacing: 0.15em;
-  color: #718565;
+  color: #55674a;
   padding: 0 5px;
 }
 .empty-pocket {
   font-size: 15px;
-  color: #7a836e;
+  color: #5a6350;
 }
 .pocket-item {
   min-height: 58px;
@@ -812,7 +812,7 @@
 .treasure-map > span {
   display: block;
   font-size: 13px;
-  color: #99824a;
+  color: #6f5c2c;
 }
 .treasure-map strong {
   display: block;
