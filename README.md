@@ -72,17 +72,20 @@ npm run test:browser
 
 ## 코드 책임
 
-| 경로                                      | 책임                                                       |
-| ----------------------------------------- | ---------------------------------------------------------- |
-| `src/game/model.ts`, `engine.ts`          | 상태, 선행 조건, 상태 전이, ID 기반 점수                   |
-| `src/content/data.ts`                     | 12개 물건, 카드, 이야기, 힌트, 성찰 문장                   |
-| `src/puzzles/judges.ts`                   | P1~P5와 최종 조합 판정, 공 이동 시뮬레이션                 |
-| `src/storage/progress.ts`                 | 엄격한 복원 검증, 저장 실패 복구, 앱별 삭제                |
-| `src/ranking/validation.ts`, `service.ts` | 설정·학교·결과·순위 검증, 내보내기, 공동 순위              |
-| `src/tools/aggregate.ts`                  | 로컬 파일 제한, 중복 제거, 명시적 충돌 선택                |
-| `src/ui/`, `src/main.ts`, `src/style.css` | 화면, 조작, 시간 측정, 접근성, 반응형                      |
-| `public/data/`                            | 운영자가 관리하는 설정·학교·공개 순위                      |
-| `tests/`                                  | 순수 로직 및 실제 브라우저 검사; 가상 학교는 여기에만 존재 |
+| 경로                                       | 책임                                                                    |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| `src/game/model.ts`, `engine.ts`           | 상태, 선행 조건, 상태 전이, ID 기반 점수                                |
+| `src/content/data.ts`                      | 12개 물건, 카드, 이야기, 힌트, 성찰 문장                                |
+| `src/puzzles/judges.ts`                    | P1~P5와 최종 조합 판정, 공 이동 시뮬레이션                              |
+| `src/storage/progress.ts`                  | 엄격한 복원 검증, 저장 실패 복구, 앱별 삭제                             |
+| `src/ranking/validation.ts`, `service.ts`  | 설정·학교·결과·순위 검증, 내보내기, 공동 순위                           |
+| `src/tools/aggregate.ts`                   | 로컬 파일 제한, 중복 제거, 명시적 충돌 선택                             |
+| `src/ui/`, `src/main.ts`, `src/style.css`  | 화면, 조작, 시간 측정, 접근성, 반응형                                   |
+| `src/actions/`                             | 교사용 자료·수업 파일·기기 점검, 결과 파일 집계 동작                    |
+| `src/ui/files.ts`, `audio.ts`, `speech.ts` | 로컬 저장·인쇄, 효과음, 글 읽어 주기                                    |
+| `src/scene/`                               | 3D 교실(`classroom.ts`), 표지판 글씨·그림(`canvas-art.ts`), 손가락 조작 |
+| `public/data/`                             | 운영자가 관리하는 설정·학교·공개 순위                                   |
+| `tests/`                                   | 순수 로직 및 실제 브라우저 검사; 가상 학교는 여기에만 존재              |
 
 ## GitHub Pages 배포
 
