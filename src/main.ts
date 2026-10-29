@@ -912,6 +912,11 @@ async function bootstrap() {
     firstBoot = false;
     if (loaded.error)
       c.warnings.push(`이어하기 기록을 사용할 수 없어요: ${loaded.error}`);
+    if (loaded.notice) {
+      c.warnings.push(loaded.notice);
+      if (storage && c.state && !saveBlocked)
+        saveProgress(storage, key, c.state);
+    }
     if (c.state?.paused && route() === "/play") c.modal = "pause";
     if (saveBlocked && route() === "/play") c.modal = "save-blocked";
   } catch {

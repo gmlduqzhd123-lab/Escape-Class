@@ -147,8 +147,8 @@ async function officialRules(page, d) {
   }).toPass();
   await d.act("lesson", "official");
 }
-async function toStory(page, d) {
-  const intro = page.getByRole("heading", { name: "우정 열쇠가 사라졌어요!" });
+async function toStory(page, d, heading = "우정 열쇠가 사라졌어요!") {
+  const intro = page.getByRole("heading", { name: heading });
   await expect(async () => {
     if (!(await intro.isVisible())) await d.act("setup-next");
     await expect(intro).toBeVisible({ timeout: 1000 });
@@ -559,6 +559,88 @@ try {
     currentPage = page;
     pass(
       "3D camera zoom by pinch, wheel and buttons stays within 1x-2x and resets on moving",
+    );
+  }
+  // The other episodes, with the default easy lesson (guided help, no cooperation gate).
+  for (const ep of [
+    {
+      id: "library",
+      heading: "함께읽기 책갈피가 사라졌어요!",
+      board: "독서 게시판",
+      room: "도서관",
+    },
+    {
+      id: "gym",
+      heading: "응원 깃발이 사라졌어요!",
+      board: "차례 게시판",
+      room: "체육관",
+    },
+  ]) {
+    const ectx = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+    });
+    const ep_ = await ectx.newPage();
+    track(ep_);
+    const ed = driver(ep_, false);
+    await ep_.goto(base);
+    await ep_
+      .getByRole("heading", { name: "사라진 우정 열쇠", exact: true })
+      .waitFor();
+    await ed.act("new");
+    // The easy lesson is the default, so only the story is changed.
+    await expect(
+      ep_.locator('button[data-action="lesson"][data-value="grade:guided"]'),
+    ).toHaveAttribute("aria-pressed", "true");
+    const choice = ep_.locator(
+      `button[data-action="lesson"][data-value="episode:${ep.id}"]`,
+    );
+    await expect(async () => {
+      await ep_
+        .locator('details[data-disclosure="lesson-settings"]')
+        .evaluate((el) => {
+          el.open = true;
+        });
+      await expect(choice).toBeVisible({ timeout: 1000 });
+    }).toPass();
+    await ed.act("lesson", `episode:${ep.id}`);
+    await expect(choice).toHaveAttribute("aria-pressed", "true");
+    await toStory(ep_, ed, ep.heading);
+    await ed.act("start");
+    await ed.room().waitFor();
+    await layout(ep_, ep.id + " room");
+    await expect(
+      ep_.getByRole("heading", { name: `${ep.room}을 살펴봐요` }),
+    ).toBeVisible();
+    await expect(ep_.locator("#main")).not.toContainText("교실");
+    await ed.inspect("O03");
+    await ed.inspect("O02");
+    await expect(ep_.locator("#panel-title")).toHaveText(ep.board);
+    // Easy mode lays the first memo and says so; two more picks finish it.
+    await expect(ep_.locator(".zoom-device")).toContainText(
+      "첫 메모를 놓았어요",
+    );
+    assert.deepEqual((await saved(ep_)).puzzles.p1.order, ["P1-C1"]);
+    for (const id of ["P1-C3", "P1-C5"]) await ed.act("memo-pick", id);
+    assert.deepEqual((await saved(ep_)).solvedPuzzleIds, ["P1"]);
+    await ed.reward(false);
+    await shot(ep_, ep.id + "-01-room");
+    // Easy mode aligns the lens, so the code goes in straight away.
+    await ed.inspect("O06");
+    await ed.act("take", "shared-lens");
+    await ed.inspect("O04");
+    await expect(ep_.locator(".zoom-device")).toContainText("렌즈의 위를 맞춰");
+    // Each episode maps the digits differently; read them through the lens.
+    const digits = await ep_.locator(".window-reading strong").allInnerTexts();
+    assert.equal(digits.length, 3);
+    for (const n of digits) await ed.act("code", n.trim());
+    assert.deepEqual((await saved(ep_)).solvedPuzzleIds, ["P1", "P2"]);
+    await ed.reward(false);
+    await layout(ep_, ep.id + " after lens");
+    assert.equal((await saved(ep_)).difficultyId, "standard");
+    await ectx.close();
+    currentPage = page;
+    pass(
+      `${ep.id} episode wording, easy-mode memo and lens help with the default lesson`,
     );
   }
   await page.goto(base + "#/rankings");
