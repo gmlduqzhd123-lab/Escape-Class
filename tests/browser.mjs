@@ -517,6 +517,20 @@ try {
     const stage = zp.locator(".classroom-3d-stage");
     const zoomLevel = async () => Number(await stage.getAttribute("data-zoom"));
     await expect(stage).toHaveAttribute("data-zoom", "1.00");
+    // Taps on game text must not open Chrome's "Touch to Search" sheet.
+    assert.deepEqual(
+      await zp.evaluate(() =>
+        [
+          ".skip-link",
+          ".explore-goal",
+          '[data-scene-control="zoom-out"]',
+          ".classroom-3d-stage",
+        ].map(
+          (sel) => getComputedStyle(document.querySelector(sel)).userSelect,
+        ),
+      ),
+      ["none", "none", "none", "none"],
+    );
     const box = await zp.locator(".classroom-3d-canvas").boundingBox();
     const cx = box.x + box.width / 2,
       cy = box.y + box.height / 2;

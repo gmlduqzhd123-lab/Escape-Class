@@ -6,12 +6,13 @@ export function sceneQuality(
 ) {
   const mobile = touch || Math.min(width, height) <= 600;
   const pixels = Math.max(1, width) * Math.max(1, height);
-  const budget = mobile ? 1_000_000 : 3_000_000;
+  // Phones render near their native density so 3D signs stay sharp in fullscreen.
+  const budget = mobile ? 2_600_000 : 3_000_000;
   return {
     mobile,
     pixelRatio: Math.min(
       Number.isFinite(dpr) && dpr > 0 ? dpr : 1,
-      mobile ? 1.5 : 2,
+      mobile ? 2.25 : 2,
       Math.sqrt(budget / pixels),
     ),
     shadows: !mobile,

@@ -296,11 +296,9 @@ export function createClassroomScene(
     draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
     size: number[],
   ) {
-    // Phones and small tablets get a lower cap to leave GPU memory for the scene.
-    const max = Math.min(
-      quality.mobile ? 1280 : 2048,
-      renderer.capabilities.maxTextureSize,
-    );
+    // The board and notes are read up close in fullscreen, so phones get the same
+    // 2048 cap as desktops (only the few large panels reach it).
+    const max = Math.min(2048, renderer.capabilities.maxTextureSize);
     const result = new THREE.CanvasTexture(paintPanel(draw, size, max));
     result.colorSpace = THREE.SRGBColorSpace;
     result.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
