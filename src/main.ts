@@ -46,7 +46,6 @@ import {
   progressMarker,
   roleAssignments,
   shouldSuggestHint,
-  practiceCard,
   type LessonOptions,
 } from "./game/learning";
 import {
@@ -56,12 +55,7 @@ import {
   experienceKey,
 } from "./storage/session";
 import { adaptEpisodeHtml, episode, EPISODES } from "./content/episodes";
-import {
-  deviceView,
-  DEVICE_CHECKS,
-  rolesDocument,
-  lessonMaterialsDocument,
-} from "./ui/learning";
+import { deviceView } from "./ui/learning";
 import { updateFeedback, watchStickyHeaders } from "./ui/visibility";
 import { createFullscreenController } from "./ui/fullscreen";
 import type { ClassroomScene } from "./scene/classroom";
@@ -122,13 +116,6 @@ import {
   resultFile,
 } from "./ranking/service";
 import {
-  parseLocalFile,
-  mergeEntry,
-  resolveConflict,
-  aggregateFile,
-  MAX_FILES,
-} from "./tools/aggregate";
-import {
   header,
   footer,
   home,
@@ -146,6 +133,11 @@ import {
 } from "./ui/views";
 import { button as b, esc, time } from "./ui/helpers";
 import { objective } from "./ui/experience";
+import { download } from "./ui/files";
+import { createSoundPlayer } from "./ui/audio";
+import { mountDeviceAudit } from "./ui/device-audit";
+import { materialsAction } from "./actions/materials";
+import { createResultsTools } from "./actions/results";
 import {
   speak,
   speechAvailable,
@@ -229,7 +221,6 @@ const announcer = Object.assign(document.createElement("div"), {
 announcer.setAttribute("role", "status");
 announcer.setAttribute("aria-live", "polite");
 document.body.append(announcer);
-let toolContext = "";
 const phonePortrait = matchMedia(
   "(max-width: 600px) and (orientation: portrait), (max-width: 1024px) and (orientation: portrait) and (any-pointer: coarse)",
 );
@@ -437,7 +428,13 @@ function mountScene() {
 const go = (path: string) => {
   location.hash = path;
 };
-const contextId = () => JSON.stringify([c.config, c.schools]);
+const resultsTools = createResultsTools({
+  c,
+  data: () => data(),
+  say: (message) => say(message),
+  render: () => render(),
+});
+const contextId = resultsTools.contextId;
 let lastTime = performance.now(),
   clockActive = false,
   lastPersist = performance.now();
@@ -534,54 +531,12 @@ function say(message: string) {
     if (t) t.hidden = true;
   }, 6500);
 }
-let audio: AudioContext | null = null;
-/** Short synthesized notes; no extra audio files, and only when sound is on. */
-/** Create or wake the audio context inside a tap; iOS keeps it suspended otherwise. */
-function primeAudio() {
-  if (!c.state?.settings.sound) return;
-  try {
-    audio ??= new AudioContext();
-    if (audio.state !== "running") void audio.resume();
-  } catch {
-    // Audio is optional.
-  }
-}
-function notes(freqs: number[], step: number) {
-  try {
-    audio ??= new AudioContext();
-    // Contexts are suspended after backgrounding or a screen lock; wake before scheduling.
-    if (audio.state !== "running") void audio.resume();
-    const start = audio.currentTime + 0.05;
-    freqs.forEach((freq, i) => {
-      const osc = audio!.createOscillator(),
-        gain = audio!.createGain(),
-        at = start + i * step;
-      osc.type = "triangle";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, at);
-      gain.gain.exponentialRampToValueAtTime(0.12, at + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, at + step * 1.8);
-      osc.connect(gain).connect(audio!.destination);
-      osc.start(at);
-      osc.stop(at + step * 2);
-    });
-  } catch {
-    // Audio is optional; every cue is also shown on screen.
-  }
-}
-function sound(kind: "ok" | "piece" | "escape" = "ok") {
-  if (!c.state?.settings.sound) return;
-  if (kind === "ok")
-    void new Audio(asset("assets/chime.wav")).play().catch(() => {});
-  // A friendship piece rises; escaping plays a short bright fanfare.
-  if (kind === "piece") notes([523.25, 659.25, 783.99], 0.11);
-  if (kind === "escape") notes([523.25, 659.25, 783.99, 1046.5, 1318.5], 0.13);
-}
+const player = createSoundPlayer(() => !!c.state?.settings.sound);
 function outcome(o: Outcome) {
   persist();
   render();
   say(o.message);
-  if (o.ok) sound();
+  if (o.ok) player.play();
 }
 function findFocus(value: string) {
   return [...document.querySelectorAll<HTMLElement>("[data-focus]")].find(
@@ -692,7 +647,7 @@ function render(focusKey?: string) {
     "has-open-dialog",
     !!root.querySelector("#game-dialog"),
   );
-  mountDeviceAudit();
+  mountDeviceAudit(c.deviceAudit!);
   mountScene();
   root
     .querySelectorAll<HTMLDetailsElement>("details[data-disclosure]")
@@ -955,78 +910,6 @@ async function bootstrap() {
     tick();
   }
 }
-function resetImport() {
-  c.aggregate = { records: [], conflicts: [], messages: [] };
-  c.importErrors = [];
-  toolContext = contextId();
-}
-function download(value: unknown, name: string) {
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }),
-  );
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-function saveText(text: string, name: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-function openPrint(html: string) {
-  document.getElementById("lesson-print")?.remove();
-  const frame = document.createElement("iframe");
-  frame.id = "lesson-print";
-  frame.title = "인쇄할 모둠 카드";
-  frame.style.cssText =
-    "position:fixed;left:-2000px;top:0;width:900px;height:900px;border:0";
-  frame.onload = () => {
-    frame.contentWindow?.addEventListener("afterprint", () => frame.remove(), {
-      once: true,
-    });
-    frame.contentWindow?.print();
-  };
-  frame.srcdoc = html;
-  document.body.append(frame);
-}
-function mountDeviceAudit() {
-  const pad = document.getElementById("device-touch-pad");
-  if (!pad) return;
-  const pointers = new Map<number, { x: number; y: number }>(),
-    a = c.deviceAudit!;
-  const update = () => {
-    const t = document.getElementById("device-touch-stats");
-    if (t)
-      t.textContent = `터치 감지 ${a.touchSeen ? "있음" : "아직 없음"} · 누르기 ${a.taps} · 밀기 ${a.swipes} · 두 손가락 ${a.multi}`;
-  };
-  pad.addEventListener("pointerdown", (event) => {
-    if (event.pointerType !== "touch") return;
-    a.touchSeen = true;
-    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (pointers.size === 2) a.multi++;
-    pad.setPointerCapture(event.pointerId);
-    update();
-  });
-  pad.addEventListener("pointerup", (event) => {
-    const p = pointers.get(event.pointerId);
-    if (!p) return;
-    Math.hypot(event.clientX - p.x, event.clientY - p.y) > 14
-      ? a.swipes++
-      : a.taps++;
-    pointers.delete(event.pointerId);
-    update();
-  });
-  pad.addEventListener("pointercancel", (event) =>
-    pointers.delete(event.pointerId),
-  );
-}
 async function run() {
   const s = c.state;
   if (
@@ -1095,7 +978,7 @@ function finishPuzzle(id: PuzzleId) {
   };
   persist();
   openModal("reward");
-  sound("piece");
+  player.play("piece");
 }
 function checkDevice() {
   const s = c.state!;
@@ -1118,7 +1001,7 @@ function checkDevice() {
     };
     persist();
     openModal("reward");
-    sound("piece");
+    player.play("piece");
   }
   if (
     c.device === "bonus" &&
@@ -1209,6 +1092,17 @@ async function handle(action: string, value: string) {
     openModal("save-blocked");
     return;
   }
+  if (await resultsTools.action(action, value)) return;
+  if (
+    materialsAction(action, value, {
+      c,
+      onPlay: () => route() === "/play",
+      render: () => render(),
+      openModal,
+      go,
+    })
+  )
+    return;
   switch (action) {
     case "demo-object":
     case "demo-move":
@@ -1258,51 +1152,6 @@ async function handle(action: string, value: string) {
         );
       } finally {
         c.offlineBusy = false;
-        render();
-      }
-      return;
-    }
-    case "author-default":
-      c.authorDraft = defaultLessonPack(
-        c.authorDraft?.episode ?? c.lessonDraft?.episode ?? "classroom",
-      );
-      c.authorStatus = "선택한 이야기의 기본 문구를 불러왔어요.";
-      render();
-      return;
-    case "author-clear":
-      c.authorDraft = null;
-      c.lessonDraft!.authored = false;
-      render();
-      return;
-    case "author-export":
-    case "author-apply": {
-      try {
-        const draft = validateLessonPack(
-          c.authorDraft ??
-            defaultLessonPack(c.lessonDraft?.episode ?? "classroom"),
-        );
-        c.authorDraft = draft;
-        if (action === "author-export") {
-          saveText(
-            JSON.stringify(draft, null, 2),
-            "교실탈출-수업설정.json",
-            "application/json",
-          );
-          c.authorStatus =
-            "수업 파일을 저장했어요. 학생 개인정보는 작성하지 않아요.";
-          render();
-        } else {
-          c.lessonDraft = {
-            ...c.lessonDraft!,
-            episode: draft.episode,
-            authored: true,
-          };
-          if (c.saved) openModal("new-confirm");
-          else go("/setup");
-        }
-      } catch (error) {
-        c.authorStatus =
-          error instanceof Error ? error.message : "수업 파일을 확인해요.";
         render();
       }
       return;
@@ -1424,79 +1273,6 @@ async function handle(action: string, value: string) {
         }
       }
       return;
-    case "print-materials":
-      openPrint(
-        lessonMaterialsDocument(
-          route() === "/play" && c.learning
-            ? c.learning
-            : createExperience(c.lessonDraft),
-        ),
-      );
-      return;
-    case "print-roles":
-      openPrint(
-        rolesDocument(
-          route() === "/play" && c.learning
-            ? c.learning
-            : createExperience(c.lessonDraft),
-        ),
-      );
-      return;
-    case "download-roles":
-      saveText(
-        rolesDocument(
-          route() === "/play" && c.learning
-            ? c.learning
-            : createExperience(c.lessonDraft),
-        ),
-        "모둠-역할-카드.html",
-        "text/html;charset=utf-8",
-      );
-      return;
-    case "print-pledge":
-      if (c.learning && c.learning.pledge !== null)
-        openPrint(practiceCard(c.learning));
-      return;
-    case "download-pledge":
-      if (c.learning && c.learning.pledge !== null)
-        saveText(
-          practiceCard(c.learning),
-          "우리-모둠-실천-카드.html",
-          "text/html;charset=utf-8",
-        );
-      return;
-    case "audit-check": {
-      const n = Number(value),
-        a = c.deviceAudit!;
-      if (n >= 0 && n < DEVICE_CHECKS.length)
-        a.checks = a.checks.includes(n)
-          ? a.checks.filter((i) => i !== n)
-          : [...a.checks, n];
-      render();
-      return;
-    }
-    case "audit-download": {
-      const a = c.deviceAudit!;
-      download(
-        {
-          type: "self-reported-device-check",
-          testDate: new Date().toLocaleDateString("sv-SE", {
-            timeZone: "Asia/Seoul",
-          }),
-          status:
-            a.touchSeen &&
-            a.device !== "기기 선택" &&
-            a.checks.length === DEVICE_CHECKS.length
-              ? "SELF_REPORTED_PASS"
-              : "NOT_RUN",
-          ...a,
-          items: DEVICE_CHECKS,
-          viewport: { width: innerWidth, height: innerHeight },
-        },
-        "교실-탈출-실기기-점검.json",
-      );
-      return;
-    }
     case "retry":
       await bootstrap();
       return;
@@ -1588,7 +1364,7 @@ async function handle(action: string, value: string) {
       if (s?.phase === "intro") {
         c.modal = null;
         if (!phonePortrait.matches) {
-          primeAudio();
+          player.prime();
           enterLaunchImmersion();
           s.phase = "playing";
           s.paused = false;
@@ -1695,7 +1471,7 @@ async function handle(action: string, value: string) {
     case "resume": {
       // The first resume after launching enters fullscreen (browsers need this tap);
       // later resumes respect a player who left fullscreen on purpose.
-      primeAudio();
+      player.prime();
       if (launchImmersion && !phonePortrait.matches && route() === "/play")
         enterLaunchImmersion();
       resume();
@@ -1742,7 +1518,7 @@ async function handle(action: string, value: string) {
       const old = contextId();
       await data();
       if (old !== contextId()) {
-        resetImport();
+        resultsTools.reset();
         say("설정·학교 목록이 바뀌어 집계 내용을 초기화했어요.");
       } else say("현재 설정을 다시 확인했어요.");
       render();
@@ -1780,41 +1556,6 @@ async function handle(action: string, value: string) {
         render();
       }
       return;
-    case "conflict": {
-      const [index, choice] = value.split(":");
-      if (choice === "keep" || choice === "replace")
-        resolveConflict(c.aggregate, Number(index), choice);
-      render();
-      return;
-    }
-    case "reset-import":
-      resetImport();
-      render();
-      return;
-    case "aggregate-download": {
-      const previous = toolContext;
-      await data();
-      if (previous && previous !== contextId()) {
-        resetImport();
-        render();
-        say("설정이 바뀌었어요. 현재 회차 파일을 다시 선택해 주세요.");
-        return;
-      }
-      try {
-        if (!c.config) throw new Error("유효한 현재 설정이 필요해요.");
-        download(
-          aggregateFile(c.aggregate, c.config, c.schools),
-          "rankings.json",
-        );
-        say(
-          "새 순위 파일을 로컬로 저장했어요. 운영자가 확인한 뒤 저장소에 반영해 주세요.",
-        );
-      } catch (e) {
-        say(e instanceof Error ? e.message : "순위 생성 오류");
-      }
-      render();
-      return;
-    }
   }
   if (!s || !active(s) || route() !== "/play") return;
   switch (action) {
@@ -2245,7 +1986,7 @@ async function handle(action: string, value: string) {
       if (result.ok) {
         void fullscreen.exit();
         go("/result");
-        sound("escape");
+        player.play("escape");
       }
       render();
       say(result.message);
@@ -2394,7 +2135,7 @@ root.addEventListener("change", (event) => {
     return;
   }
   if (input.id === "result-files") {
-    void importFiles(input.files);
+    void resultsTools.importFiles(input.files);
     return;
   }
   if (input.dataset.setting) {
@@ -2417,7 +2158,7 @@ root.addEventListener("change", (event) => {
     if (c.state) {
       if (name === "sound") {
         c.state.settings.sound = input.checked;
-        primeAudio();
+        player.prime();
       }
       if (name === "reduced") c.state.settings.reducedMotion = input.checked;
       persist();
@@ -2437,47 +2178,6 @@ root.addEventListener("submit", (event) => {
     void handle("bonus", `B4:${code}`);
   }
 });
-async function importFiles(files: FileList | null) {
-  if (!files?.length || c.importBusy) return;
-  if (files.length > MAX_FILES) {
-    say("한 번에 최대 100개 파일을 선택해요.");
-    return;
-  }
-  const old = contextId();
-  await data();
-  if (old !== contextId()) {
-    resetImport();
-    render();
-    say("설정이 바뀌었어요. 파일을 다시 선택해 주세요.");
-    return;
-  }
-  if (!c.config?.activeRound?.acceptingResults) {
-    say("접수 중인 공식 회차가 필요해요.");
-    return;
-  }
-  if (!toolContext) toolContext = contextId();
-  c.importBusy = true;
-  render();
-  for (const file of files) {
-    try {
-      if (file.size > 100 * 1024) throw new Error("100KB를 초과했어요.");
-      const rows = parseLocalFile(
-        await file.text(),
-        file.size,
-        c.config,
-        c.schools,
-      );
-      for (const row of rows) mergeEntry(c.aggregate, { name: file.name, row });
-    } catch (e) {
-      c.importErrors.push(
-        `${file.name}: ${e instanceof Error ? e.message : "파일 오류"}`,
-      );
-    }
-  }
-  c.importBusy = false;
-  render();
-  say("선택한 파일의 검증을 마쳤어요. 오류 파일은 반영하지 않았어요.");
-}
 window.addEventListener("hashchange", () => {
   tick();
   c.running = false;
