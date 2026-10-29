@@ -32,7 +32,7 @@ import {
   learningHints,
 } from "../src/ui/advancement";
 import { adaptEpisodeHtml, EPISODES } from "../src/content/episodes";
-import { OBJECTS } from "../src/content/data";
+import { OBJECTS, HINTS } from "../src/content/data";
 import type { ViewContext } from "../src/ui/views";
 import { STOPS } from "../src/game/learning";
 import { inspect, pickMemo, solve } from "../src/game/engine";
@@ -289,6 +289,23 @@ test("gym supplies distinct team puzzle, matching help and all twelve landmarks"
   const map = adaptEpisodeHtml(spaceMap(c), "gym", OBJECTS);
   assert.match(map, /차례 게시판/);
   assert.doesNotMatch(map, /차례 차례|운동 운동/);
+});
+test("library and gym text keeps no classroom wording or doubled words", () => {
+  const classroom = [
+    "우리의 우정으로 교실 탈출 성공!",
+    "창가 둥근 화분 받침 아래를 살펴봐요.",
+    "네 친구를 모두 만나는 공의 길을 만들어요.",
+    ...OBJECTS.map((o) => o.description),
+    ...Object.values(HINTS).flat(),
+  ].join("\n");
+  for (const id of ["library", "gym"] as const) {
+    const text = adaptEpisodeHtml(classroom, id, OBJECTS);
+    assert.doesNotMatch(text, /교실|우정|공놀이|바구니|공 옆 칸/);
+    // Only the gym swaps the photo/help network puzzle for team picking.
+    if (id === "gym") assert.doesNotMatch(text, /사진 전달망/);
+    assert.doesNotMatch(text, /(\S+) \1/, "a word repeats");
+    assert.match(text, new RegExp(`${EPISODES[id].room} 탈출 성공`));
+  }
 });
 test("each episode shows its own picture-mode drawing", async () => {
   const { existsSync } = await import("node:fs");

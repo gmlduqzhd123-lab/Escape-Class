@@ -370,15 +370,19 @@
 }
 /* Chrome on Android opens a Google "Touch to Search" sheet when a tap lands on
    selectable text (even beside a disabled button, or the hidden skip link).
-   Game screens have nothing to copy, so their text is not selectable. */
+   Game and start screens have nothing to copy, so their text is not selectable. */
 #app:has(.escape-play),
 #app:has(.escape-play) *,
-#app:has(.escape-play) ~ * {
+#app:has(.escape-play) ~ *,
+#app.has-start-screen,
+#app.has-start-screen *,
+#app.has-start-screen ~ * {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
-#app:has(.escape-play) :is(input, textarea, select) {
+#app:has(.escape-play) :is(input, textarea, select),
+#app.has-start-screen :is(input, textarea, select) {
   -webkit-user-select: text;
   user-select: text;
 }

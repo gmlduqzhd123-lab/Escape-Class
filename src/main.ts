@@ -628,7 +628,9 @@ function render(focusKey?: string) {
   // Keep the one live region alive across re-renders (innerHTML would discard it).
   document.body.append(announcer);
   const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${modalShell(c)}</dialog>` : ""}`;
-  root.innerHTML = ["/", "/play", "/intro", "/result"].includes(current)
+  root.innerHTML = ["/", "/play", "/intro", "/result", "/progress"].includes(
+    current,
+  )
     ? customizeHtml(
         adaptEpisodeHtml(
           markup,
@@ -829,6 +831,7 @@ async function data() {
     }
 }
 async function bootstrap() {
+  let notice = "";
   c.loading = true;
   c.loadError = false;
   render();
@@ -886,6 +889,7 @@ async function bootstrap() {
     if (loaded.error)
       c.warnings.push(`이어하기 기록을 사용할 수 없어요: ${loaded.error}`);
     if (loaded.notice) {
+      notice = loaded.notice;
       c.warnings.push(loaded.notice);
       if (storage && c.state && !saveBlocked)
         saveProgress(storage, key, c.state);
@@ -907,6 +911,8 @@ async function bootstrap() {
       return;
     }
     render();
+    // The home screen lists warnings; opened straight into the game, say it there.
+    if (notice && route() === "/play") say(notice);
     tick();
   }
 }
@@ -1664,6 +1670,8 @@ async function handle(action: string, value: string) {
           s.puzzles.p3.arrows = routeArrows(s.puzzles.p3.path);
         }
       }
+      // A new object starts fresh; the previous panel's reading stops.
+      if (c.objectId !== value) stopSpeaking();
       c.objectId = value;
       if (
         c.selected === "final-key" &&
@@ -2180,6 +2188,7 @@ root.addEventListener("submit", (event) => {
 });
 window.addEventListener("hashchange", () => {
   tick();
+  stopSpeaking();
   c.running = false;
   if (route() !== "/play") {
     c.modal = null;
@@ -2223,6 +2232,7 @@ window.addEventListener("keydown", (event) => {
 });
 document.addEventListener("visibilitychange", () => {
   tick();
+  if (document.hidden) stopSpeaking();
   persist();
   mountScene();
 });

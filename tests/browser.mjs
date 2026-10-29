@@ -433,6 +433,15 @@ try {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + "#/");
     await layout(page, "home " + width);
+    // Start screens also stay out of Chrome's "Touch to Search".
+    assert.equal(
+      await page.evaluate(
+        () =>
+          getComputedStyle(document.querySelector(".hero-description"))
+            .userSelect,
+      ),
+      "none",
+    );
     await shot(page, "home-" + width);
   }
   // Phones play in landscape; portrait shows the rotate prompt instead of the room.
@@ -655,7 +664,9 @@ try {
     if (ep.id === "library") {
       await ep_.evaluate(() => {
         window.__spoken = [];
+        window.__cancelled = 0;
         speechSynthesis.speak = (u) => window.__spoken.push(u.text);
+        speechSynthesis.cancel = () => window.__cancelled++;
       });
       await ed.inspect("O03");
       await expect(ep_.locator('[data-action="read-aloud"]')).toHaveCount(0);
@@ -669,6 +680,10 @@ try {
       const spoken = await ep_.evaluate(() => window.__spoken.at(-1));
       assert.match(spoken, /반납함 옆 쪽지/);
       assert.doesNotMatch(spoken, /읽어 주기|돌아가기/);
+      // Opening another object stops reading the previous one.
+      const cancelled = await ep_.evaluate(() => window.__cancelled);
+      await ed.inspect("O02");
+      assert.ok((await ep_.evaluate(() => window.__cancelled)) > cancelled);
       await ep_.reload();
       await ed.act("resume");
       await ed.inspect("O03");
