@@ -322,19 +322,34 @@ export function saveProgress(storage: StorageLike, key: string, s: Progress) {
     return false;
   }
 }
+export const SCHOOL_REMOVED_NOTICE =
+  "선택했던 학교가 학교 목록에서 빠져서, 이어하기 기록을 연습 모드로 바꿨어요. 진행 상황은 그대로 남아 있어요.";
 export function loadProgress(
   storage: StorageLike,
   key: string,
   config?: GameConfig,
   schools?: School[] | null,
-) {
+): { state: Progress | null; error: string | null; notice?: string } {
   try {
     const raw = storage.getItem(key);
     if (!raw) return { state: null, error: null };
     assert(raw.length <= 100000, "저장 파일이 너무 커요.");
-    const state = validateProgress(JSON.parse(raw), config, schools);
+    const parsed = JSON.parse(raw);
+    // A school removed from the list keeps its progress as practice instead of losing it.
+    let notice: string | undefined;
+    if (
+      schools &&
+      parsed &&
+      typeof parsed === "object" &&
+      typeof parsed.schoolId === "string" &&
+      !schools.some((s) => s.schoolId === parsed.schoolId)
+    ) {
+      parsed.schoolId = null;
+      notice = SCHOOL_REMOVED_NOTICE;
+    }
+    const state = validateProgress(parsed, config, schools);
     if (state.phase !== "escaped") state.paused = true;
-    return { state, error: null };
+    return notice ? { state, error: null, notice } : { state, error: null };
   } catch (e) {
     return {
       state: null,

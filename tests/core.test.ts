@@ -328,6 +328,30 @@ test("AC17·AC19: restoration pauses and deletion uses only namespaced key", () 
   assert.equal(data.get("other-app"), "keep");
   assert.equal(key, "classroom-escape:/repo/:progress:v1");
 });
+test("a save whose school left the list continues as practice", () => {
+  const data = new Map<string, string>();
+  const storage = {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      data.set(k, v);
+    },
+    removeItem: (k: string) => {
+      data.delete(k);
+    },
+  };
+  const s = fresh();
+  p1(s);
+  s.schoolId = "REMOVED-SCHOOL";
+  saveProgress(storage, "k", s);
+  const loaded = loadProgress(storage, "k", config, schools);
+  assert.equal(loaded.error, null);
+  assert.equal(loaded.state?.schoolId, null);
+  assert.equal(score(loaded.state!), 16);
+  assert.match(loaded.notice ?? "", /연습 모드/);
+  const known = { ...s, schoolId: schools[0].schoolId };
+  saveProgress(storage, "k", known);
+  assert.equal(loadProgress(storage, "k", config, schools).notice, undefined);
+});
 test("AC18: blocked storage failure is contained; game remains playable", () => {
   const s = fresh();
   const bad = {
