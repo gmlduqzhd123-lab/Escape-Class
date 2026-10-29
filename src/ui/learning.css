@@ -227,3 +227,14 @@
   margin: 12px 0 0;
   padding: 0;
 }
+/* Optional read-aloud button: shown only when the setting is on. */
+.read-aloud {
+  min-height: 44px;
+  min-width: 44px;
+  white-space: nowrap;
+  font-size: 15px;
+  background: #f4f4e9;
+}
+.read-aloud-row {
+  margin: 0 0 12px;
+}

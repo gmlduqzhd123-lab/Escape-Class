@@ -623,7 +623,7 @@ try {
     for (const id of ["P1-C3", "P1-C5"]) await ed.act("memo-pick", id);
     assert.deepEqual((await saved(ep_)).solvedPuzzleIds, ["P1"]);
     await ed.reward(false);
-    await shot(ep_, ep.id + "-01-room");
+    await shot(ep_, ep.id + "-01-3d");
     // Easy mode aligns the lens, so the code goes in straight away.
     await ed.inspect("O06");
     await ed.act("take", "shared-lens");
@@ -636,11 +636,53 @@ try {
     assert.deepEqual((await saved(ep_)).solvedPuzzleIds, ["P1", "P2"]);
     await ed.reward(false);
     await layout(ep_, ep.id + " after lens");
+    // Read-aloud is an opt-in setting; when on, panels and dialogs get a button
+    // that hands the on-screen sentences (not button labels) to the speech engine.
+    if (ep.id === "library") {
+      await ep_.evaluate(() => {
+        window.__spoken = [];
+        speechSynthesis.speak = (u) => window.__spoken.push(u.text);
+      });
+      await ed.inspect("O03");
+      await expect(ep_.locator('[data-action="read-aloud"]')).toHaveCount(0);
+      await ed.act("modal", "settings");
+      await ep_.locator('[data-setting="read-aloud"]').check();
+      await expect(
+        ep_.locator('#game-dialog [data-action="read-aloud"]'),
+      ).toBeVisible();
+      await ed.act("close-modal");
+      await ed.act("read-aloud", "panel");
+      const spoken = await ep_.evaluate(() => window.__spoken.at(-1));
+      assert.match(spoken, /반납함 옆 쪽지/);
+      assert.doesNotMatch(spoken, /읽어 주기|돌아가기/);
+      await ep_.reload();
+      await ed.act("resume");
+      await ed.inspect("O03");
+      await expect(
+        ep_.locator('.zoom-top [data-action="read-aloud"]'),
+      ).toBeVisible();
+      await layout(ep_, ep.id + " read-aloud panel");
+      await ed.act("modal", "settings");
+      await ep_.locator('[data-setting="read-aloud"]').uncheck();
+      await ed.act("close-modal");
+      await expect(ep_.locator('[data-action="read-aloud"]')).toHaveCount(0);
+      await ed.act("close-panel");
+    }
+    // Picture mode shows the episode's own drawing, not the classroom.
+    await ed.act("modal", "game-menu");
+    await ed.act("scene-mode", undefined, ep_.getByRole("dialog"));
+    const picture = ep_.locator(".adventure-room img");
+    await expect(picture).toHaveAttribute("src", new RegExp(`${ep.id}\\.svg$`));
+    await expect
+      .poll(() => picture.evaluate((img) => img.naturalWidth))
+      .toBeGreaterThan(0);
+    await expect(picture).toHaveAttribute("alt", new RegExp(ep.room));
+    await shot(ep_, ep.id + "-02-picture");
     assert.equal((await saved(ep_)).difficultyId, "standard");
     await ectx.close();
     currentPage = page;
     pass(
-      `${ep.id} episode wording, easy-mode memo and lens help with the default lesson`,
+      `${ep.id} episode wording, easy-mode memo and lens help, ${ep.id === "library" ? "opt-in read-aloud, " : ""}and its own picture-mode drawing`,
     );
   }
   await page.goto(base + "#/rankings");
