@@ -290,6 +290,19 @@ test("gym supplies distinct team puzzle, matching help and all twelve landmarks"
   assert.match(map, /차례 게시판/);
   assert.doesNotMatch(map, /차례 차례|운동 운동/);
 });
+test("each episode shows its own picture-mode drawing", async () => {
+  const { existsSync } = await import("node:fs");
+  const picture =
+    '<img src="/x/assets/classroom.svg" alt="나무 책상과 햇살이 비치는 교실. 물건을 눌러 살펴볼 수 있어요.">';
+  assert.equal(adaptEpisodeHtml(picture, "classroom", OBJECTS), picture);
+  for (const id of ["library", "gym"] as const) {
+    const html = adaptEpisodeHtml(picture, id, OBJECTS);
+    assert.match(html, new RegExp(`assets/${id}\\.svg`));
+    assert.match(html, new RegExp(EPISODES[id].room));
+    assert.doesNotMatch(html, /교실/);
+    assert.ok(existsSync(`public/assets/${id}.svg`));
+  }
+});
 test("learning views preserve the game state and expose optional controls", () => {
   const c = {
     state: createProgress(PRACTICE_CONFIG),

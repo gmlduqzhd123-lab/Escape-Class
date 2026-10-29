@@ -146,6 +146,12 @@ import {
 } from "./ui/views";
 import { button as b, esc, time } from "./ui/helpers";
 import { objective } from "./ui/experience";
+import {
+  speak,
+  speechAvailable,
+  stopSpeaking,
+  readableText,
+} from "./ui/speech";
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
 const key = saveKey(deploymentBase());
@@ -153,6 +159,15 @@ let storage: Storage | null = null;
 try {
   storage = window.localStorage;
 } catch {}
+// A per-device preference, kept outside the validated save so old saves stay compatible.
+const readAloudKey = `classroom-escape:${deploymentBase()}:read-aloud:v1`;
+function readAloudPreference() {
+  try {
+    return storage?.getItem(readAloudKey) === "on";
+  } catch {
+    return false;
+  }
+}
 const c: ViewContext = {
   learning: null,
   lessonDraft: { ...EASY_LESSON },
@@ -167,6 +182,8 @@ const c: ViewContext = {
     touchSeen: false,
   },
   sceneMode: "3d",
+  readAloud: readAloudPreference(),
+  speech: speechAvailable(),
   sceneFailed: false,
   immersive: false,
   held: null,
@@ -497,6 +514,7 @@ function say(message: string) {
     OBJECTS,
   );
   updateFeedback(root, displayMessage);
+  if (c.readAloud && c.speech && displayMessage) speak(displayMessage);
   // Write after the current render settles so screen readers notice the change.
   announcer.textContent = "";
   clearTimeout(announceTimeout);
@@ -1650,10 +1668,22 @@ async function handle(action: string, value: string) {
       window.scrollTo(0, 0);
       return;
     case "close-modal":
+      stopSpeaking();
       closeModal();
       return;
     case "pause":
+      stopSpeaking();
       pause();
+      return;
+    case "read-aloud":
+      speak(
+        value === "dialog"
+          ? readableText(document.querySelector("#game-dialog"))
+          : readableText(
+              root.querySelector("#panel-title"),
+              root.querySelector(".zoom-device"),
+            ),
+      );
       return;
     case "easy-mode":
       if (!s || !c.learning || !useEasyMode(s, c.learning)) return;
@@ -1691,9 +1721,12 @@ async function handle(action: string, value: string) {
       disposeScene();
       try {
         storage?.removeItem(experienceKey(key));
+        storage?.removeItem(readAloudKey);
         saveCoordinator.wrote();
       } catch {}
       void fullscreen.exit();
+      stopSpeaking();
+      c.readAloud = false;
       c.state = null;
       c.saved = false;
       c.selected = null;
@@ -1914,6 +1947,7 @@ async function handle(action: string, value: string) {
       return;
     }
     case "close-panel":
+      stopSpeaking();
       c.objectId = null;
       c.held = null;
       c.device = "main";
@@ -2367,6 +2401,19 @@ root.addEventListener("change", (event) => {
     const name = input.dataset.setting;
     if (name === "setup-sound") c.setupSound = input.checked;
     if (name === "setup-reduced") c.setupReduced = input.checked;
+    if (name === "read-aloud") {
+      c.readAloud = input.checked;
+      try {
+        if (input.checked) storage?.setItem(readAloudKey, "on");
+        else storage?.removeItem(readAloudKey);
+      } catch {}
+      if (!input.checked) stopSpeaking();
+      render();
+      root
+        .querySelector<HTMLInputElement>('[data-setting="read-aloud"]')
+        ?.focus({ preventScroll: true });
+      return;
+    }
     if (c.state) {
       if (name === "sound") {
         c.state.settings.sound = input.checked;

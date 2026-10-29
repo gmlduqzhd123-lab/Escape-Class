@@ -7,6 +7,7 @@ export const EPISODES = {
     label: "EP.01",
     title: "사라진 우정 열쇠",
     room: "교실",
+    picture: "나무 책상과 햇살이 비치는 교실. 물건을 눌러 살펴볼 수 있어요.",
     intro:
       "친구사랑 축제의 마지막 활동! 함께 장치를 풀고 사라진 열쇠를 찾아요.",
     objects: {} as Record<string, string>,
@@ -20,6 +21,8 @@ export const EPISODES = {
     label: "EP.02",
     title: "사라진 함께읽기 책갈피",
     room: "도서관",
+    picture:
+      "낮은 책장과 둥근 읽기 깔개가 있는 도서관. 물건을 눌러 살펴볼 수 있어요.",
     intro:
       "도서관 읽기 축제의 마지막 책갈피가 사라졌어요. 친구의 말을 듣고, 함께 읽을 길을 찾아 문을 열어요.",
     objects: {
@@ -84,6 +87,8 @@ export const EPISODES = {
     label: "EP.03",
     title: "사라진 응원 깃발",
     room: "체육관",
+    picture:
+      "코트 선과 이어달리기 트랙이 있는 체육관. 물건을 눌러 살펴볼 수 있어요.",
     intro:
       "체육관의 응원 깃발이 사라졌어요. 차례를 나누고 공정한 팀을 만들어 함께 응원해요.",
     coopSequence: ["하트", "원", "별"],
@@ -179,11 +184,13 @@ export function adaptEpisodeHtml(
     ["교실로 돌아가기", `${pack.room}으로 돌아가기`],
     ["교실 뒤편", `${pack.room} 뒤편`],
     ["교실 → 복도", `${pack.room} → 복도`],
-    // The picture view reuses the classroom drawing; describe it honestly.
+    // Each episode has its own picture-mode drawing on the same object layout.
+    ["assets/classroom.svg", `assets/${pack.shell}.svg`],
     [
       "나무 책상과 햇살이 비치는 교실. 물건을 눌러 살펴볼 수 있어요.",
-      `교실 그림 위에 ${pack.room}의 물건을 표시했어요. 물건을 눌러 살펴볼 수 있어요.`,
+      pack.picture,
     ],
+    ["그림 책상 서랍이 열렸어요", `${pack.objects.O04} 서랍이 열렸어요`],
     ["교실 가운데", `${pack.room} 가운데`],
     ["입체 교실", `입체 ${pack.room}`],
     ["그림 교실", `그림 ${pack.room}`],
