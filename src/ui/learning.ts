@@ -170,25 +170,40 @@ export function rolesDocument(e: Experience) {
 /** One printable pack: lesson flow, role cards, pledge cards and reflection sentences. */
 export function lessonMaterialsDocument(e: Experience) {
   const title = esc(e.extras.custom?.title ?? episode(e.options.episode).title);
+  const room = episode(e.options.episode).room;
+  const minutes = e.options.minutes;
+  // The printed flow follows the chosen lesson length; 15 minutes keeps only the essentials.
+  const [intro, play, look, wrap] =
+    minutes === 15
+      ? [2, 11, 2, 0]
+      : minutes === 25
+        ? [3, 17, 3, 2]
+        : [5, 25, 5, 5];
   const flow = [
     [
-      "도입 · 5분",
-      "“친구를 존중하는 행동은 무엇일까?” 이야기하고 가상 교실 활동임을 안내해요.",
+      `도입 · ${intro}분`,
+      `“친구를 존중하는 행동은 무엇일까?” 이야기하고 가상 ${room} 활동임을 안내해요.`,
     ],
     [
-      "게임 · 25분",
-      "조사 → 단서 읽기 → 이유 나누기 → 조작을 함께 해요. 힌트는 감점이 없어요.",
+      `게임 · ${play}분`,
+      minutes === 15
+        ? "필수 다섯 퍼즐에 집중해요. 조사 → 단서 읽기 → 이유 나누기 → 조작을 함께 하고, 힌트는 감점이 없어요."
+        : "조사 → 단서 읽기 → 이유 나누기 → 조작을 함께 해요. 힌트는 감점이 없어요.",
     ],
     [
-      "되돌아보기 · 5분",
+      `되돌아보기 · ${look}분`,
       "모둠의 작은 실천을 하나 고르고, 가상 상황에서 한 선택을 나눠요.",
     ],
-    [
-      "정리 · 5분",
-      "다음에 해 볼 실천을 정하고, 필요하면 이 앱의 활동 기록을 지워요.",
-    ],
+    ...(wrap
+      ? [
+          [
+            `정리 · ${wrap}분`,
+            "다음에 해 볼 실천을 정하고, 필요하면 이 앱의 활동 기록을 지워요.",
+          ],
+        ]
+      : []),
   ];
-  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>수업 자료 묶음</title><style>${PRINT_STYLE}section{break-after:page}section:last-child{break-after:auto}ol li{font-size:19px;line-height:1.7;margin-bottom:8px}.pledges article p,.reflect article p{font-size:24px}.note{font-size:15px;color:#4d6158}</style><section><h1>교실 탈출 · 수업 자료</h1><p>${title}</p><h2>40분 수업 흐름</h2><ol>${flow.map(([h, t]) => `<li><strong>${h}</strong> — ${t}</li>`).join("")}</ol><h2>편안하게 참여하는 약속</h2><p class="note">실제 피해 경험이나 실제 친구 관계를 발표하도록 요구하지 않아요. 사과·용서는 완료 조건이 아니에요. 점수는 퍼즐 해결 기록이며 학생 평가에 쓰지 않아요.</p></section><section><h1>모둠 역할 카드</h1><p class="note">이름 대신 모둠 자리 1~4번을 정하고, 퍼즐을 풀 때마다 역할을 한 칸씩 바꿔요.</p><div class="cards">${roleCards(e)}</div></section><section class="pledges"><h1>우리 모둠의 작은 실천 카드</h1><p class="note">점선을 따라 잘라 모둠이 고른 약속 하나를 붙여 두어요.</p><div class="cards">${PLEDGES.map((p) => `<article><p>${p}</p></article>`).join("")}</div></section><section class="reflect"><h1>되돌아보기 문장</h1><p class="note">한 문장을 골라 모둠에서 나눠 봐요. 결과 파일이나 평가에 넣지 않아요.</p><div class="cards">${REFLECTIONS.map((r) => `<article><p>${r}</p></article>`).join("")}</div></section></html>`;
+  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>수업 자료 묶음</title><style>${PRINT_STYLE}section{break-after:page}section:last-child{break-after:auto}ol li{font-size:19px;line-height:1.7;margin-bottom:8px}.pledges article p,.reflect article p{font-size:24px}.note{font-size:15px;color:#4d6158}</style><section><h1>교실 탈출 · 수업 자료</h1><p>${title}</p><h2>${minutes}분 수업 흐름</h2><ol>${flow.map(([h, t]) => `<li><strong>${h}</strong> — ${t}</li>`).join("")}</ol><h2>편안하게 참여하는 약속</h2><p class="note">실제 피해 경험이나 실제 친구 관계를 발표하도록 요구하지 않아요. 사과·용서는 완료 조건이 아니에요. 점수는 퍼즐 해결 기록이며 학생 평가에 쓰지 않아요.</p></section><section><h1>모둠 역할 카드</h1><p class="note">이름 대신 모둠 자리 1~4번을 정하고, 퍼즐을 풀 때마다 역할을 한 칸씩 바꿔요.</p><div class="cards">${roleCards(e)}</div></section><section class="pledges"><h1>우리 모둠의 작은 실천 카드</h1><p class="note">점선을 따라 잘라 모둠이 고른 약속 하나를 붙여 두어요.</p><div class="cards">${PLEDGES.map((p) => `<article><p>${p}</p></article>`).join("")}</div></section><section class="reflect"><h1>되돌아보기 문장</h1><p class="note">한 문장을 골라 모둠에서 나눠 봐요. 결과 파일이나 평가에 넣지 않아요.</p><div class="cards">${REFLECTIONS.map((r) => `<article><p>${r}</p></article>`).join("")}</div></section></html>`;
 }
 export const DEVICE_CHECKS = [
   "가로로 돌렸을 때 안내가 닫히고 교실이 보여요.",

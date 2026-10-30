@@ -2593,3 +2593,20 @@ dialog .bag-item {
     font-size: 12.5px;
   }
 }
+/* Text links and selects meet the same 44px touch target as buttons. */
+.back-link,
+.site-footer a,
+.advancement-page > a,
+main > a[href^="#/"] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.back-link {
+  display: flex;
+  width: fit-content;
+}
+main select,
+.advancement-page select {
+  min-height: 44px;
+}

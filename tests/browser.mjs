@@ -55,15 +55,19 @@ async function layout(page, name, targets = true) {
   if (targets)
     // A re-render can swap buttons mid-measure (detached ones read 0x0), so re-measure until settled.
     await expect(async () => {
-      const small = await page.locator("button:visible").evaluateAll((els) =>
-        els
-          .map((el) => ({
-            label: el.textContent.trim().slice(0, 45),
-            width: el.getBoundingClientRect().width,
-            height: el.getBoundingClientRect().height,
-          }))
-          .filter((r) => r.width < 43.9 || r.height < 43.9),
-      );
+      const small = await page
+        .locator(
+          "button:visible, main > a:visible, .back-link:visible, .site-footer a:visible, main select:visible",
+        )
+        .evaluateAll((els) =>
+          els
+            .map((el) => ({
+              label: el.textContent.trim().slice(0, 45),
+              width: el.getBoundingClientRect().width,
+              height: el.getBoundingClientRect().height,
+            }))
+            .filter((r) => r.width < 43.9 || r.height < 43.9),
+        );
       assert.deepEqual(small, [], name + " target size");
     }).toPass({ timeout: 5000 });
   if (await page.locator(".escape-play").count()) {

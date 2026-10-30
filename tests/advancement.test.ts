@@ -8,7 +8,7 @@ import {
   cooperationLegend,
   practiceCard,
 } from "../src/game/learning";
-import { rolesDocument } from "../src/ui/learning";
+import { rolesDocument, lessonMaterialsDocument } from "../src/ui/learning";
 import {
   defaultLessonPack,
   validateLessonPack,
@@ -32,7 +32,8 @@ import {
   learningHints,
 } from "../src/ui/advancement";
 import { adaptEpisodeHtml, EPISODES } from "../src/content/episodes";
-import { OBJECTS, HINTS } from "../src/content/data";
+import { OBJECTS, HINTS, REFLECTIONS } from "../src/content/data";
+import { PLEDGES } from "../src/game/learning";
 import type { ViewContext } from "../src/ui/views";
 import { STOPS } from "../src/game/learning";
 import { inspect, pickMemo, solve } from "../src/game/engine";
@@ -306,6 +307,43 @@ test("library and gym text keeps no classroom wording or doubled words", () => {
     assert.doesNotMatch(text, /(\S+) \1/, "a word repeats");
     assert.match(text, new RegExp(`${EPISODES[id].room} 탈출 성공`));
   }
+});
+test("printed materials follow the episode, lesson length and a preset seed", () => {
+  for (const minutes of [15, 25, 40] as const) {
+    const e = createExperience({
+      ...createExperience().options,
+      episode: "library",
+      minutes,
+    });
+    const html = adaptEpisodeHtml(
+      lessonMaterialsDocument(e),
+      "library",
+      OBJECTS,
+    );
+    assert.match(html, new RegExp(`${minutes}분 수업 흐름`));
+    assert.match(html, /가상 도서관 활동/);
+    assert.equal(/정리 ·/.test(html), minutes !== 15);
+  }
+  const options = { ...createExperience().options, variation: true };
+  for (const seed of [2, 5, 9])
+    assert.equal(createExperience(options, seed, seed).extras.seed, seed);
+  const gym = adaptEpisodeHtml(
+    [...PLEDGES, ...REFLECTIONS].join("\n"),
+    "gym",
+    OBJECTS,
+  );
+  assert.doesNotMatch(gym, /사진/);
+  assert.match(
+    adaptEpisodeHtml("놀이 방법을 알려 줄게", "library", OBJECTS),
+    /읽는 방법/,
+  );
+});
+test("bonus hints are not diagnosed as the object's required puzzle", () => {
+  const s = createProgress(PRACTICE_CONFIG);
+  const e = createExperience();
+  assert.match(diagnose(s, e, "O02", "B3"), /추가 단서/);
+  assert.match(diagnose(s, e, "O12", "B4"), /추가 단서/);
+  assert.doesNotMatch(diagnose(s, e, "O02", "P1"), /추가 단서/);
 });
 test("each episode shows its own picture-mode drawing", async () => {
   const { existsSync } = await import("node:fs");

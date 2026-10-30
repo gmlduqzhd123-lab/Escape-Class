@@ -7,6 +7,8 @@ import {
   lessonMaterialsDocument,
 } from "../ui/learning";
 import { download, openPrint, saveText } from "../ui/files";
+import { adaptEpisodeHtml, type EpisodeId } from "../content/episodes";
+import { OBJECTS } from "../content/data";
 
 // Teacher-side actions: lesson files, printable materials and the device self-check.
 // None of them touch the running game's progress.
@@ -24,8 +26,17 @@ export function materialsAction(
 ): boolean {
   const { c } = host;
   // In a game, materials follow its lesson; elsewhere they follow the setup draft.
-  const lesson = () =>
-    host.onPlay() && c.learning ? c.learning : createExperience(c.lessonDraft);
+  // Varied codes are drawn once and kept for the next new game, so cards printed
+  // ahead of the lesson match the game the class then plays.
+  const lesson = () => {
+    if (host.onPlay() && c.learning) return c.learning;
+    const e = createExperience(c.lessonDraft, 0, c.draftSeed);
+    if (e.options.variation) c.draftSeed = e.extras.seed;
+    return e;
+  };
+  // Printed pages skip the screen's episode wording pass, so apply it here.
+  const doc = (html: string, e: { options: { episode: EpisodeId } }) =>
+    adaptEpisodeHtml(html, e.options.episode, OBJECTS);
   switch (action) {
     case "author-default":
       c.authorDraft = defaultLessonPack(
@@ -72,27 +83,33 @@ export function materialsAction(
       }
       return true;
     }
-    case "print-materials":
-      openPrint(lessonMaterialsDocument(lesson()));
+    case "print-materials": {
+      const e = lesson();
+      openPrint(doc(lessonMaterialsDocument(e), e));
       return true;
-    case "print-roles":
-      openPrint(rolesDocument(lesson()));
+    }
+    case "print-roles": {
+      const e = lesson();
+      openPrint(doc(rolesDocument(e), e));
       return true;
-    case "download-roles":
+    }
+    case "download-roles": {
+      const e = lesson();
       saveText(
-        rolesDocument(lesson()),
+        doc(rolesDocument(e), e),
         "모둠-역할-카드.html",
         "text/html;charset=utf-8",
       );
       return true;
+    }
     case "print-pledge":
       if (c.learning && c.learning.pledge !== null)
-        openPrint(practiceCard(c.learning));
+        openPrint(doc(practiceCard(c.learning), c.learning));
       return true;
     case "download-pledge":
       if (c.learning && c.learning.pledge !== null)
         saveText(
-          practiceCard(c.learning),
+          doc(practiceCard(c.learning), c.learning),
           "우리-모둠-실천-카드.html",
           "text/html;charset=utf-8",
         );
