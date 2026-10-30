@@ -77,9 +77,12 @@ export type Experience = {
 export function createExperience(
   options: LessonOptions = { ...DEFAULT_LESSON },
   previousSeed = 0,
+  presetSeed?: number,
 ): Experience {
   let seed = options.variation ? 1 + Math.floor(Math.random() * 9) : 0;
   if (options.variation && seed === previousSeed) seed = (seed % 9) + 1;
+  // Cards printed before the game fix the seed, so the game must use the same one.
+  if (options.variation && presetSeed) seed = presetSeed;
   return {
     version: 1,
     options: { ...options },

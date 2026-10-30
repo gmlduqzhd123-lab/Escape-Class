@@ -82,6 +82,7 @@ export const EPISODES = {
       ["창가 둥근 화분 받침", "창가 화분 받침"],
       ["공 옆 칸", "책 옆 칸"],
       ["공용 준비물 바구니 옆에", "반납함 옆에"],
+      ["놀이 방법을 알려 줄게", "읽는 방법을 알려 줄게"],
       ["우정 조각", "책갈피 조각"],
     ] as [string, string][],
   },
@@ -165,6 +166,15 @@ export const EPISODES = {
       ["우리의 우정으로 교실 탈출 성공!", "우리의 응원으로 체육관 탈출 성공!"],
       ["창가 둥근 화분 받침", "둥근 깃발 받침"],
       ["공용 준비물 바구니 옆에", "벤치 옆에"],
+      // Gym has no photo puzzle; its pledge and reflection follow fair teams instead.
+      [
+        "사진을 보내기 전에 친구에게 확인할게요.",
+        "팀을 나눌 때 모두에게 같은 기회를 줄게요.",
+      ],
+      [
+        "사진을 보내기 전에 확인할래요.",
+        "팀을 나눌 때 모두에게 기회를 줄래요.",
+      ],
       ["공놀이", "이어달리기"],
       ["네 친구를 모두 만나는 공의 길", "네 친구가 모두 뛰는 길"],
       [
@@ -198,6 +208,8 @@ export function adaptEpisodeHtml(
     ["교실 뒤편", `${pack.room} 뒤편`],
     ["교실 → 복도", `${pack.room} → 복도`],
     ["가상 교실의", `가상 ${pack.room}의`],
+    ["진짜 교실 문은", `진짜 ${pack.room} 문은`],
+    ["가상 교실 활동", `가상 ${pack.room} 활동`],
     ["실제 교실 문을", `실제 ${pack.room} 문을`],
     ["공용 준비물 바구니 옆 쪽지", pack.objects.O03],
     // Each episode has its own picture-mode drawing on the same object layout.

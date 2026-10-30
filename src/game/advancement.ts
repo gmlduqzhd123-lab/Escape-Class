@@ -164,7 +164,11 @@ export function diagnose(
   s: Progress,
   e: Experience | null | undefined,
   object: string | null,
+  hint?: string,
 ) {
+  // Bonus hints describe the optional clue, not the required puzzle on the same object.
+  if (hint?.startsWith("B"))
+    return "추가 단서는 선택 활동이에요. 풀지 않아도 탈출할 수 있어요. 아래 힌트를 한 단계씩 열어 봐요.";
   if (object === "O02")
     return !s.discoveredClueIds.includes("P1-C3")
       ? "다른 친구의 추측만으로는 알 수 없어요. 쪽지에서 토끼가 직접 한 말을 찾아요."

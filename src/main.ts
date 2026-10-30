@@ -736,6 +736,8 @@ function render(focusKey?: string) {
   root.scrollTop = changedDevice ? 0 : appScroll;
 }
 function openModal(name: string) {
+  // A dialog starts without the previous screen's feedback (e.g. an old arrival message).
+  if (name !== c.modal) c.toast = "";
   if (name === "tutorial") tick();
   if (name === "hint") c.bonusHintLevel = 0;
   if (name === "team-puzzle" && c.learning) {
@@ -1343,7 +1345,9 @@ async function handle(action: string, value: string) {
       c.learning = createExperience(
         c.lessonDraft,
         c.learning?.extras.seed ?? 0,
+        c.draftSeed,
       );
+      c.draftSeed = undefined;
       if (c.lessonDraft?.authored && c.authorDraft)
         c.learning.extras.custom = validateLessonPack(c.authorDraft);
       c.state = createProgress(
