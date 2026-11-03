@@ -697,8 +697,23 @@ try {
       await layout(ep_, ep.id + " read-aloud panel");
       await ed.act("modal", "settings");
       await ep_.locator('[data-setting="read-aloud"]').uncheck();
+      // Plain-language mode rewrites the words on screen but not the controls.
+      await ep_.locator('[data-setting="plain-words"]').check();
       await ed.act("close-modal");
       await expect(ep_.locator('[data-action="read-aloud"]')).toHaveCount(0);
+      await expect(ep_.locator(".plain-tip")).toContainText("지금 할 일");
+      await ed.act("close-panel");
+      await ed.act("modal", "game-menu");
+      await expect(ep_.getByRole("dialog")).toContainText("둘러보기 메뉴");
+      await expect(ep_.getByRole("dialog")).not.toContainText("탐색 메뉴");
+      await ed.act("modal", "team", ep_.getByRole("dialog"));
+      await expect(ep_.getByRole("dialog")).toContainText("맡은 일");
+      await ed.act("close-modal");
+      await ed.inspect("O03");
+      await ed.act("modal", "settings");
+      await ep_.locator('[data-setting="plain-words"]').uncheck();
+      await ed.act("close-modal");
+      await expect(ep_.locator(".plain-tip")).toHaveCount(0);
       await ed.act("close-panel");
     }
     // Picture mode shows the episode's own drawing, not the classroom.
@@ -715,7 +730,7 @@ try {
     await ectx.close();
     currentPage = page;
     pass(
-      `${ep.id} episode wording, easy-mode memo and lens help, ${ep.id === "library" ? "opt-in read-aloud, " : ""}and its own picture-mode drawing`,
+      `${ep.id} episode wording, easy-mode memo and lens help, ${ep.id === "library" ? "opt-in read-aloud and plain words, " : ""}and its own picture-mode drawing`,
     );
   }
   await page.goto(base + "#/rankings");

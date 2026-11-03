@@ -138,6 +138,7 @@ import { createSoundPlayer } from "./ui/audio";
 import { mountDeviceAudit } from "./ui/device-audit";
 import { materialsAction } from "./actions/materials";
 import { createResultsTools } from "./actions/results";
+import { plainLanguage, plainText } from "./content/plain";
 import {
   speak,
   speechAvailable,
@@ -153,12 +154,19 @@ try {
 } catch {}
 // A per-device preference, kept outside the validated save so old saves stay compatible.
 const readAloudKey = `classroom-escape:${deploymentBase()}:read-aloud:v1`;
-function readAloudPreference() {
+const plainWordsKey = `classroom-escape:${deploymentBase()}:plain-words:v1`;
+function preference(key: string) {
   try {
-    return storage?.getItem(readAloudKey) === "on";
+    return storage?.getItem(key) === "on";
   } catch {
     return false;
   }
+}
+function rememberPreference(key: string, on: boolean) {
+  try {
+    if (on) storage?.setItem(key, "on");
+    else storage?.removeItem(key);
+  } catch {}
 }
 const c: ViewContext = {
   learning: null,
@@ -174,7 +182,8 @@ const c: ViewContext = {
     touchSeen: false,
   },
   sceneMode: "3d",
-  readAloud: readAloudPreference(),
+  readAloud: preference(readAloudKey),
+  plainWords: preference(plainWordsKey),
   speech: speechAvailable(),
   sceneFailed: false,
   immersive: false,
@@ -505,11 +514,12 @@ function persist() {
 function say(message: string) {
   if (/열리지|다시|아니에요|기호가 이어지지/.test(message)) mistakes++;
   c.toast = message;
-  const displayMessage = adaptEpisodeHtml(
+  const adapted = adaptEpisodeHtml(
     message,
     c.learning?.options.episode ?? "classroom",
     OBJECTS,
   );
+  const displayMessage = c.plainWords ? plainText(adapted) : adapted;
   updateFeedback(root, displayMessage);
   if (c.readAloud && c.speech && displayMessage) speak(displayMessage);
   // Write after the current render settles so screen readers notice the change.
@@ -631,14 +641,18 @@ function render(focusKey?: string) {
   root.innerHTML = ["/", "/play", "/intro", "/result", "/progress"].includes(
     current,
   )
-    ? customizeHtml(
-        adaptEpisodeHtml(
-          markup,
+    ? (c.plainWords && ["/play", "/intro", "/result"].includes(current)
+        ? plainLanguage
+        : (x: string) => x)(
+        customizeHtml(
+          adaptEpisodeHtml(
+            markup,
+            c.learning?.options.episode ?? "classroom",
+            OBJECTS,
+          ),
+          c.learning?.extras.custom,
           c.learning?.options.episode ?? "classroom",
-          OBJECTS,
         ),
-        c.learning?.extras.custom,
-        c.learning?.options.episode ?? "classroom",
       )
     : markup;
   root.classList.toggle(
@@ -1508,11 +1522,13 @@ async function handle(action: string, value: string) {
       try {
         storage?.removeItem(experienceKey(key));
         storage?.removeItem(readAloudKey);
+        storage?.removeItem(plainWordsKey);
         saveCoordinator.wrote();
       } catch {}
       void fullscreen.exit();
       stopSpeaking();
       c.readAloud = false;
+      c.plainWords = false;
       c.state = null;
       c.saved = false;
       c.selected = null;
@@ -2154,16 +2170,18 @@ root.addEventListener("change", (event) => {
     const name = input.dataset.setting;
     if (name === "setup-sound") c.setupSound = input.checked;
     if (name === "setup-reduced") c.setupReduced = input.checked;
-    if (name === "read-aloud") {
-      c.readAloud = input.checked;
-      try {
-        if (input.checked) storage?.setItem(readAloudKey, "on");
-        else storage?.removeItem(readAloudKey);
-      } catch {}
-      if (!input.checked) stopSpeaking();
+    if (name === "read-aloud" || name === "plain-words") {
+      if (name === "read-aloud") {
+        c.readAloud = input.checked;
+        rememberPreference(readAloudKey, input.checked);
+        if (!input.checked) stopSpeaking();
+      } else {
+        c.plainWords = input.checked;
+        rememberPreference(plainWordsKey, input.checked);
+      }
       render();
       root
-        .querySelector<HTMLInputElement>('[data-setting="read-aloud"]')
+        .querySelector<HTMLInputElement>(`[data-setting="${name}"]`)
         ?.focus({ preventScroll: true });
       return;
     }
