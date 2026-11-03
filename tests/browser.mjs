@@ -931,18 +931,90 @@ try {
   );
   currentPage = page;
   await page.setViewportSize({ width: 768, height: 1024 });
+  // Headless Chromium blocks on the print dialog; the pages are checked as text instead.
+  await page.addInitScript(() => {
+    window.print = () => {};
+  });
   await page.goto(base + "#/teacher");
   await page
     .getByRole("heading", { name: "서로의 생각이 열쇠가 되는 40분" })
     .waitFor();
   await layout(page, "teacher tablet");
   await shot(page, "teacher-tablet");
-  // One button prints the whole lesson pack: flow, roles, pledges, reflections.
-  await d.act("print-materials");
-  const pack = page.frameLocator("#lesson-print");
-  await expect(pack.locator("section")).toHaveCount(4);
-  await expect(pack.locator("h1").first()).toHaveText("교실 탈출 · 수업 자료");
-  await page.evaluate(() => document.getElementById("lesson-print")?.remove());
+  // Printed materials per episode: the pack (flow, roles, pledges, reflections),
+  // role cards and the lesson length all follow the chosen story, and the only
+  // "교실" left in library/gym is the app's name.
+  const printed = async () => {
+    const frame = page.frameLocator("#lesson-print");
+    await expect(frame.locator("h1").first()).toBeVisible();
+    const text = await frame.locator("body").innerText();
+    await page.evaluate(() =>
+      document.getElementById("lesson-print")?.remove(),
+    );
+    return text;
+  };
+  const lessonChoice = async (value) => {
+    await d.act("lesson", value);
+    // Toggles (variation:true/false) flip their value once pressed; others stay.
+    const [name, v] = value.split(":");
+    const after = ["true", "false"].includes(v)
+      ? `${name}:${v === "true" ? "false" : "true"}`
+      : value;
+    await expect(
+      page.locator(`button[data-action="lesson"][data-value="${after}"]`),
+    ).toHaveAttribute("aria-pressed", v === "false" ? "false" : "true");
+  };
+  for (const ep of [
+    { id: "classroom", room: "교실", minutes: 40 },
+    { id: "library", room: "도서관", minutes: 15 },
+    { id: "gym", room: "체육관", minutes: 25 },
+  ]) {
+    await lessonChoice(`episode:${ep.id}`);
+    await lessonChoice(`minutes:${ep.minutes}`);
+    await d.act("print-materials");
+    const pack = await printed();
+    assert.match(pack, new RegExp(`${ep.minutes}분 수업 흐름`), ep.id);
+    assert.match(pack, new RegExp(`가상 ${ep.room} 활동`), ep.id);
+    assert.equal(/정리 ·/.test(pack), ep.minutes !== 15, ep.id + " wrap-up");
+    const leaks = pack
+      .split("\n")
+      .filter((l) => /교실/.test(l) && !/^교실 탈출 · 수업 자료/.test(l));
+    if (ep.id !== "classroom") assert.deepEqual(leaks, [], ep.id + " wording");
+    if (ep.id === "gym") assert.doesNotMatch(pack, /사진/);
+    await d.act("print-roles");
+    assert.match(await printed(), /역할 카드|친구/);
+  }
+  // With varied codes, cards printed before the game fix the code the next game uses.
+  await lessonChoice("episode:classroom");
+  await lessonChoice("variation:true");
+  const legend = (t) => t.match(/별=\d+ · 하트=\d+ · 원=\d+/)?.[0];
+  await d.act("print-roles");
+  const first = legend(await printed());
+  await d.act("print-roles");
+  assert.equal(legend(await printed()), first, "printed code stays fixed");
+  assert.ok(first, "role card shows the symbol legend");
+  await d.act("new");
+  // The earlier playthrough is still saved, so starting over asks first.
+  await d.act("new-confirmed");
+  await toStory(page, d);
+  await d.act("start");
+  await d.room().waitFor();
+  // Cards printed inside the running game come from that game's own code.
+  await d.act("modal", "game-menu");
+  await d.act("modal", "team", page.getByRole("dialog"));
+  await d
+    .act("print-roles", undefined, page.getByRole("dialog"))
+    .catch(() => d.act("print-roles"));
+  assert.equal(legend(await printed()), first, "game uses the printed code");
+  await d.act("close-modal").catch(() => {});
+  await page.goto(base + "#/teacher");
+  await page
+    .getByRole("heading", { name: "서로의 생각이 열쇠가 되는 40분" })
+    .waitFor();
+  await lessonChoice("variation:false");
+  pass(
+    "printed pack and role cards follow the episode and lesson length; pre-printed codes match the next game",
+  );
   await page.evaluate(() => localStorage.setItem("other-app-record", "keep"));
   await d.act("erase-confirm");
   await d.act("erase");
