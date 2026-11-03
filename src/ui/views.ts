@@ -40,6 +40,7 @@ export interface ViewContext {
   deviceAudit?: DeviceAudit;
   sceneMode: "3d" | "2d";
   readAloud?: boolean;
+  plainWords?: boolean;
   /** Variation seed fixed by materials printed before the next new game. */
   draftSeed?: number;
   speech?: boolean;
@@ -229,7 +230,7 @@ export function modalContent(c: ViewContext) {
     case "pause":
       return `<h2 id="dialog-title">잠깐, 쉬어 가요</h2><p>진행은 그대로예요. 활동 시간도 멈춰 있어요.</p><p class="resume-location">이어갈 곳 · <strong>${esc(OBJECTS.find((o) => o.id === c.objectId)?.name ?? "교실 탐색")}</strong></p><div class="pause-actions">${b("탐색 계속하기", "resume", "", 'class="primary"')}${b("저장하고 시작 화면으로", "save-home")}</div>`;
     case "settings":
-      return `<h2 id="dialog-title">활동 설정</h2>${c.learning?.options.grade === "guided" ? "<p>현재 난이도: 쉬움 · 차근차근</p>" : b("쉬운 난이도로 바꾸기", "easy-mode", "", 'class="primary"') + "<p>찾은 단서·도구·점수는 유지하고, 쉬운 연습 활동으로 이어가요.</p>"}<label class="check-label"><input type="checkbox" data-setting="sound" ${s?.settings.sound ? "checked" : ""} /> 효과음 켜기</label><label class="check-label"><input type="checkbox" data-setting="reduced" ${s?.settings.reducedMotion ? "checked" : ""} /> 움직임 줄이기</label>${c.speech ? `<label class="check-label"><input type="checkbox" data-setting="read-aloud" ${c.readAloud ? "checked" : ""} /> 글 읽어 주기</label>` : ""}<p>소리 없이도 모든 단서를 읽을 수 있어요. 움직임 줄이기를 켜면 바로 이동해요.${c.speech ? " 글 읽어 주기를 켜면 조사 화면과 대화창에 「읽어 주기」 버튼이 생기고, 안내 문장을 소리 내어 읽어요." : ""}</p>`;
+      return `<h2 id="dialog-title">활동 설정</h2>${c.learning?.options.grade === "guided" ? "<p>현재 난이도: 쉬움 · 차근차근</p>" : b("쉬운 난이도로 바꾸기", "easy-mode", "", 'class="primary"') + "<p>찾은 단서·도구·점수는 유지하고, 쉬운 연습 활동으로 이어가요.</p>"}<label class="check-label"><input type="checkbox" data-setting="sound" ${s?.settings.sound ? "checked" : ""} /> 효과음 켜기</label><label class="check-label"><input type="checkbox" data-setting="reduced" ${s?.settings.reducedMotion ? "checked" : ""} /> 움직임 줄이기</label>${c.speech ? `<label class="check-label"><input type="checkbox" data-setting="read-aloud" ${c.readAloud ? "checked" : ""} /> 글 읽어 주기</label>` : ""}<label class="check-label"><input type="checkbox" data-setting="plain-words" ${c.plainWords ? "checked" : ""} /> 쉬운 말로 보기</label><p>소리 없이도 모든 단서를 읽을 수 있어요. 움직임 줄이기를 켜면 바로 이동해요.${c.speech ? " 글 읽어 주기를 켜면 조사 화면과 대화창에 「읽어 주기」 버튼이 생기고, 안내 문장을 소리 내어 읽어요." : ""} 쉬운 말로 보기를 켜면 어려운 낱말을 쉬운 말로 바꾸고, 물건마다 지금 할 일을 한 줄로 보여 줘요.</p>`;
     case "exit-confirm":
       return `<h2 id="dialog-title">우정 조각을 모두 모았어요!</h2><p>문을 열면 탈출 성공이에요. ${s ? score(s) : 0}점으로 완료해요.</p><p>추가 단서는 선택 활동이에요.${s?.foundBonusIds.length === 4 ? " 모두 찾았어요!" : ` 남은 ${4 - (s?.foundBonusIds.length ?? 0)}개를 풀지 않아도 성공이에요.`}</p>${b("문 열고 탈출하기 →", "escape-confirm", "", 'class="primary"')}${b("추가 단서 더 찾아보기", "close-modal")}`;
     case "erase":

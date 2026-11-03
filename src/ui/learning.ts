@@ -10,6 +10,7 @@ import {
   type Experience,
 } from "../game/learning";
 import { EPISODES, episode } from "../content/episodes";
+import { PLAIN_TIPS } from "../content/plain";
 import { REFLECTIONS } from "../content/data";
 
 export function lessonSetup(c: ViewContext, compact = false) {
@@ -99,6 +100,14 @@ export function learningPanel(c: ViewContext, html: string) {
     html =
       `<div class="cooperation-gate"><h3>친구의 설명으로 도구함을 열어요</h3><p>기호 순서와 숫자 사전을 나눠 읽어요.</p>${b("협동 단서 맞추기", "modal", "team-puzzle", 'class="primary"')}</div>` +
       html;
+  }
+  // Plain-language mode adds one "what to do now" line to every object.
+  if (c.plainWords && PLAIN_TIPS[c.objectId ?? ""]) {
+    const tip =
+      c.objectId === "O08" && e.options.episode === "gym"
+        ? "네 친구가 한 번씩 들어간 팀을 골라요."
+        : PLAIN_TIPS[c.objectId!];
+    html = `<p class="guided-help plain-tip">지금 할 일 · ${tip}</p>` + html;
   }
   if (e.options.grade === "guided") {
     const help: Record<string, string> = {
