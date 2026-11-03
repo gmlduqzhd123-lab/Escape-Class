@@ -1015,7 +1015,14 @@ try {
   await d.act("start");
   await d.room().waitFor();
   // Cards printed inside the running game come from that game's own code.
-  await d.act("modal", "game-menu");
+  // On fast runners the 3D room is still mounting, and a tap during the mount is
+  // dropped by the re-render; open the menu until the dialog is really there.
+  await expect(async () => {
+    await d.act("modal", "game-menu");
+    await expect(page.getByRole("dialog")).toContainText("탐색 메뉴", {
+      timeout: 1500,
+    });
+  }).toPass({ timeout: 20000 });
   await d.act("modal", "team", page.getByRole("dialog"));
   await d
     .act("print-roles", undefined, page.getByRole("dialog"))
