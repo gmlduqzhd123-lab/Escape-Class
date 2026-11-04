@@ -131,3 +131,44 @@ test("compact guest preparation preserves school choice when a registry is prese
   assert.match(registered, /예시초등학교 ✓ 선택됨/);
   assert.match(registered, /data-action="setup-next"/);
 });
+test("the last lens hint names the code the class actually sees", async () => {
+  const { lessonForRound, DEFAULT_LESSON } =
+    await import("../src/game/learning");
+  const cases = [
+    {
+      options: { ...createExperience().options, episode: "cafeteria" as const },
+      code: "268",
+    },
+    {
+      options: { ...createExperience().options, episode: "gym" as const },
+      code: "591",
+    },
+    {
+      options: lessonForRound(
+        { ...DEFAULT_LESSON, cooperation: false, hints: "request" },
+        4,
+      ),
+      code: "157",
+    },
+  ];
+  for (const { options, code } of cases) {
+    const c = fixture();
+    c.learning = createExperience(options);
+    c.state!.solvedPuzzleIds = ["P1"];
+    c.objectId = "O04";
+    c.state!.hints.P2 = 3;
+    const html = modalContent(c);
+    assert.match(html, new RegExp(`창 번호 순서로 ${code}`), options.episode);
+    assert.doesNotMatch(html, /7 → 1 → 3/);
+  }
+});
+test("plain-language mode shows the shorter hints", () => {
+  const c = fixture();
+  c.objectId = "O02";
+  c.state!.solvedPuzzleIds = [];
+  c.state!.hints.P1 = 2;
+  c.plainWords = true;
+  assert.match(modalContent(c), /친구의 짐작은 빼요/);
+  c.plainWords = false;
+  assert.doesNotMatch(modalContent(c), /친구의 짐작은 빼요/);
+});

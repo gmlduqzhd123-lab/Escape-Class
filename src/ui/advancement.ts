@@ -1,6 +1,7 @@
 import type { ViewContext } from "./views";
 import { button as b, esc, icon, time } from "./helpers";
 import { OBJECTS, FRAGMENTS, HINTS } from "../content/data";
+import { PLAIN_HINTS } from "../content/plain";
 import { episode, EPISODES } from "../content/episodes";
 import { objective } from "./experience";
 import {
@@ -190,5 +191,7 @@ export function learningHints(c: ViewContext, id: string) {
       "한 친구가 두 번 들어가거나 빠진 친구가 있는지 확인해요.",
       "초록 팀 토끼·여우, 노랑 팀 곰·다람쥐인 계획은 네 친구가 한 번씩 참여해요.",
     ];
+  // Plain-language mode reads shorter hints; bonus clues keep their own.
+  if (c.plainWords && PLAIN_HINTS[id]) return PLAIN_HINTS[id];
   return HINTS[id] ?? [];
 }

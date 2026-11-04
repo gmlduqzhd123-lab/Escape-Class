@@ -26,6 +26,7 @@ const ALLOWED = [
   // Teacher-facing text that talks about every story at once, or about the real room.
   /교실·도서관 이야기/,
   /안내가 닫히고 교실이 보여요/,
+  /인터넷 없는 교실/,
   /새로운 우정의 기록/,
 ];
 // Bare identifiers (map places, 3D stop names, save values) are composed into
