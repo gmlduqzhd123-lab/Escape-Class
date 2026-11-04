@@ -50,11 +50,21 @@ export function validateConfig(v: unknown): GameConfig {
     "지원하지 않는 설정·콘텐츠 버전이에요.",
   );
   if (o.activeRound !== null) {
-    const r = exact(o.activeRound, ["roundId", "label", "acceptingResults"]);
+    const round = object(o.activeRound);
+    const r = exact(
+      round,
+      Object.hasOwn(round, "season")
+        ? ["roundId", "label", "acceptingResults", "season"]
+        : ["roundId", "label", "acceptingResults"],
+    );
     assert(
       nonempty(r.roundId) &&
         nonempty(r.label) &&
-        typeof r.acceptingResults === "boolean",
+        typeof r.acceptingResults === "boolean" &&
+        (r.season === undefined ||
+          (Number.isInteger(r.season) &&
+            (r.season as number) >= 1 &&
+            (r.season as number) <= 9)),
       "공식 회차 설정이 올바르지 않아요.",
     );
   }

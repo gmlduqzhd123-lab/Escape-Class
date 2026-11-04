@@ -2,6 +2,7 @@ import type { Progress } from "./model";
 import { type EpisodeId, episode, EPISODES } from "../content/episodes";
 import {
   digit,
+  varied,
   practiceOptions,
   validateLessonPack,
   escapeLessonText,
@@ -15,6 +16,8 @@ export type LessonOptions = {
   episode: EpisodeId;
   variation?: boolean;
   authored?: boolean;
+  /** Season challenge number from the official round; fixes codes and card order. */
+  season?: number;
 };
 export const DEFAULT_LESSON: LessonOptions = {
   grade: "standard",
@@ -83,6 +86,8 @@ export function createExperience(
   if (options.variation && seed === previousSeed) seed = (seed % 9) + 1;
   // Cards printed before the game fix the seed, so the game must use the same one.
   if (options.variation && presetSeed) seed = presetSeed;
+  // A season challenge fixes the codes for every school in the round.
+  if (options.season) seed = options.season;
   return {
     version: 1,
     options: { ...options },
@@ -180,6 +185,11 @@ export function validateExperience(value: unknown): Experience {
     x.seed < 0 ||
     x.seed > 9 ||
     (v.options.variation && x.seed === 0) ||
+    (v.options.season !== undefined &&
+      (!Number.isInteger(v.options.season) ||
+        v.options.season < 1 ||
+        v.options.season > 9 ||
+        x.seed !== v.options.season)) ||
     (x.conversation !== null && ![0, 1, 2].includes(x.conversation)) ||
     typeof x.tutorialDone !== "boolean"
   )
@@ -206,7 +216,7 @@ export function cooperationAnswer(e: Experience) {
     .slice(0, e.options.grade === "guided" ? 2 : 3)
     .map((symbol) =>
       String(
-        e.options.variation
+        varied(e)
           ? digit(e, Number(pack.coopDigits[symbol]))
           : pack.coopDigits[symbol],
       ),
@@ -217,7 +227,7 @@ export function cooperationLegend(e: Experience) {
   return Object.entries(episode(e.options.episode).coopDigits)
     .map(
       ([symbol, value]) =>
-        `${symbol}=${e.options.variation ? digit(e, Number(value)) : value}`,
+        `${symbol}=${varied(e) ? digit(e, Number(value)) : value}`,
     )
     .join(" · ");
 }
@@ -234,6 +244,19 @@ export function roleAssignments(
 ) {
   const turn = (s.solvedPuzzleIds.length + e.roleShift) % 4;
   return ROLES.map((role, i) => ({ role, student: ((i + turn) % 4) + 1 }));
+}
+/**
+ * The lesson a new game starts with: an official game in a round with a season
+ * challenge takes that season; practice keeps its own varied codes.
+ */
+export function lessonForRound(
+  draft: LessonOptions,
+  season: number | undefined,
+): LessonOptions {
+  const { season: _old, ...options } = draft;
+  return season && !isPracticeLesson(options)
+    ? { ...options, season }
+    : options;
 }
 export function isPracticeLesson(o: LessonOptions) {
   return !!practiceOptions(o);
