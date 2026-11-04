@@ -372,3 +372,35 @@ test("learning views preserve the game state and expose optional controls", () =
   assert.match(teacherProgress(c), /도움 0단계/);
   assert.deepEqual(c, before);
 });
+test("a lesson file may rename objects; names are checked and applied everywhere", async () => {
+  const { customizeHtml, customObjectNames } =
+    await import("../src/ui/advancement");
+  const base = defaultLessonPack("library");
+  const pack = validateLessonPack({
+    ...base,
+    objects: { O02: "우리 반 게시판", O10: "책꽂이" },
+  });
+  assert.deepEqual(customObjectNames(pack), {
+    O02: "우리 반 게시판",
+    O10: "책꽂이",
+  });
+  const html = customizeHtml(
+    '<button data-value="O02" aria-label="독서 게시판 살펴보기">독서 게시판</button><p>추천 도서 책장 앞</p>',
+    pack,
+    "library",
+  );
+  assert.match(html, />우리 반 게시판</);
+  assert.match(html, /aria-label="우리 반 게시판 살펴보기"/);
+  assert.match(html, /data-value="O02"/);
+  assert.match(html, /책꽂이 앞/);
+  // Old files without names still load; empty name lists are dropped.
+  assert.equal(validateLessonPack(base).objects, undefined);
+  assert.equal(validateLessonPack({ ...base, objects: {} }).objects, undefined);
+  for (const objects of [
+    { O13: "x" },
+    { O01: "<b>" },
+    { O01: "가".repeat(17) },
+    { O01: "같은 이름", O02: "같은 이름" },
+  ])
+    assert.throws(() => validateLessonPack({ ...base, objects }));
+});

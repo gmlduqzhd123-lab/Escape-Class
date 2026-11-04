@@ -9,6 +9,7 @@ import {
   defaultLessonPack,
   HINT_KEYS,
   mapLocation,
+  OBJECT_IDS,
   type LessonPack,
 } from "../game/advancement";
 import { PUZZLES } from "../game/model";
@@ -100,7 +101,16 @@ export function editor(c: ViewContext) {
     )
     .join(
       "",
-    )}</select>${field("title", "이야기 제목 · 40자", p.title, 40)}${field("intro", "시작 이야기 · 300자", p.intro, 300)}${field("speech", "가상 친구의 직접 대사 · 160자", p.speech, 160)}<h2>도움을 줄 문장 · 각 180자</h2>${HINT_KEYS.map((k, i) => field(`hint:${k}`, k === "final" ? "마지막 조합" : `${i + 1}. ${FRAGMENTS[i]}`, p.hints[k], 180)).join("")}<div class="author-actions">${b("수업 파일 저장", "author-export")}${b("이 이야기로 새 게임 준비", "author-apply", "", 'class="primary"')}${b("선택한 이야기 기본 문구", "author-default")}</div><label class="file-label">수업 JSON 파일 불러오기<input id="lesson-pack-file" type="file" accept=".json,application/json"/></label><p role="status">${esc(c.authorStatus ?? "파일은 이 기기에서만 읽고, 자동으로 업로드하지 않아요.")}</p></section></main>`;
+    )}</select>${field("title", "이야기 제목 · 40자", p.title, 40)}${field("intro", "시작 이야기 · 300자", p.intro, 300)}${field("speech", "가상 친구의 직접 대사 · 160자", p.speech, 160)}<h2>물건 이름 · 각 16자 · 선택</h2><p class="muted">비워 두면 이야기의 이름을 그대로 써요.</p><div class="author-objects">${OBJECT_IDS.map(
+    (id) => {
+      const original =
+        episode(p.episode).objects[id] ??
+        OBJECTS.find((o) => o.id === id)!.name;
+      return `<label for="author-object-${id}">${esc(original)}</label><input id="author-object-${id}" data-author="object:${id}" maxlength="16" placeholder="${esc(original)}" value="${esc(p.objects?.[id] ?? "")}" />`;
+    },
+  ).join(
+    "",
+  )}</div><h2>도움을 줄 문장 · 각 180자</h2>${HINT_KEYS.map((k, i) => field(`hint:${k}`, k === "final" ? "마지막 조합" : `${i + 1}. ${FRAGMENTS[i]}`, p.hints[k], 180)).join("")}<div class="author-actions">${b("수업 파일 저장", "author-export")}${b("이 이야기로 새 게임 준비", "author-apply", "", 'class="primary"')}${b("선택한 이야기 기본 문구", "author-default")}</div><label class="file-label">수업 JSON 파일 불러오기<input id="lesson-pack-file" type="file" accept=".json,application/json"/></label><p role="status">${esc(c.authorStatus ?? "파일은 이 기기에서만 읽고, 자동으로 업로드하지 않아요.")}</p></section></main>`;
 }
 export function gymTeams(c: ViewContext) {
   const solved = c.state?.solvedPuzzleIds.includes("P4");
@@ -123,6 +133,12 @@ export function gymTeams(c: ViewContext) {
       "",
     )}</div>${solved ? "<p>✓ 네 친구가 한 번씩, 두 팀에 똑같이 참여해요.</p>" : ""}`;
 }
+/** The object names a lesson file sets, keyed by object ID. */
+export function customObjectNames(custom: LessonPack | null | undefined) {
+  return Object.fromEntries(
+    Object.entries(custom?.objects ?? {}).filter(([, n]) => !!n?.trim()),
+  ) as Record<string, string>;
+}
 export function customizeHtml(
   html: string,
   custom: LessonPack | null | undefined,
@@ -131,11 +147,41 @@ export function customizeHtml(
   if (!custom) return html;
   const pack = episode(episodeId),
     originalSpeech = defaultLessonPack(custom.episode).speech;
-  return html
+  let out = html
     .split(pack.title)
     .join(esc(custom.title))
     .split(originalSpeech)
     .join(esc(custom.speech));
+  // Renamed objects: longest original name first, so "추천 도서 책장" is not
+  // half-replaced by a rename of "책장". Names never contain markup.
+  const renames = Object.entries(customObjectNames(custom))
+    .map(([id, name]) => [
+      pack.objects[id] ?? OBJECTS.find((o) => o.id === id)!.name,
+      esc(name),
+    ])
+    .filter(([from, to]) => from !== to)
+    .sort((a, b) => b[0].length - a[0].length);
+  if (renames.length) {
+    const pattern = new RegExp(
+      renames
+        .map(([from]) => from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .join("|"),
+      "g",
+    );
+    out = out
+      .split(/(<[^>]*>)/)
+      .map((part) =>
+        part.startsWith("<")
+          ? part.replace(
+              /aria-label="([^"]*)"/g,
+              (_, label) =>
+                `aria-label="${label.replace(pattern, (m: string) => renames.find(([f]) => f === m)![1])}"`,
+            )
+          : part.replace(pattern, (m) => renames.find(([f]) => f === m)![1]),
+      )
+      .join("");
+  }
+  return out;
 }
 export function learningHints(c: ViewContext, id: string) {
   if (c.learning?.options.episode === "gym" && id === "P4")

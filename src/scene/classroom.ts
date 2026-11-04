@@ -36,6 +36,8 @@ type Options = {
   initialPose?: ScenePose | null;
   onPoseChange?: (pose: ScenePose) => void;
   episodeId?: EpisodeId;
+  /** Object names set by a teacher's lesson file, by object ID. */
+  objectNames?: Record<string, string>;
   onInspect: (id: string) => void;
   onFailure: () => void;
   reducedMotion: boolean;
@@ -107,7 +109,7 @@ export function createClassroomScene(
         )[id] ?? STOPS[id].name);
   const sceneObjects = OBJECTS.map((o) => ({
     ...o,
-    name: pack.objects[o.id] ?? o.name,
+    name: options.objectNames?.[o.id] ?? pack.objects[o.id] ?? o.name,
   }));
   scene.background = new THREE.Color("#f2eedf");
   const camera = new THREE.PerspectiveCamera(68, 1, 0.08, 45);
