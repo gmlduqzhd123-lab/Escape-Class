@@ -91,6 +91,33 @@ async function layout(page, name, targets = true) {
     }
   }
 }
+// Standard accessibility audit (axe-core, WCAG 2 A/AA rules) on the screen shown now.
+const axeSource = await readFile(
+  resolve("node_modules/axe-core/axe.min.js"),
+  "utf8",
+);
+const axeFindings = [];
+async function axeCheck(page, name) {
+  if (!(await page.evaluate(() => "axe" in window)))
+    // The app's CSP rightly blocks injected <script>; evaluate runs through CDP instead.
+    await page.evaluate(axeSource);
+  const found = await page.evaluate(async () => {
+    const result = await window.axe.run(document, {
+      runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] },
+    });
+    return result.violations
+      .filter((v) => v.impact === "serious" || v.impact === "critical")
+      .map((v) => ({
+        id: v.id,
+        impact: v.impact,
+        help: v.help,
+        nodes: v.nodes.slice(0, 3).map((n) => n.target.join(" ")),
+      }));
+  });
+  for (const v of found) axeFindings.push({ screen: name, ...v });
+  if (process.env.AXE_REPORT) return;
+  assert.deepEqual(found, [], name + " accessibility");
+}
 function driver(page, keyboard) {
   const room = () => page.locator("#classroom-scene, .adventure-room").first();
   const act = async (action, value, scope = page) => {
@@ -219,6 +246,7 @@ async function play(
   const d = driver(page, keyboard),
     { act, inspect, reward } = d;
   await layout(page, prefix + " room");
+  await axeCheck(page, prefix + " room");
   assert.equal(await page.locator(".object-list").count(), 0);
   await shot(page, prefix + "-01-room");
   await inspect("O04");
@@ -229,8 +257,10 @@ async function play(
   await inspect("O03");
   await inspect("O02");
   await layout(page, prefix + " memo");
+  await axeCheck(page, prefix + " memo");
   await act("modal", "hint");
   await expect(page.getByRole("dialog")).toContainText("반쪽 메모 힌트");
+  await axeCheck(page, prefix + " hint dialog");
   // A modal makes the page outside it inert, so the live region must sit inside it.
   await expect(page.locator("dialog[open] #announcer")).toHaveCount(1);
   await act("next-hint", "P1");
@@ -431,6 +461,7 @@ async function play(
   }).toPass();
   await act("reflect", "3");
   await shot(page, prefix + "-08-result");
+  await axeCheck(page, prefix + " result");
   const ended = await saved(page);
   await page.waitForTimeout(450);
   assert.equal((await saved(page)).elapsedMs, ended.elapsedMs);
@@ -465,6 +496,7 @@ try {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + "#/");
     await layout(page, "home " + width);
+    await axeCheck(page, "home " + width);
     // Start screens also stay out of Chrome's "Touch to Search".
     assert.equal(
       await page.evaluate(
@@ -990,6 +1022,7 @@ try {
     .getByRole("heading", { name: "서로의 생각이 열쇠가 되는 40분" })
     .waitFor();
   await layout(page, "teacher tablet");
+  await axeCheck(page, "teacher tablet");
   await shot(page, "teacher-tablet");
   // Printed materials per episode: the pack (flow, roles, pledges, reflections),
   // role cards and the lesson length all follow the chosen story, and the only
@@ -1109,6 +1142,12 @@ try {
   process.exitCode = 1;
 } finally {
   report.completedAt = new Date().toISOString();
+  report.axe = axeFindings;
+  if (process.env.AXE_REPORT)
+    await writeFile(
+      resolve(evidence, "axe.json"),
+      JSON.stringify(axeFindings, null, 2),
+    );
   await writeFile(
     resolve(evidence, "browser-results.json"),
     JSON.stringify(report, null, 2),
