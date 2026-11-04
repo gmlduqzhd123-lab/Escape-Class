@@ -1589,10 +1589,10 @@ async function handle(action: string, value: string) {
       return;
     }
     case "group-card":
-      if (!s || !c.groupNumber || s.phase !== "escaped") return;
+      if (!s || !c.groupNumber || s.phase === "intro") return;
       download(
         groupCard(s, c.learning?.options.episode ?? "classroom", c.groupNumber),
-        `모둠-${c.groupNumber}-기록.json`,
+        `모둠-${c.groupNumber}-${s.phase === "escaped" ? "기록" : "진행"}.json`,
       );
       say(
         `${c.groupNumber}모둠 기록 카드를 저장했어요. 선생님 기기의 ‘우리 반 결과판’에서 열어요.`,

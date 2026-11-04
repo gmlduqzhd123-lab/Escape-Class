@@ -84,7 +84,7 @@ test("library and gym wording keeps correct particles and episode places", () =>
     "놀이판에 불이 들어왔어요. 네 친구에게 공을 전해요.",
     "아직 공을 받지 못한 친구: 토끼. 네 친구를 모두 만나요.",
   ].join("\n");
-  for (const id of ["library", "gym", "cafeteria"] as const) {
+  for (const id of ["library", "gym", "cafeteria", "lab"] as const) {
     const text = adaptEpisodeHtml(all, id, OBJECTS);
     for (const broken of [
       /차례을/,

@@ -715,6 +715,12 @@ try {
       board: "감사 게시판",
       room: "급식실",
     },
+    {
+      id: "lab",
+      heading: "배려 마우스가 사라졌어요!",
+      board: "친구 게시판",
+      room: "컴퓨터실",
+    },
   ]) {
     const ectx = await browser.newContext({
       viewport: { width: 1280, height: 800 },
@@ -870,9 +876,22 @@ try {
     await expect(ap_.locator(".explore-goal")).toContainText("우리 반 게시판");
     await ad.inspect("O02");
     await expect(ap_.locator("#panel-title")).toHaveText("우리 반 게시판");
+    // Mid-lesson, a group saves a progress card from the device check page.
+    await ap_.goto(base + "#/progress");
+    await ap_.getByRole("heading", { name: "이 기기의 진행 확인" }).waitFor();
+    await ad.act("group-number", "4");
+    const progressDownload = ap_.waitForEvent("download");
+    await ad.act("group-card");
+    const progress = JSON.parse(
+      await readFile(await (await progressDownload).path(), "utf8"),
+    );
+    assert.equal(progress.group, 4);
+    assert.equal(progress.escaped, false);
     await actx.close();
     currentPage = page;
-    pass("lesson files rename objects on screen and in the 3D room");
+    pass(
+      "lesson files rename objects on screen and in the 3D room; mid-lesson progress card",
+    );
   }
   await page.goto(base + "#/rankings");
   await page

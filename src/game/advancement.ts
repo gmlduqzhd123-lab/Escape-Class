@@ -5,7 +5,7 @@ import { FRIENDS } from "../puzzles/judges";
 
 export type LessonPack = {
   version: 1;
-  episode: "classroom" | "library" | "gym" | "cafeteria";
+  episode: "classroom" | "library" | "gym" | "cafeteria" | "lab";
   title: string;
   intro: string;
   speech: string;

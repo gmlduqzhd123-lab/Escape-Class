@@ -70,3 +70,16 @@ test("the board keeps one card per group and reports bad files", () => {
     noHints: 1,
   });
 });
+test("a group can save a progress card before escaping", () => {
+  const s = createProgress(PRACTICE_CONFIG);
+  s.phase = "playing";
+  s.solvedPuzzleIds = ["P1", "P2", "P3"];
+  const card = groupCard(s, "library", 7);
+  assert.equal(card.escaped, false);
+  assert.equal(card.solved, 3);
+  assert.deepEqual(validateGroupCard(card), card);
+  const board = addGroupCards({ cards: [], messages: [] }, [
+    { name: "p.json", text: JSON.stringify(card) },
+  ]);
+  assert.deepEqual(boardSummary(board.cards).escaped, 0);
+});

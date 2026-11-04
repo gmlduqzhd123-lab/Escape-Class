@@ -13,6 +13,7 @@ const CLASSROOM_WORDS = {
   library: /교실|우정|칠판|공놀이|바구니|골대|그림 책상/,
   gym: /교실|우정|칠판|공놀이|바구니|골대|그림 책상|화분/,
   cafeteria: /교실|우정|칠판|공놀이|바구니|골대|그림 책상/,
+  lab: /교실|우정|칠판|공놀이|바구니|골대|그림 책상/,
 };
 const ALLOWED = [
   // The app's own name, file names and the loading screen shown before any story is known.
@@ -62,7 +63,7 @@ test("every screen sentence adapts to the library and gym without classroom word
   for (const file of sources("src"))
     for (const { line, text } of literals(file)) {
       if (SELF_ADAPTING.test(file) || IDENTIFIER.test(text)) continue;
-      for (const id of ["library", "gym", "cafeteria"] as const) {
+      for (const id of ["library", "gym", "cafeteria", "lab"] as const) {
         const adapted = adaptEpisodeHtml(text, id, OBJECTS);
         for (const sentence of adapted.split(/(?<=[.!?요])\s+|<[^>]+>/))
           if (

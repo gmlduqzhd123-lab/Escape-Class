@@ -22,7 +22,13 @@ import { gymTeams } from "../src/ui/advancement";
 import type { ViewContext } from "../src/ui/views";
 
 test("easy memo shows one discovered next choice and repairs old out-of-order guided saves", () => {
-  for (const episode of ["classroom", "library", "gym", "cafeteria"] as const) {
+  for (const episode of [
+    "classroom",
+    "library",
+    "gym",
+    "cafeteria",
+    "lab",
+  ] as const) {
     const s = createProgress(PRACTICE_CONFIG),
       e = createExperience({ ...EASY_LESSON, episode });
     s.phase = "playing";
