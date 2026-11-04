@@ -117,6 +117,7 @@ import {
   rankings,
   teacher,
   toolsView,
+  classBoardView,
   modalShell,
   type ViewContext,
 } from "./ui/views";
@@ -127,6 +128,7 @@ import { createSoundPlayer } from "./ui/audio";
 import { mountDeviceAudit } from "./ui/device-audit";
 import { materialsAction } from "./actions/materials";
 import { createResultsTools } from "./actions/results";
+import { addGroupCards, groupCard, MAX_GROUP } from "./tools/classboard";
 import { playAction, type PlayHost } from "./actions/play";
 import { plainLanguage, plainText } from "./content/plain";
 import {
@@ -614,6 +616,7 @@ function render(focusKey?: string) {
   else if (current === "/progress") content = teacherProgress(c);
   else if (current === "/device-check") content = deviceView(c.deviceAudit!);
   else if (current === "/tools/results") content = toolsView(c);
+  else if (current === "/class-board") content = classBoardView(c);
   else content = home(c);
   document.documentElement.classList.toggle(
     "reduce-motion",
@@ -1577,6 +1580,26 @@ async function handle(action: string, value: string) {
       render();
       say("정적 데이터를 다시 읽었어요.");
       return;
+    case "group-number": {
+      const n = Number(value);
+      if (Number.isInteger(n) && n >= 1 && n <= MAX_GROUP) c.groupNumber = n;
+      render(`group-number:${value}`);
+      return;
+    }
+    case "group-card":
+      if (!s || !c.groupNumber || s.phase !== "escaped") return;
+      download(
+        groupCard(s, c.learning?.options.episode ?? "classroom", c.groupNumber),
+        `모둠-${c.groupNumber}-기록.json`,
+      );
+      say(
+        `${c.groupNumber}모둠 기록 카드를 저장했어요. 선생님 기기의 ‘우리 반 결과판’에서 열어요.`,
+      );
+      return;
+    case "board-reset":
+      c.classBoard = { cards: [], messages: [] };
+      render();
+      return;
     case "export": {
       await data();
       const reason = exportReason(c.state, c.config, c.schools);
@@ -1683,6 +1706,24 @@ root.addEventListener("change", (event) => {
       }
       render();
     })();
+    return;
+  }
+  if (input.id === "group-files") {
+    const files = [...(input.files ?? [])].slice(0, 40);
+    void Promise.all(
+      files.map(async (f) => ({
+        name: f.name,
+        text: f.size > 4096 ? "x".repeat(4097) : await f.text(),
+      })),
+    ).then((read) => {
+      c.classBoard = addGroupCards(
+        c.classBoard ?? { cards: [], messages: [] },
+        read,
+      );
+      input.value = "";
+      render();
+      say(`모둠 기록 카드 ${read.length}개를 읽었어요.`);
+    });
     return;
   }
   if (input.id === "result-files") {

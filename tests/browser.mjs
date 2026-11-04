@@ -488,6 +488,52 @@ try {
   pass(
     "practice export stays disabled; complete mandatory flow uses keyboard without dragging",
   );
+  // Class board: the group saves a numbered card; the teacher opens cards together.
+  await expect(page.locator('[data-action="group-card"]')).toBeDisabled();
+  await d.act("group-number", "2");
+  const cardDownload = page.waitForEvent("download");
+  await d.act("group-card");
+  const cardPath = await (await cardDownload).path();
+  const card = JSON.parse(await readFile(cardPath, "utf8"));
+  assert.equal(card.group, 2);
+  assert.equal(card.escaped, true);
+  assert.deepEqual(Object.keys(card).sort(), [
+    "bonus",
+    "episodeId",
+    "escaped",
+    "group",
+    "hints",
+    "minutes",
+    "recordType",
+    "schemaVersion",
+    "solved",
+  ]);
+  await page.goto(base + "#/class-board");
+  await page.getByRole("heading", { name: "우리 반 결과판" }).waitFor();
+  await page.locator("#group-files").setInputFiles([
+    {
+      name: "모둠-2-기록.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(card)),
+    },
+    {
+      name: "other.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ ...card, group: 5, hints: 0 })),
+    },
+    {
+      name: "broken.json",
+      mimeType: "application/json",
+      buffer: Buffer.from("{"),
+    },
+  ]);
+  await expect(page.locator(".board-table tbody tr")).toHaveCount(2);
+  await expect(page.locator(".board-summary")).toContainText("2모둠 중 2모둠");
+  await expect(page.locator(".error-list")).toContainText("broken.json");
+  await layout(page, "class board");
+  await axeCheck(page, "class board");
+  await page.goto(base + "#/result");
+  pass("group card on the result screen and the teacher's class board");
   await page.emulateMedia({ media: "print" });
   assert.equal(await page.locator(".site-header").isVisible(), false);
   await shot(page, "desktop-09-print");

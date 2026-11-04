@@ -238,3 +238,34 @@
 .read-aloud-row {
   margin: 0 0 12px;
 }
+/* Class board: group picker on the result screen and the teacher's table. */
+.group-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.group-picker button[aria-pressed="true"] {
+  background: var(--green);
+  color: #fff;
+}
+.board-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+.board-table th,
+.board-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+@media (max-width: 560px) {
+  .board-table {
+    font-size: 14px;
+  }
+  .board-table th,
+  .board-table td {
+    padding: 8px 4px;
+  }
+}
