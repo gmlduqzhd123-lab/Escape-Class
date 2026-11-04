@@ -30,7 +30,7 @@ const ALLOWED = [
 // Bare identifiers (map places, 3D stop names, save values) are composed into
 // sentences elsewhere; the 3D room swaps "교실" itself when it mounts.
 const IDENTIFIER = /^[가-힣 ]{1,6}$/;
-const SELF_ADAPTING = /scene\/classroom\.ts$/;
+const SELF_ADAPTING = /scene\/(classroom|furniture)\.ts$/;
 function literals(file: string) {
   const src = readFileSync(file, "utf8");
   const out: { line: number; text: string }[] = [];
