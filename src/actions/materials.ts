@@ -1,5 +1,9 @@
 import type { ViewContext } from "../ui/views";
-import { createExperience, practiceCard } from "../game/learning";
+import {
+  createExperience,
+  lessonForRound,
+  practiceCard,
+} from "../game/learning";
 import { defaultLessonPack, validateLessonPack } from "../game/advancement";
 import {
   DEVICE_CHECKS,
@@ -30,7 +34,16 @@ export function materialsAction(
   // ahead of the lesson match the game the class then plays.
   const lesson = () => {
     if (host.onPlay() && c.learning) return c.learning;
-    const e = createExperience(c.lessonDraft, 0, c.draftSeed);
+    const e = createExperience(
+      lessonForRound(
+        c.lessonDraft ?? createExperience().options,
+        c.config?.activeRound?.acceptingResults
+          ? c.config.activeRound.season
+          : undefined,
+      ),
+      0,
+      c.draftSeed,
+    );
     if (e.options.variation) c.draftSeed = e.extras.seed;
     return e;
   };

@@ -15,6 +15,8 @@ export interface GameConfig {
     roundId: string;
     label: string;
     acceptingResults: boolean;
+    /** Season challenge 1–9: official games of this round use its own codes and card order. */
+    season?: number;
   };
 }
 export interface School {

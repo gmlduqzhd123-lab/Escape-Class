@@ -124,9 +124,13 @@ export function parseLessonPack(text: string) {
     throw Error("수업 파일은 16KB 이하로 골라요.");
   return validateLessonPack(JSON.parse(text));
 }
+/** Codes and card order follow the seed in varied practice and season challenges. */
+export function varied(e: Experience | null | undefined) {
+  return !!(e?.options.variation || e?.options.season);
+}
 export function digit(e: Experience | null | undefined, n: number) {
-  const shift = e?.options.variation
-    ? e.extras.seed
+  const shift = varied(e)
+    ? e!.extras.seed
     : e?.options.episode === "gym"
       ? 8
       : 0;
@@ -144,12 +148,16 @@ export function afterNumber(code: string, withFinal: string, without: string) {
   return /[2459]$/.test(code) ? without : withFinal;
 }
 export function orderCards<T>(cards: T[], e?: Experience | null) {
-  if (!e?.options.variation || cards.length < 2) return cards;
+  if (!e || !varied(e) || cards.length < 2) return cards;
   const hash = (value: T) => {
     let n = e.extras.seed;
     for (const char of JSON.stringify(value))
       n = (Math.imul(n, 31) + char.charCodeAt(0)) | 0;
-    return n >>> 0;
+    // The seed only adds the same constant to every card above; mix the bits so
+    // each seed really gives its own order.
+    n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+    n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+    return (n ^ (n >>> 16)) >>> 0;
   };
   return [...cards].sort((a, b) => hash(a) - hash(b));
 }

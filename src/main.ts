@@ -20,7 +20,7 @@ import "./ui/phone-landscape.css";
 import "./ui/advancement.css";
 import "./ui/clarity.css";
 import { useEasyMode } from "./game/guidance";
-import { EASY_LESSON } from "./game/learning";
+import { EASY_LESSON, lessonForRound } from "./game/learning";
 import {
   editor,
   teacherProgress,
@@ -1374,7 +1374,12 @@ async function handle(action: string, value: string) {
       )
         c.lessonDraft.authored = false;
       c.learning = createExperience(
-        c.lessonDraft,
+        lessonForRound(
+          c.lessonDraft ?? EASY_LESSON,
+          c.config?.activeRound?.acceptingResults
+            ? c.config.activeRound.season
+            : undefined,
+        ),
         c.learning?.extras.seed ?? 0,
         c.draftSeed,
       );
