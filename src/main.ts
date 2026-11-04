@@ -26,13 +26,11 @@ import {
   teacherProgress,
   offlineSection,
   customizeHtml,
-  customObjectNames,
 } from "./ui/advancement";
 import {
   defaultLessonPack,
   parseLessonPack,
   validateLessonPack,
-  digit,
 } from "./game/advancement";
 import { prepareOffline } from "./offline";
 import {
@@ -58,7 +56,6 @@ import { adaptEpisodeHtml, episode, EPISODES } from "./content/episodes";
 import { deviceView } from "./ui/learning";
 import { updateFeedback, watchStickyHeaders } from "./ui/visibility";
 import { createFullscreenController } from "./ui/fullscreen";
-import type { ClassroomScene } from "./scene/classroom";
 import fontUrl from "./assets/classroom-font.woff2?url";
 import {
   createProgress,
@@ -123,7 +120,6 @@ import {
   type ViewContext,
 } from "./ui/views";
 import { button as b, esc, time } from "./ui/helpers";
-import { objective } from "./ui/experience";
 import { download } from "./ui/files";
 import { createSoundPlayer } from "./ui/audio";
 import { mountDeviceAudit } from "./ui/device-audit";
@@ -131,6 +127,7 @@ import { materialsAction } from "./actions/materials";
 import { createResultsTools } from "./actions/results";
 import { addGroupCards, groupCard, MAX_GROUP } from "./tools/classboard";
 import { playAction, type PlayHost } from "./actions/play";
+import { createSceneMount } from "./actions/scene-mount";
 import { plainLanguage, plainText } from "./content/plain";
 import {
   speak,
@@ -229,7 +226,6 @@ const phonePortrait = matchMedia(
 const hintClock = createHintClock();
 let mistakes = 0,
   lastMarker = "";
-let poseTimer: ReturnType<typeof setTimeout>;
 let saveBlocked = false;
 const saveCoordinator = createSaveCoordinator(
   storage,
@@ -244,11 +240,6 @@ const saveCoordinator = createSaveCoordinator(
   navigator.locks,
 );
 const route = () => location.hash.replace(/^#/, "") || "/";
-let classroom: ClassroomScene | null = null;
-let sceneHost: HTMLElement | null = null;
-let sceneLoading = false;
-let sceneGeneration = 0;
-let sceneLoadTimer: ReturnType<typeof setTimeout> | undefined;
 let clearScrollCue = () => {};
 let clearStickyHeaders = () => {};
 const fullscreen = createFullscreenController(root, () => {
@@ -274,160 +265,19 @@ const fullscreen = createFullscreenController(root, () => {
     focused?.focus({ preventScroll: true });
   }
   // Fullscreen may finish after a temporary hidden/orientation state skipped loading.
-  mountScene();
-  classroom?.resize();
+  scene.mount();
+  scene.current?.resize();
 });
-let pendingSceneOperation: string | null = null;
-let pendingScenePlace: string | null = null;
-function runPendingSceneOperation() {
-  if (!classroom || c.objectId || c.modal) return;
-  if (pendingScenePlace) {
-    const place = pendingScenePlace;
-    pendingScenePlace = null;
-    classroom.moveToPlace(place);
-  }
-  if (!pendingSceneOperation) return;
-  const id = pendingSceneOperation;
-  pendingSceneOperation = null;
-  classroom.operateObject(id);
-}
-function disposeScene() {
-  clearTimeout(poseTimer);
-  clearTimeout(sceneLoadTimer);
-  sceneLoadTimer = undefined;
-  pendingSceneOperation = null;
-  pendingScenePlace = null;
-  sceneGeneration++;
-  classroom?.dispose();
-  classroom = null;
-  sceneHost = null;
-  sceneLoading = false;
-}
-function syncScene() {
-  const s = c.state;
-  if (s)
-    classroom?.setState({
-      objectiveId: objective(s)[1],
-      solvedPuzzleIds: s.solvedPuzzleIds,
-      finalCombined: s.finalCombined,
-      finalKeyObtained: s.finalKeyObtained,
-      drawerOpen: s.solvedPuzzleIds.includes("P1"),
-      toolTaken: s.inventory.some((id) => id.endsWith("lens")),
-      exitUsed: s.exitUsed,
-      active:
-        active(s) &&
-        route() === "/play" &&
-        !c.objectId &&
-        !c.modal &&
-        !phonePortrait.matches &&
-        c.sceneMode === "3d" &&
-        !document.hidden,
-      reducedMotion: s.settings.reducedMotion,
-    });
-}
-function failScene() {
-  disposeScene();
-  c.sceneMode = "2d";
-  c.sceneFailed = true;
-  render();
-  say("입체 화면 대신 그림 교실로 이어갈게요. 모은 단서는 그대로예요.");
-}
-function mountScene() {
-  const slot = document.getElementById("classroom-scene");
-  if (!slot || c.sceneMode !== "3d") {
-    clearTimeout(sceneLoadTimer);
-    sceneLoadTimer = undefined;
-    syncScene();
-    return;
-  }
-  // Keep the existing canvas attached behind dialogs. Rendering can be paused
-  // without replacing the room with a loading placeholder.
-  if (sceneHost && sceneHost !== slot) slot.replaceWith(sceneHost);
-  else sceneHost = slot;
-  if (
-    phonePortrait.matches ||
-    c.modal ||
-    !c.state ||
-    !active(c.state) ||
-    document.hidden
-  ) {
-    clearTimeout(sceneLoadTimer);
-    sceneLoadTimer = undefined;
-    syncScene();
-    return;
-  }
-  if (classroom) {
-    syncScene();
-    classroom.resize();
-    runPendingSceneOperation();
-    return;
-  }
-  if (!sceneLoadTimer) {
-    const generation = sceneGeneration;
-    sceneLoadTimer = setTimeout(() => {
-      sceneLoadTimer = undefined;
-      if (generation === sceneGeneration && !classroom) failScene();
-    }, 12000);
-  }
-  if (sceneLoading) return;
-  sceneLoading = true;
-  const generation = sceneGeneration;
-  void import("./scene/classroom")
-    .then(async ({ createClassroomScene }) => {
-      // Canvas text must use the same loaded Korean font as the interface.
-      await document.fonts.load("700 32px Classroom").catch(() => {});
-      if (generation !== sceneGeneration || !sceneHost) return;
-      if (
-        phonePortrait.matches ||
-        c.modal ||
-        !c.state ||
-        !active(c.state) ||
-        !sceneHost.isConnected ||
-        document.hidden
-      ) {
-        sceneLoading = false;
-        clearTimeout(sceneLoadTimer);
-        sceneLoadTimer = undefined;
-        return;
-      }
-      classroom = createClassroomScene(sceneHost, {
-        cipherDigits: [7, 2, 9, 4, 6, 1, 8, 3, 5].map((n) =>
-          digit(c.learning, n),
-        ),
-        episodeId: c.learning?.options.episode ?? "classroom",
-        objectNames: customObjectNames(c.learning?.extras.custom),
-        initialPose: c.learning?.view.pose ?? null,
-        onPoseChange: (pose) => {
-          if (
-            !c.learning ||
-            JSON.stringify(c.learning.view.pose) === JSON.stringify(pose)
-          )
-            return;
-          c.learning.view.pose = pose;
-          clearTimeout(poseTimer);
-          poseTimer = setTimeout(() => {
-            if (c.state && route() === "/play" && !saveBlocked) persist();
-          }, 600);
-        },
-        onInspect: (id) => {
-          void handle("inspect-direct", id);
-        },
-        onFailure: () => {
-          queueMicrotask(failScene);
-        },
-        reducedMotion: c.state?.settings.reducedMotion ?? false,
-      });
-      sceneLoading = false;
-      clearTimeout(sceneLoadTimer);
-      sceneLoadTimer = undefined;
-      syncScene();
-      classroom.resize();
-      runPendingSceneOperation();
-    })
-    .catch(() => {
-      if (generation === sceneGeneration) failScene();
-    });
-}
+const scene = createSceneMount({
+  c,
+  route: () => route(),
+  portrait: () => phonePortrait.matches,
+  render: () => render(),
+  say: (message) => say(message),
+  persist: () => persist(),
+  saveBlocked: () => saveBlocked,
+  inspect: (id) => void handle("inspect-direct", id),
+});
 const go = (path: string) => {
   location.hash = path;
 };
@@ -629,7 +479,7 @@ function render(focusKey?: string) {
     "has-start-screen",
     ["/", "/setup", "/intro"].includes(current),
   );
-  sceneHost?.remove();
+  scene.host?.remove();
   // Keep the one live region alive across re-renders (innerHTML would discard it).
   document.body.append(announcer);
   const markup = `<a class="skip-link" href="#main">본문으로 바로가기</a>${header(c)}${c.storageWarning ? `<p class="storage-warning" role="status">${SAVE_WARNING}</p>` : ""}${content}${footer()}<div id="toast" class="toast" ${c.toast ? "" : "hidden"}>${esc(c.toast)}</div>${c.modal && !landscapeBlocked ? `<dialog id="game-dialog" data-kind="${esc(c.modal)}" aria-labelledby="dialog-title">${modalShell(c)}</dialog>` : ""}`;
@@ -659,7 +509,7 @@ function render(focusKey?: string) {
     !!root.querySelector("#game-dialog"),
   );
   mountDeviceAudit(c.deviceAudit!);
-  mountScene();
+  scene.mount();
   root
     .querySelectorAll<HTMLDetailsElement>("details[data-disclosure]")
     .forEach((el) => {
@@ -1097,13 +947,9 @@ const playHost: PlayHost = {
   handle: (action, value) => handle(action, value),
   player,
   fullscreen,
-  scene: () => classroom,
-  setPendingPlace: (place) => {
-    pendingScenePlace = place;
-  },
-  setPendingOperation: (objectId) => {
-    pendingSceneOperation = objectId;
-  },
+  scene: () => scene.current,
+  setPendingPlace: (place) => scene.setPendingPlace(place),
+  setPendingOperation: (objectId) => scene.setPendingOperation(objectId),
   panelReturnFocus: () => panelReturnFocus,
   setPanelReturnFocus: (focus) => {
     panelReturnFocus = focus;
@@ -1203,7 +1049,7 @@ async function handle(action: string, value: string) {
     case "save-retry":
       saveBlocked = !(await saveCoordinator.acquire());
       if (!saveBlocked) {
-        disposeScene();
+        scene.dispose();
         c.modal = null;
         await bootstrap();
         if (c.state && c.state.phase !== "intro" && c.state.phase !== "escaped")
@@ -1371,7 +1217,7 @@ async function handle(action: string, value: string) {
         render();
         return;
       }
-      disposeScene();
+      scene.dispose();
       // Saves require options.authored to match an attached pack of the same story.
       if (
         c.lessonDraft?.authored &&
@@ -1442,7 +1288,7 @@ async function handle(action: string, value: string) {
         render("fullscreen:");
       }
       await fullscreen.toggle();
-      mountScene();
+      scene.mount();
       return;
     case "scene-mode":
       c.modal = null;
@@ -1545,7 +1391,7 @@ async function handle(action: string, value: string) {
         );
         return;
       }
-      disposeScene();
+      scene.dispose();
       try {
         storage?.removeItem(experienceKey(key));
         storage?.removeItem(readAloudKey);
@@ -1769,7 +1615,7 @@ root.addEventListener("change", (event) => {
       "reduce-motion",
       c.state?.settings.reducedMotion ?? c.setupReduced,
     );
-    syncScene();
+    scene.sync();
   }
 });
 root.addEventListener("submit", (event) => {
@@ -1810,7 +1656,7 @@ phonePortrait.addEventListener("change", () => {
     }
     if (!phonePortrait.matches) hintClock.reset();
     render("fullscreen:");
-    classroom?.resize();
+    scene.current?.resize();
     tick();
   }
 });
@@ -1828,7 +1674,7 @@ document.addEventListener("visibilitychange", () => {
   tick();
   if (document.hidden) stopSpeaking();
   persist();
-  mountScene();
+  scene.mount();
 });
 window.addEventListener("pagehide", () => {
   tick();
