@@ -130,7 +130,35 @@ function driver(page, keyboard) {
     if (next) await page.locator("#panel-title").waitFor();
     else await room().waitFor();
   };
-  return { act, inspect, reward, room };
+  // Starting a game enters fullscreen and mounts the 3D room asynchronously;
+  // taps during that transition can land on a moving layout. Wait until the
+  // room and the immersion state have settled before the next step.
+  const settled = async () => {
+    await room().waitFor();
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const scene = document.getElementById("classroom-scene");
+            const ready =
+              !scene || !!scene.querySelector(".classroom-3d-canvas");
+            return ready && !document.querySelector(".scene-loading");
+          }),
+        { timeout: 15000 },
+      )
+      .toBe(true);
+    const size = () => page.evaluate(() => `${innerWidth}x${innerHeight}`);
+    let last = "";
+    await expect
+      .poll(async () => {
+        const now = await size();
+        const same = now === last;
+        last = now;
+        return same;
+      })
+      .toBe(true);
+  };
+  return { act, inspect, reward, room, settled };
 }
 const path = [10, 5, 0, 1, 2, 7, 12, 17, 22, 23, 24, 19, 14];
 // New games default to the guided difficulty since 1.6; this scenario covers official rules.
@@ -182,7 +210,7 @@ async function start(page, d, school) {
   await page.waitForTimeout(350);
   if (before) assert.equal((await saved(page)).elapsedMs, before.elapsedMs);
   await d.act("start");
-  await d.room().waitFor();
+  await d.settled();
 }
 async function play(
   page,
@@ -454,6 +482,7 @@ try {
   await d.act("new-confirmed");
   await toStory(page, d);
   await d.act("start");
+  await d.settled();
   await d.inspect("O02");
   // Fullscreen and its fill-screen fallback consume Escape themselves. Leave
   // immersion through the UI before testing the investigation-panel shortcut.
@@ -633,7 +662,7 @@ try {
     await expect(choice).toHaveAttribute("aria-pressed", "true");
     await toStory(ep_, ed, ep.heading);
     await ed.act("start");
-    await ed.room().waitFor();
+    await ed.settled();
     await layout(ep_, ep.id + " room");
     await expect(
       ep_.getByRole("heading", { name: `${ep.room}을 살펴봐요` }),
@@ -1013,7 +1042,7 @@ try {
   await d.act("new-confirmed");
   await toStory(page, d);
   await d.act("start");
-  await d.room().waitFor();
+  await d.settled();
   // Cards printed inside the running game come from that game's own code.
   // On fast runners the 3D room is still mounting, and a tap during the mount is
   // dropped by the re-render; open the menu until the dialog is really there.
