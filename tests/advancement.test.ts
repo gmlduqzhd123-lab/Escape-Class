@@ -299,7 +299,7 @@ test("library and gym text keeps no classroom wording or doubled words", () => {
     ...OBJECTS.map((o) => o.description),
     ...Object.values(HINTS).flat(),
   ].join("\n");
-  for (const id of ["library", "gym", "cafeteria"] as const) {
+  for (const id of ["library", "gym", "cafeteria", "lab"] as const) {
     const text = adaptEpisodeHtml(classroom, id, OBJECTS);
     assert.doesNotMatch(text, /교실|우정|공놀이|바구니|공 옆 칸/);
     // Only the gym swaps the photo/help network puzzle for team picking.
@@ -350,7 +350,7 @@ test("each episode shows its own picture-mode drawing", async () => {
   const picture =
     '<img src="/x/assets/classroom.svg" alt="나무 책상과 햇살이 비치는 교실. 물건을 눌러 살펴볼 수 있어요.">';
   assert.equal(adaptEpisodeHtml(picture, "classroom", OBJECTS), picture);
-  for (const id of ["library", "gym", "cafeteria"] as const) {
+  for (const id of ["library", "gym", "cafeteria", "lab"] as const) {
     const html = adaptEpisodeHtml(picture, id, OBJECTS);
     assert.match(html, new RegExp(`assets/${id}\\.svg`));
     assert.match(html, new RegExp(EPISODES[id].room));

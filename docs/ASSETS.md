@@ -2,17 +2,18 @@
 
 모든 런타임 자산은 배포 파일에 포함됩니다. 외부 CDN·광고·분석·웹폰트 서비스에서 자산을 불러오지 않습니다.
 
-| 자산                                  | 제작·원본                                                   | 권한·라이선스                             |
-| ------------------------------------- | ----------------------------------------------------------- | ----------------------------------------- |
-| `public/assets/classroom.svg`         | 이 프로젝트에서 직접 작성한 교실 벡터 그림                  | CC0-1.0                                   |
-| `public/assets/library.svg`           | 교실 그림의 물건 배치를 그대로 두고 직접 작성한 도서관 그림 | CC0-1.0                                   |
-| `public/assets/gym.svg`               | 교실 그림의 물건 배치를 그대로 두고 직접 작성한 체육관 그림 | CC0-1.0                                   |
-| `public/assets/cafeteria.svg`         | 교실 그림의 물건 배치를 그대로 두고 직접 작성한 급식실 그림 | CC0-1.0                                   |
-| `public/assets/key.svg`               | 직접 작성한 열쇠 아이콘                                     | CC0-1.0                                   |
-| `src/ui/helpers.ts`의 동물·아이콘 SVG | 직접 작성한 토끼·곰·여우·다람쥐 및 선 아이콘                | CC0-1.0                                   |
-| `public/assets/chime.wav`             | 사인파 659.25Hz와 987.77Hz를 합성한 약 0.42초 효과음        | CC0-1.0; 기본 소리 끄기                   |
-| `src/assets/classroom-font.woff2`     | Google Fonts Noto Sans KR 가변 글꼴의 한글·앱 문자 부분집합 | SIL Open Font License 1.1                 |
-| 이야기·퍼즐·문장·힌트                 | 사용자 제공 사양을 구현 데이터로 구성                       | 사용자 제공 콘텐츠; 외부 저작물 수집 없음 |
+| 자산                                  | 제작·원본                                                     | 권한·라이선스                             |
+| ------------------------------------- | ------------------------------------------------------------- | ----------------------------------------- |
+| `public/assets/classroom.svg`         | 이 프로젝트에서 직접 작성한 교실 벡터 그림                    | CC0-1.0                                   |
+| `public/assets/library.svg`           | 교실 그림의 물건 배치를 그대로 두고 직접 작성한 도서관 그림   | CC0-1.0                                   |
+| `public/assets/gym.svg`               | 교실 그림의 물건 배치를 그대로 두고 직접 작성한 체육관 그림   | CC0-1.0                                   |
+| `public/assets/cafeteria.svg`         | 교실 그림의 물건 배치를 그대로 두고 직접 작성한 급식실 그림   | CC0-1.0                                   |
+| `public/assets/lab.svg`               | 교실 그림의 물건 배치를 그대로 두고 직접 작성한 컴퓨터실 그림 | CC0-1.0                                   |
+| `public/assets/key.svg`               | 직접 작성한 열쇠 아이콘                                       | CC0-1.0                                   |
+| `src/ui/helpers.ts`의 동물·아이콘 SVG | 직접 작성한 토끼·곰·여우·다람쥐 및 선 아이콘                  | CC0-1.0                                   |
+| `public/assets/chime.wav`             | 사인파 659.25Hz와 987.77Hz를 합성한 약 0.42초 효과음          | CC0-1.0; 기본 소리 끄기                   |
+| `src/assets/classroom-font.woff2`     | Google Fonts Noto Sans KR 가변 글꼴의 한글·앱 문자 부분집합   | SIL Open Font License 1.1                 |
+| 이야기·퍼즐·문장·힌트                 | 사용자 제공 사양을 구현 데이터로 구성                         | 사용자 제공 콘텐츠; 외부 저작물 수집 없음 |
 
 글꼴 원본은 [Google Fonts의 Noto Sans KR](https://github.com/google/fonts/tree/main/ofl/notosanskr)이며 저작권은 `(c) 2014-2021 Adobe`입니다. 원본의 [OFL 안내](https://github.com/google/fonts/blob/main/ofl/notosanskr/OFL.txt)를 `public/licenses/NotoSansKR-OFL.txt`에 함께 포함했습니다.
 

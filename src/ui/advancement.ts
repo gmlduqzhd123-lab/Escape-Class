@@ -2,6 +2,7 @@ import type { ViewContext } from "./views";
 import { button as b, esc, icon, time } from "./helpers";
 import { OBJECTS, FRAGMENTS, HINTS } from "../content/data";
 import { PLAIN_HINTS } from "../content/plain";
+import { groupCardSection } from "./groupcard";
 import { episode, EPISODES } from "../content/episodes";
 import { objective } from "./experience";
 import {
@@ -83,7 +84,7 @@ export function teacherProgress(c: ViewContext) {
   if (!s)
     return `<main id="main" class="narrow"><h1>이 기기의 진행 확인</h1><p>아직 시작한 활동이 없어요.</p><a href="#/">시작 화면으로</a></main>`;
   const current = OBJECTS.find((o) => o.id === c.objectId);
-  return `<main id="main" class="narrow advancement-page"><a href="#/teacher">← 수업 안내</a><h1>이 기기의 진행 확인</h1><p>학생 이름을 입력하지 않아요. 다른 기기의 진행을 모으지 않아요.</p><section class="surface"><h2>${pack.label} · ${esc(c.learning?.extras.custom?.title ?? pack.title)}</h2><p>현재 물건: ${esc(current ? (pack.objects[current.id] ?? current.name) : "공간 탐색")}</p><p>진행 시간 ${time(s.elapsedMs)} · 필수 ${s.solvedPuzzleIds.length}/5</p><ol class="progress-stages">${PUZZLES.map((id, i) => `<li>${s.solvedPuzzleIds.includes(id) ? "✓ 완료" : "○ 남음"} · ${FRAGMENTS[i]} · 도움 ${s.hints[id] ?? 0}단계</li>`).join("")}</ol><p>조합판 ${s.finalCombined ? "완성" : "미완성"} · 열쇠 ${s.finalKeyObtained ? "찾음" : "아직"} · 탈출 ${s.exitUsed ? "완료" : "진행 중"}</p><h3>지금 도와줄 부분</h3><p>${esc(diagnose(s, c.learning, c.objectId))}</p></section>${b("활동으로 돌아가기", "continue", "", 'class="primary"')}<p class="muted">학습 지도용 확인이며 학생의 성격이나 인성을 평가하는 자료가 아니에요.</p></main>`;
+  return `<main id="main" class="narrow advancement-page"><a href="#/teacher">← 수업 안내</a><h1>이 기기의 진행 확인</h1><p>학생 이름을 입력하지 않아요. 아래에서 진행 카드를 저장하면 선생님 기기의 ‘우리 반 결과판’에서 모든 모둠의 진행을 모아 볼 수 있어요.</p><section class="surface"><h2>${pack.label} · ${esc(c.learning?.extras.custom?.title ?? pack.title)}</h2><p>현재 물건: ${esc(current ? (pack.objects[current.id] ?? current.name) : "공간 탐색")}</p><p>진행 시간 ${time(s.elapsedMs)} · 필수 ${s.solvedPuzzleIds.length}/5</p><ol class="progress-stages">${PUZZLES.map((id, i) => `<li>${s.solvedPuzzleIds.includes(id) ? "✓ 완료" : "○ 남음"} · ${FRAGMENTS[i]} · 도움 ${s.hints[id] ?? 0}단계</li>`).join("")}</ol><p>조합판 ${s.finalCombined ? "완성" : "미완성"} · 열쇠 ${s.finalKeyObtained ? "찾음" : "아직"} · 탈출 ${s.exitUsed ? "완료" : "진행 중"}</p><h3>지금 도와줄 부분</h3><p>${esc(diagnose(s, c.learning, c.objectId))}</p></section>${groupCardSection(c, "진행 카드 저장", "수업 중간에 저장해도 돼요. 같은 모둠이 나중에 다시 저장하면 결과판에서 새 카드로 바뀌어요.")}${b("활동으로 돌아가기", "continue", "", 'class="primary"')}<p class="muted">학습 지도용 확인이며 학생의 성격이나 인성을 평가하는 자료가 아니에요.</p></main>`;
 }
 export function offlineSection(c: ViewContext) {
   return `<section class="surface offline-section"><h2>수업 전 오프라인 준비</h2><p>세 에피소드의 그림·글꼴·입체 화면·이야기를 이 브라우저에 준비해요. 처음 준비할 때는 인터넷 연결이 필요해요.</p>${b("필수 파일 준비·확인", "offline-prepare", "", `class="primary" ${c.offlineBusy ? "disabled" : ""}`)}<p id="offline-status" role="status">${esc(c.offlineStatus ?? "아직 이 브라우저의 준비 상태를 확인하지 않았어요.")}</p><p class="muted">브라우저의 저장 공간 정리·시크릿 모드·재설치 뒤에는 다시 준비해요.</p></section>`;

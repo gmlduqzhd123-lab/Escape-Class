@@ -641,6 +641,27 @@ export function buildRoom(room: RoomContext) {
           );
     }
   }
+  if (pack.shell === "lab") {
+    // Monitors on the spare tables and the back wall make the room a computer lab.
+    for (const [x, z] of [
+      [-2.95, -2.2],
+      [-0.6, 4.95],
+      [0.9, 4.95],
+      [-2.1, 4.95],
+    ] as const) {
+      const monitor = new THREE.Group();
+      scene.add(monitor);
+      box(monitor, [0.62, 0.42, 0.05], [x, z > 4 ? 1.45 : 1.25, z], "#3b4a57");
+      box(
+        monitor,
+        [0.54, 0.34, 0.01],
+        [x, z > 4 ? 1.45 : 1.25, z - 0.03],
+        "#9fc6dc",
+      );
+      box(monitor, [0.08, 0.2, 0.08], [x, z > 4 ? 1.14 : 0.94, z], "#3b4a57");
+    }
+    box(scene, [3.4, 0.9, 0.6], [-0.6, 0.45, 5.1], "#c3ccd2");
+  }
   if (pack.shell === "cafeteria") {
     // A serving counter with stacked trays and soup pots along the back wall.
     const counter = new THREE.Group();
