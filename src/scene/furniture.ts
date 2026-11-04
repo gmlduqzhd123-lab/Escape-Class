@@ -289,18 +289,7 @@ export function buildRoom(room: RoomContext) {
   panel(board, [4.3, 1.6], [0, 2.05, 0.081], (ctx, w, h) => {
     ctx.fillStyle = palette.green;
     ctx.fillRect(0, 0, w, h);
-    text(
-      ctx,
-      pack.shell === "gym"
-        ? "모두 함께 뛰는 체육관"
-        : pack.shell === "library"
-          ? "함께 읽는 도서관"
-          : "우리들의 우정 교실",
-      w / 2,
-      70,
-      56,
-      "#fff5d4",
-    );
+    text(ctx, pack.signs.board, w / 2, 70, 56, "#fff5d4");
     text(
       ctx,
       `다섯 ${piece} 조각을 모아 지도를 완성해요`,
@@ -333,18 +322,7 @@ export function buildRoom(room: RoomContext) {
   panel(bulletin, [1.95, 1.5], [0, 2.05, 0.08], (ctx, w, h) => {
     ctx.fillStyle = "#c6a477";
     ctx.fillRect(0, 0, w, h);
-    text(
-      ctx,
-      pack.shell === "gym"
-        ? "함께 뛰는 축제"
-        : pack.shell === "library"
-          ? "함께 읽는 축제"
-          : "함께 만드는 축제",
-      w / 2,
-      50,
-      37,
-      palette.paper,
-    );
+    text(ctx, pack.signs.festival, w / 2, 50, 37, palette.paper);
     for (let i = 0; i < 3; i++) {
       ctx.save();
       ctx.translate(145 + i * 235, 220);
@@ -393,17 +371,7 @@ export function buildRoom(room: RoomContext) {
     // The note is nearly square: face on top, words below, all at true proportions.
     animalFace(ctx, w / 2, 112, 165, 0);
     text(ctx, "함께", w / 2, 262, 66);
-    text(
-      ctx,
-      pack.shell === "gym"
-        ? "함께 뛰고 싶어"
-        : pack.shell === "library"
-          ? "읽고 싶어"
-          : "만들고 싶어",
-      w / 2,
-      334,
-      52,
-    );
+    text(ctx, pack.signs.note, w / 2, 334, 52);
   });
   note.rotation.y = Math.PI / 2 - 0.35;
 
@@ -672,6 +640,29 @@ export function buildRoom(room: RoomContext) {
             ["#7e9d83", "#e1c875", "#cb9c88"][book % 3],
           );
     }
+  }
+  if (pack.shell === "cafeteria") {
+    // A serving counter with stacked trays and soup pots along the back wall.
+    const counter = new THREE.Group();
+    scene.add(counter);
+    box(counter, [3.1, 0.95, 0.7], [-1.45, 0.48, 5.05], "#a9c2cc");
+    box(counter, [3.25, 0.08, 0.8], [-1.45, 0.99, 5.05], "#d7e3e6");
+    for (let i = 0; i < 3; i++)
+      cylinder(
+        counter,
+        0.2,
+        0.18,
+        0.28,
+        [-2.5 + i * 0.75, 1.17, 5.0],
+        "#eef3f2",
+      );
+    for (let i = 0; i < 5; i++)
+      box(
+        counter,
+        [0.55, 0.03, 0.4],
+        [-0.05, 1.05 + i * 0.04, 5.05],
+        ["#9fd0c0", "#f3d282", "#e59a6c"][i % 3],
+      );
   }
   const exitSign = panel(door, [1.16, 0.34], [-0.16, 3.15, 0], (ctx, w, h) => {
     ctx.fillStyle = palette.green;

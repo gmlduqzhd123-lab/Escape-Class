@@ -5,6 +5,8 @@
 - 저장소: [gmlduqzhd123-lab/Escape-Class](https://github.com/gmlduqzhd123-lab/Escape-Class)
 - GitHub Pages: [교실 탈출 실행](https://gmlduqzhd123-lab.github.io/Escape-Class/)
 
+이야기는 네 가지입니다. EP.01 교실(공식 회차용), EP.02 도서관, EP.03 체육관, EP.04 급식실(연습용)이며, 퍼즐 규칙은 같고 공간·물건·문구가 다릅니다.
+
 학교와 공식 회차를 제공받지 않아 초기 상태는 **학교 목록 없음 / 연습 모드 / 빈 공식 순위**입니다. 가짜 학교·공식 기록을 등록하지 않았습니다.
 
 ## 실행
@@ -117,4 +119,4 @@ Vite의 [공식 GitHub Pages 안내](https://vite.dev/guide/static-deploy.html#g
 
 ## 변경 기록
 
-현재 버전은 1.7.1입니다. 버전별 변경 내용과 검증 범위는 [docs/CHANGELOG.md](docs/CHANGELOG.md)에 모았습니다.
+현재 버전은 1.8.0입니다. 버전별 변경 내용과 검증 범위는 [docs/CHANGELOG.md](docs/CHANGELOG.md)에 모았습니다.
