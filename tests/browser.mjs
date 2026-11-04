@@ -203,7 +203,7 @@ async function officialRules(page, d) {
         el.open = true;
       });
     await expect(official).toBeVisible({ timeout: 1000 });
-  }).toPass();
+  }).toPass({ timeout: 30000 });
   await d.act("lesson", "official");
 }
 async function toStory(page, d, heading = "우정 열쇠가 사라졌어요!") {
@@ -211,7 +211,7 @@ async function toStory(page, d, heading = "우정 열쇠가 사라졌어요!") {
   await expect(async () => {
     if (!(await intro.isVisible())) await d.act("setup-next");
     await expect(intro).toBeVisible({ timeout: 1000 });
-  }).toPass();
+  }).toPass({ timeout: 30000 });
 }
 async function start(page, d, school) {
   await page.goto(base);
@@ -458,7 +458,7 @@ async function play(
     await expect(
       page.locator('button[data-action="reflect"][data-value="3"]'),
     ).toBeVisible({ timeout: 500 });
-  }).toPass();
+  }).toPass({ timeout: 30000 });
   await act("reflect", "3");
   await shot(page, prefix + "-08-result");
   await axeCheck(page, prefix + " result");
@@ -741,7 +741,7 @@ try {
           el.open = true;
         });
       await expect(choice).toBeVisible({ timeout: 1000 });
-    }).toPass();
+    }).toPass({ timeout: 30000 });
     await ed.act("lesson", `episode:${ep.id}`);
     await expect(choice).toHaveAttribute("aria-pressed", "true");
     await toStory(ep_, ed, ep.heading);
@@ -845,6 +845,34 @@ try {
     pass(
       `${ep.id} episode wording, easy-mode memo and lens help, ${ep.id === "library" ? "opt-in read-aloud and plain words, " : ""}and its own picture-mode drawing`,
     );
+  }
+  {
+    // A teacher's lesson file can rename objects; the game, the object list and
+    // the 3D labels all use the new name while the puzzle logic stays the same.
+    const actx = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+    });
+    const ap_ = await actx.newPage();
+    track(ap_);
+    const ad = driver(ap_, false);
+    await ap_.goto(base + "#/lesson-editor");
+    await ap_.getByRole("heading", { name: "수업 이야기 편집" }).waitFor();
+    await ap_.locator("#author-object-O02").fill("우리 반 게시판");
+    await ad.act("author-apply");
+    await ap_.locator('button[data-action="setup-next"]').first().waitFor();
+    // With a lesson file, the story screen is headed by the file's title.
+    await toStory(ap_, ad, "사라진 우정 열쇠");
+    await ad.act("start");
+    await ad.settled();
+    await expect(
+      ap_.locator('.classroom-object-label[data-scene-object="O02"]'),
+    ).toContainText("우리 반 게시판");
+    await expect(ap_.locator(".explore-goal")).toContainText("우리 반 게시판");
+    await ad.inspect("O02");
+    await expect(ap_.locator("#panel-title")).toHaveText("우리 반 게시판");
+    await actx.close();
+    currentPage = page;
+    pass("lesson files rename objects on screen and in the 3D room");
   }
   await page.goto(base + "#/rankings");
   await page

@@ -33,7 +33,11 @@ const ALLOWED = [
 const IDENTIFIER = /^[가-힣 ]{1,6}$/;
 const SELF_ADAPTING = /scene\/(classroom|furniture)\.ts$/;
 function literals(file: string) {
-  const src = readFileSync(file, "utf8");
+  // Comments are not screen text, and an apostrophe in one would confuse the
+  // string scan below; blank them out while keeping line numbers.
+  const src = readFileSync(file, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/^\s*\/\/.*$/gm, "");
   const out: { line: number; text: string }[] = [];
   const re =
     /(?:"((?:[^"\\]|\\.)*?)"|'((?:[^'\\]|\\.)*?)'|`((?:[^`\\]|\\.)*?)`)/gs;

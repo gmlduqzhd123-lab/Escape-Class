@@ -10,7 +10,23 @@ export type LessonPack = {
   intro: string;
   speech: string;
   hints: Record<"P1" | "P2" | "P3" | "P4" | "P5" | "final", string>;
+  /** Optional names for the twelve objects (O01–O12); an empty name keeps the story name. */
+  objects?: Partial<Record<string, string>>;
 };
+export const OBJECT_IDS = [
+  "O01",
+  "O02",
+  "O03",
+  "O04",
+  "O05",
+  "O06",
+  "O07",
+  "O08",
+  "O09",
+  "O10",
+  "O11",
+  "O12",
+] as const;
 export const HINT_KEYS = ["P1", "P2", "P3", "P4", "P5", "final"] as const;
 // The map is a room overview; use the saved arrival stop, independent of the
 // direction the camera faces. These coordinates stay clear of object numbers.
@@ -71,7 +87,10 @@ export function validateLessonPack(value: unknown): LessonPack {
     !p ||
     p.version !== 1 ||
     !Object.hasOwn(EPISODES, p.episode) ||
-    Object.keys(p).sort().join() !== "episode,hints,intro,speech,title,version"
+    ![
+      "episode,hints,intro,speech,title,version",
+      "episode,hints,intro,objects,speech,title,version",
+    ].includes(Object.keys(p).sort().join())
   )
     throw Error("수업 파일 형식이 달라요. 이 화면에서 받은 양식을 사용해요.");
   const text = (v: unknown, max: number) =>
@@ -88,7 +107,25 @@ export function validateLessonPack(value: unknown): LessonPack {
     HINT_KEYS.some((k) => !text(p.hints[k], 180))
   )
     throw Error("제목·이야기·대사·힌트의 글자 수와 빈칸을 확인해요.");
-  return structuredClone(p);
+  if (p.objects !== undefined) {
+    const names = Object.entries(p.objects ?? {});
+    if (
+      !p.objects ||
+      typeof p.objects !== "object" ||
+      names.some(
+        ([id, name]) =>
+          !(OBJECT_IDS as readonly string[]).includes(id) ||
+          !text(name, 16) ||
+          /[<>&"]/.test(name as string),
+      ) ||
+      new Set(names.map(([, n]) => (n as string).trim())).size !== names.length
+    )
+      throw Error("물건 이름은 16자 이하로, 서로 다르게 써요.");
+  }
+  const copy = structuredClone(p);
+  // An empty name list means "keep the story's names"; store it as absent.
+  if (copy.objects && !Object.keys(copy.objects).length) delete copy.objects;
+  return copy;
 }
 export function parseLessonPack(text: string) {
   if (new TextEncoder().encode(text).length > 16384)

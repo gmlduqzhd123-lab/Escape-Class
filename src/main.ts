@@ -26,6 +26,7 @@ import {
   teacherProgress,
   offlineSection,
   customizeHtml,
+  customObjectNames,
 } from "./ui/advancement";
 import {
   defaultLessonPack,
@@ -394,6 +395,7 @@ function mountScene() {
           digit(c.learning, n),
         ),
         episodeId: c.learning?.options.episode ?? "classroom",
+        objectNames: customObjectNames(c.learning?.extras.custom),
         initialPose: c.learning?.view.pose ?? null,
         onPoseChange: (pose) => {
           if (
@@ -1666,6 +1668,12 @@ root.addEventListener("input", (event) => {
       draft[name] = input.value;
     else if (name.startsWith("hint:"))
       draft.hints[name.slice(5) as keyof typeof draft.hints] = input.value;
+    else if (name.startsWith("object:")) {
+      const objects = { ...draft.objects };
+      if (input.value.trim()) objects[name.slice(7)] = input.value;
+      else delete objects[name.slice(7)];
+      draft.objects = objects;
+    }
     c.authorDraft = draft;
     return;
   }
