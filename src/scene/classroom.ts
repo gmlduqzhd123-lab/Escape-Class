@@ -4,7 +4,7 @@ import { PUZZLES } from "../game/model";
 import "./classroom.css";
 import { bindSceneGestures } from "./gestures";
 import { createFrameLoop } from "./frameLoop";
-import { sceneQuality } from "./quality";
+import { createFrameBudget, sceneQuality } from "./quality";
 import type { ScenePose } from "../game/learning";
 import { episode, type EpisodeId } from "../content/episodes";
 import { buildRoom } from "./furniture";
@@ -144,6 +144,8 @@ export function createClassroomScene(
     touchDevice,
     devicePixelRatio,
   );
+  // Slow devices give up some sharpness while moving rather than stuttering.
+  const budget = createFrameBudget(quality.maxFps);
   const renderer = new THREE.WebGLRenderer({
     antialias: quality.antialias,
     alpha: false,
@@ -388,6 +390,9 @@ export function createClassroomScene(
   }
   function render(now: number) {
     if (disposed || !active || !host.isConnected) return;
+    if (tween || moving) {
+      if (budget.frame(now)) queueMicrotask(resize);
+    } else budget.pause();
     if (renderer.getContext().isContextLost()) {
       frames.fail();
       return;
@@ -906,12 +911,17 @@ export function createClassroomScene(
       height = Math.round(stage.clientHeight);
     if (width < 1 || height < 1) return;
     try {
-      const ratio = sceneQuality(
+      const full = sceneQuality(
         width,
         height,
         touchDevice,
         devicePixelRatio,
       ).pixelRatio;
+      // The budget may lower sharpness on slow devices, but never below 1x.
+      const ratio =
+        Math.round(Math.max(Math.min(1, full), full * budget.scale) * 100) /
+        100;
+      stage.dataset.resolution = ratio.toFixed(2);
       // Assigning canvas.width/height clears WebGL, even at the same size.
       if (
         canvas.width !== Math.floor(width * ratio) ||
