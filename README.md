@@ -82,7 +82,7 @@ npm run test:browser
 | `src/ranking/validation.ts`, `service.ts`  | 설정·학교·결과·순위 검증, 내보내기, 공동 순위                                                                                  |
 | `src/tools/aggregate.ts`                   | 로컬 파일 제한, 중복 제거, 명시적 충돌 선택                                                                                    |
 | `src/ui/`, `src/main.ts`, `src/style.css`  | 화면, 조작, 시간 측정, 접근성, 반응형                                                                                          |
-| `src/actions/`                             | 게임 조작(`play.ts`), 교사용 자료·수업 파일·기기 점검, 결과 파일 집계                                                          |
+| `src/actions/`                             | 게임 조작(`play.ts`), 3D 장면 불러오기·정리(`scene-mount.ts`), 교사용 자료·수업 파일·기기 점검, 결과 파일 집계                 |
 | `src/ui/files.ts`, `audio.ts`, `speech.ts` | 로컬 저장·인쇄, 효과음, 글 읽어 주기                                                                                           |
 | `src/scene/`                               | 3D 교실: 카메라·이동·이름표(`classroom.ts`), 벽·조명·12개 물건(`furniture.ts`), 표지판 글씨·그림(`canvas-art.ts`), 손가락 조작 |
 | `public/data/`                             | 운영자가 관리하는 설정·학교·공개 순위                                                                                          |
