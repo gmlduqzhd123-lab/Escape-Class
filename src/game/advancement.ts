@@ -5,7 +5,7 @@ import { FRIENDS } from "../puzzles/judges";
 
 export type LessonPack = {
   version: 1;
-  episode: "classroom" | "library" | "gym";
+  episode: "classroom" | "library" | "gym" | "cafeteria";
   title: string;
   intro: string;
   speech: string;
@@ -16,49 +16,25 @@ export const HINT_KEYS = ["P1", "P2", "P3", "P4", "P5", "final"] as const;
 // direction the camera faces. These coordinates stay clear of object numbers.
 export function mapLocation(e?: Experience | null) {
   const pack = episode(e?.options.episode ?? "classroom");
+  // Positions are shared; each story names the places in its own words.
+  const name = (id: string, fallback: string) => pack.places[id] ?? fallback;
   const places: Record<string, { x: number; y: number; label: string }> = {
-    center: { x: 50, y: 74, label: `${pack.room} 가운데` },
+    center: { x: 50, y: 74, label: name("center", `${pack.room} 가운데`) },
     middle: { x: 50, y: 44, label: "가운데 통로" },
-    front: { x: 50, y: 18, label: `${pack.objects.O01 ?? "칠판"} 앞` },
-    plant: { x: 14, y: 18, label: "창가" },
-    door: {
-      x: 84,
+    front: {
+      x: 50,
       y: 18,
-      label: pack.shell === "classroom" ? "게시판·출구 앞" : "출구 앞",
+      label: name("front", `${pack.objects.O01 ?? "칠판"} 앞`),
     },
-    basket: {
-      x: 14,
-      y: 44,
-      label:
-        pack.shell === "gym"
-          ? "벤치 옆"
-          : pack.shell === "library"
-            ? "반납함 옆"
-            : "바구니 옆",
-    },
+    plant: { x: 14, y: 18, label: "창가" },
+    door: { x: 84, y: 18, label: name("door", "출구 앞") },
+    basket: { x: 14, y: 44, label: name("basket", "바구니 옆") },
     tools: { x: 83, y: 44, label: "도구함 앞" },
     lockers: { x: 83, y: 66, label: "사물함 앞" },
-    tablet: {
-      x: 64,
-      y: 55,
-      label: pack.shell === "gym" ? "계획판 앞" : "태블릿 앞",
-    },
-    desk: {
-      x: 27,
-      y: 76,
-      label:
-        pack.shell === "gym"
-          ? "기록대 앞"
-          : pack.shell === "library"
-            ? "독서대 앞"
-            : "그림 책상 앞",
-    },
-    back: { x: 50, y: 90, label: `${pack.room} 뒤편` },
-    books: {
-      x: 17,
-      y: 90,
-      label: pack.shell === "gym" ? "응원 자료함 앞" : "책장 앞",
-    },
+    tablet: { x: 64, y: 55, label: name("tablet", "태블릿 앞") },
+    desk: { x: 27, y: 76, label: name("desk", "그림 책상 앞") },
+    back: { x: 50, y: 90, label: name("back", `${pack.room} 뒤편`) },
+    books: { x: 17, y: 90, label: name("books", "책장 앞") },
   };
   return places[e?.view.pose?.stop ?? "center"] ?? places.center;
 }
@@ -78,12 +54,7 @@ export function defaultLessonPack(
     episode,
     title: EPISODES[episode].title,
     intro: EPISODES[episode].intro,
-    speech:
-      episode === "library"
-        ? "함께 읽고 싶어. 읽을 부분을 먼저 알려 주면 좋겠어."
-        : episode === "gym"
-          ? "나도 함께 뛰고 싶어. 내 차례를 알려 주면 좋겠어."
-          : "함께 만들고 싶어. 만드는 방법을 먼저 알려 주면 좋겠어.",
+    speech: EPISODES[episode].terms.wish,
     hints: {
       P1: "친구가 직접 한 말을 확인해요.",
       P2: "렌즈의 위 표시와 창 번호를 살펴봐요.",
@@ -131,9 +102,7 @@ export function varied(e: Experience | null | undefined) {
 export function digit(e: Experience | null | undefined, n: number) {
   const shift = varied(e)
     ? e!.extras.seed
-    : e?.options.episode === "gym"
-      ? 8
-      : 0;
+    : episode(e?.options.episode ?? "classroom").codeShift;
   return (n + (shift ?? 0)) % 10;
 }
 export function inputDigit(e: Experience | null | undefined, n: string) {
@@ -216,28 +185,17 @@ export function diagnose(
   return "지금 목표에 적힌 물건부터 살펴봐요. 조사한 내용은 단서 노트에 남아요.";
 }
 export function conversation(e: Experience | null | undefined) {
-  const gym = e?.options.episode === "gym",
-    library = e?.options.episode === "library";
+  const talk = episode(e?.options.episode ?? "classroom").talk;
   return {
-    situation: gym
-      ? "토끼가 체육관 벤치에서 자기 차례를 기다리고 있어요."
-      : library
-        ? "토끼가 읽을 부분을 몰라 책 옆에서 기다리고 있어요."
-        : "토끼가 만드는 방법을 몰라 창가에서 기다리고 있어요.",
+    situation: talk.situation,
     options: [
       "우리랑 함께할래?",
       "어떤 도움이 필요해?",
       "천천히 해도 괜찮아. 같이 해 보자.",
     ],
     replies: [
-      gym
-        ? "좋아! 나도 한 번씩 뛰고 싶어."
-        : "좋아! 함께하고 싶었어. 먼저 하는 방법을 알려 줄래?",
-      library
-        ? "내가 읽을 부분을 알려 주면 좋겠어."
-        : gym
-          ? "내 차례가 언제인지 알려 주면 좋겠어."
-          : "만드는 방법을 먼저 알려 주면 좋겠어.",
+      talk.yes,
+      talk.need,
       "기다려 줘서 고마워. 같이 하면 해볼 수 있을 것 같아.",
     ],
   };

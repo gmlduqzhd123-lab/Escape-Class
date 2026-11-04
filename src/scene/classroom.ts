@@ -88,12 +88,7 @@ export function createClassroomScene(
   const scene = new THREE.Scene();
   const pack = episode(options.episodeId ?? "classroom");
   // The friendship pieces are renamed per episode (책갈피, 응원).
-  const piece =
-    pack.shell === "gym"
-      ? "응원"
-      : pack.shell === "library"
-        ? "책갈피"
-        : "우정";
+  const piece = pack.terms.piece;
   const stopName = (id: string) =>
     pack.shell === "classroom"
       ? STOPS[id].name
@@ -104,13 +99,10 @@ export function createClassroomScene(
             front: `${pack.objects.O01} 앞`,
             plant: "창가",
             door: "출구 앞",
-            basket: pack.shell === "gym" ? "벤치 옆" : "반납함 옆",
             tools: "도구함 앞",
             lockers: "사물함 앞",
-            tablet: pack.shell === "gym" ? "계획판 앞" : "태블릿 앞",
-            desk: pack.shell === "gym" ? "기록대 앞" : "독서대 앞",
             back: `${pack.room} 뒤편`,
-            books: pack.shell === "gym" ? "응원 자료함 앞" : "책장 앞",
+            ...pack.places,
           } as Record<string, string>
         )[id] ?? STOPS[id].name);
   const sceneObjects = OBJECTS.map((o) => ({

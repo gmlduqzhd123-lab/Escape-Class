@@ -631,6 +631,12 @@ try {
       board: "차례 게시판",
       room: "체육관",
     },
+    {
+      id: "cafeteria",
+      heading: "나눔 숟가락이 사라졌어요!",
+      board: "감사 게시판",
+      room: "급식실",
+    },
   ]) {
     const ectx = await browser.newContext({
       viewport: { width: 1280, height: 800 },
