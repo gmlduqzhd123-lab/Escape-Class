@@ -14,6 +14,7 @@
     "test:browser": "node tests/browser.mjs",
     "test:offline": "node scripts/verify-offline.mjs",
     "measure": "node scripts/measure.mjs",
+    "package:offline": "node scripts/package-offline.mjs",
     "format": "prettier --write src tests scripts vite.config.ts index.html public/data docs README.md"
   },
   "devDependencies": {
