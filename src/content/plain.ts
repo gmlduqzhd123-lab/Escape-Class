@@ -12,6 +12,7 @@ export const PLAIN_WORDS: [string, string][] = [
   ["추측", "짐작"],
   ["조합판", "조각 맞추는 판"],
   ["암호판", "비밀번호 판"],
+  ["도움 요청망", "도움 연결 그림"],
   ["연결망", "연결 그림"],
   ["가상 친구", "이야기 속 친구"],
   ["가상 상황", "이야기 속 상황"],
@@ -46,13 +47,93 @@ export const PLAIN_TIPS: Record<string, string> = {
   O11: "열쇠가 숨어 있는지 살펴봐요.",
   O12: "조각 다섯 개를 순서대로 놓고, 열쇠로 문을 열어요.",
 };
+// Words that also appear as "…하다" verbs. A swapped noun cannot simply keep
+// the "하다" ending ("조사해요" would become "살펴보기해요"), so each one names
+// the verb forms to use instead: the stem before 기/고/는/지, the stem before
+// 면/세요/며, and the 해/한/할/했 forms.
+type Verb = [string, string, string, string, string, string];
+const PLAIN_VERBS: Record<string, Verb> = {
+  조사: ["살펴보", "살펴보", "살펴봐", "살펴본", "살펴볼", "살펴봤"],
+  탐색: ["둘러보", "둘러보", "둘러봐", "둘러본", "둘러볼", "둘러봤"],
+  조작: ["누르", "누르", "눌러", "누른", "누를", "눌렀"],
+  획득: ["얻", "얻으", "얻어", "얻은", "얻을", "얻었"],
+  성찰: [
+    "되돌아보",
+    "되돌아보",
+    "되돌아봐",
+    "되돌아본",
+    "되돌아볼",
+    "되돌아봤",
+  ],
+  협동: [
+    "힘을 모으",
+    "힘을 모으",
+    "힘을 모아",
+    "힘을 모은",
+    "힘을 모을",
+    "힘을 모았",
+  ],
+  일시정지: ["멈추", "멈추", "멈춰", "멈춘", "멈출", "멈췄"],
+  재개: ["다시 하", "다시 하", "다시 해", "다시 한", "다시 할", "다시 했"],
+};
+function verb(forms: Verb, rest: string) {
+  const [stem, softStem, hae, han, hal, haess] = forms;
+  const first = rest[0];
+  if (first === "해") return hae + rest.slice(1);
+  if (first === "한") return han + rest.slice(1);
+  if (first === "할") return hal + rest.slice(1);
+  if (first === "했") return haess + rest.slice(1);
+  if (first === "하")
+    return (
+      (/^[면세시며]/.test(rest.slice(1)) ? softStem : stem) + rest.slice(1)
+    );
+  return undefined;
+}
+/** Whether the last syllable has a final consonant, and whether that is ㄹ. */
+function final(word: string) {
+  const code = word.charCodeAt(word.length - 1) - 0xac00;
+  if (code < 0 || code > 11171) return { has: false, rieul: false };
+  return { has: code % 28 !== 0, rieul: code % 28 === 8 };
+}
+// Particles as [after a final consonant, after a vowel], longest first.
+const JOSA: [string, string][] = [
+  ["이에요", "예요"],
+  ["이었", "였"],
+  ["으로", "로"],
+  ["이나", "나"],
+  ["이랑", "랑"],
+  ["이라", "라"],
+  ["을", "를"],
+  ["은", "는"],
+  ["과", "와"],
+  ["이", "가"],
+];
+/** Re-picks the particle at the start of `rest` for the new word. */
+function josa(original: string, word: string, rest: string) {
+  const was = final(original).has;
+  const now = final(word);
+  for (const [withFinal, vowel] of JOSA) {
+    const found = was ? withFinal : vowel;
+    if (!rest.startsWith(found)) continue;
+    const pick =
+      withFinal === "으로" && now.rieul ? vowel : now.has ? withFinal : vowel;
+    return pick + rest.slice(found.length);
+  }
+  return rest;
+}
 const pairs = [...PLAIN_WORDS].sort((a, b) => b[0].length - a[0].length);
 const pattern = new RegExp(
-  pairs.map(([a]) => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+  `(${pairs.map(([a]) => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})([가-힣]*)`,
   "g",
 );
 export function plainText(text: string) {
-  return text.replace(pattern, (m) => pairs.find(([a]) => a === m)![1]);
+  return text.replace(pattern, (_, word: string, rest: string) => {
+    const forms = PLAIN_VERBS[word];
+    const asVerb = forms && verb(forms, rest);
+    if (asVerb !== undefined) return asVerb;
+    const swapped = pairs.find(([a]) => a === word)![1];
+    return swapped + josa(word, swapped, rest);
+  });
 }
 export function plainLanguage(html: string) {
   // Only the text between tags changes; attributes keep their values.

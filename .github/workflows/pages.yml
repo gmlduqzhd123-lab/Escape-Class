@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
       - run: npm ci
       - name: Check puzzle and save compatibility
@@ -48,6 +48,7 @@ jobs:
       - name: Package and check the no-internet classroom bundle
         run: |
           npm run package:offline -- work/escape-class-offline.zip
+          test -f work/offline/escape-class/dist/file-data.js
           rm -rf work/zipcheck && mkdir -p work/zipcheck
           unzip -q work/escape-class-offline.zip -d work/zipcheck
           cd work/zipcheck/escape-class
@@ -58,6 +59,12 @@ jobs:
           curl -sf http://127.0.0.1:4196/classroom-escape/ -o ../page.html
           grep -q "사라진 우정 열쇠" ../page.html
           kill "$server"
+      - name: Play the bundle opened straight from its folder
+        env:
+          EDGE_PATH: /usr/bin/google-chrome
+          EVIDENCE_DIR: work/browser-file
+        run: |
+          APP_URL="file://$PWD/work/zipcheck/escape-class/dist/index.html" npm run test:browser
       - name: Publish the bundle next to the game
         if: github.event_name != 'pull_request'
         run: cp work/escape-class-offline.zip dist/escape-class-offline.zip
@@ -65,7 +72,9 @@ jobs:
         if: failure()
         with:
           name: browser-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: work/browser-ci
+          path: |
+            work/browser-ci
+            work/browser-file
           retention-days: 7
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
         if: github.event_name != 'pull_request'
