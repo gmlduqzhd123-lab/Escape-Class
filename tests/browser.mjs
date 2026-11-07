@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 const base = process.env.APP_URL || "http://127.0.0.1:4173/classroom-escape/";
+// APP_URL=file:///…/index.html checks the copy opened by double-click.
+const fileMode = base.startsWith("file:");
 const evidence = resolve(process.env.EVIDENCE_DIR || "work/browser-current");
 await mkdir(evidence, { recursive: true });
 const browser = await chromium.launch({
@@ -921,189 +923,204 @@ try {
   await expect(bp.locator(".paper-note")).toBeVisible();
   await blocked.close();
   pass("blocked storage still allows activity");
-  const broken = await browser.newContext();
-  await broken.route("**/data/schools.json", (r) =>
-    r.fulfill({ status: 503, body: "unavailable" }),
-  );
-  await broken.route("**/data/rankings.json", (r) =>
-    r.fulfill({ status: 503, body: "unavailable" }),
-  );
-  const fp = await broken.newPage();
-  track(fp);
-  await start(fp, driver(fp, false));
-  await broken.close();
-  pass("missing school/ranking data allows practice");
-  const assets = await browser.newContext();
-  await assets.route("**/assets/classroom.svg", (r) =>
-    r.fulfill({ status: 503, body: "unavailable" }),
-  );
-  const ap = await assets.newPage();
-  track(ap);
-  await ap.goto(base);
-  await ap.getByRole("heading", { name: "교실을 준비하지 못했어요" }).waitFor();
-  await assets.unroute("**/assets/classroom.svg");
-  await driver(ap, false).act("retry");
-  await ap
-    .getByRole("heading", { name: "사라진 우정 열쇠", exact: true })
-    .waitFor();
-  await assets.close();
-  pass("required asset failure has working retry");
-  // Browser-only official fixtures: no fictional schools/results are deployed.
-  const official = await browser.newContext({
-    viewport: { width: 360, height: 900 },
-    reducedMotion: "reduce",
-    acceptDownloads: true,
-  });
-  const fixtureConfig = {
-    schemaVersion: 1,
-    episodeId: "ep01",
-    difficultyId: "standard",
-    contentVersion: "ep01-1.0.0",
-    activeRound: {
+  // The double-click copy answers its own data and asset fetches from
+  // file-data.js, so these network-failure and official-data checks only
+  // apply to the served game.
+  if (!fileMode) {
+    const broken = await browser.newContext();
+    await broken.route("**/data/schools.json", (r) =>
+      r.fulfill({ status: 503, body: "unavailable" }),
+    );
+    await broken.route("**/data/rankings.json", (r) =>
+      r.fulfill({ status: 503, body: "unavailable" }),
+    );
+    const fp = await broken.newPage();
+    track(fp);
+    await start(fp, driver(fp, false));
+    await broken.close();
+    pass("missing school/ranking data allows practice");
+    const assets = await browser.newContext();
+    await assets.route("**/assets/classroom.svg", (r) =>
+      r.fulfill({ status: 503, body: "unavailable" }),
+    );
+    const ap = await assets.newPage();
+    track(ap);
+    await ap.goto(base);
+    await ap
+      .getByRole("heading", { name: "교실을 준비하지 못했어요" })
+      .waitFor();
+    await assets.unroute("**/assets/classroom.svg");
+    await driver(ap, false).act("retry");
+    await ap
+      .getByRole("heading", { name: "사라진 우정 열쇠", exact: true })
+      .waitFor();
+    await assets.close();
+    pass("required asset failure has working retry");
+    // Browser-only official fixtures: no fictional schools/results are deployed.
+    const official = await browser.newContext({
+      viewport: { width: 360, height: 900 },
+      reducedMotion: "reduce",
+      acceptDownloads: true,
+    });
+    const fixtureConfig = {
+      schemaVersion: 1,
+      episodeId: "ep01",
+      difficultyId: "standard",
+      contentVersion: "ep01-1.0.0",
+      activeRound: {
+        roundId: "fixture-round",
+        label: "검증 전용 회차",
+        acceptingResults: true,
+      },
+    };
+    const schools = [{ schoolId: "FIXTURE-1", name: "검증 전용 학교" }];
+    let config = fixtureConfig;
+    const empty = {
+      schemaVersion: 1,
+      episodeId: "ep01",
       roundId: "fixture-round",
-      label: "검증 전용 회차",
-      acceptingResults: true,
-    },
-  };
-  const schools = [{ schoolId: "FIXTURE-1", name: "검증 전용 학교" }];
-  let config = fixtureConfig;
-  const empty = {
-    schemaVersion: 1,
-    episodeId: "ep01",
-    roundId: "fixture-round",
-    difficultyId: "standard",
-    contentVersion: "ep01-1.0.0",
-    updatedAt: null,
-    records: [],
-  };
-  let dataDown = false,
-    dataSlow = false;
-  const wait = () =>
-    dataSlow ? new Promise((done) => setTimeout(done, 1500)) : null;
-  await official.route("**/data/game-config.json", async (r) => {
-    await wait();
-    return dataDown ? r.abort() : r.fulfill({ json: config });
-  });
-  await official.route("**/data/schools.json", async (r) => {
-    await wait();
-    return dataDown ? r.abort() : r.fulfill({ json: schools });
-  });
-  await official.route("**/data/rankings.json", (r) =>
-    r.fulfill({ json: empty }),
-  );
-  const op = await official.newPage();
-  track(op);
-  const od = driver(op, false);
-  const result = {
-    schemaVersion: 1,
-    recordType: "classroom-escape-result",
-    episodeId: "ep01",
-    roundId: "fixture-round",
-    difficultyId: "standard",
-    contentVersion: "ep01-1.0.0",
-    schoolId: "FIXTURE-1",
-    solvedPuzzleIds: ["P1", "P2", "P3", "P4", "P5"],
-    foundBonusIds: ["B1", "B3"],
-    escaped: true,
-  };
-  await op.goto(base + "#/tools/results");
-  await expect(op.locator("#result-files")).toBeEnabled();
-  const file = (name, json) => ({
-    name,
-    mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify(json)),
-  });
-  await op
-    .locator("#result-files")
-    .setInputFiles([
-      file("90.json", result),
-      file("same.json", result),
-      file("95.json", { ...result, foundBonusIds: ["B1", "B2", "B3"] }),
-      file("invalid.json", { ...result, studentName: "must reject" }),
+      difficultyId: "standard",
+      contentVersion: "ep01-1.0.0",
+      updatedAt: null,
+      records: [],
+    };
+    let dataDown = false,
+      dataSlow = false;
+    const wait = () =>
+      dataSlow ? new Promise((done) => setTimeout(done, 1500)) : null;
+    await official.route("**/data/game-config.json", async (r) => {
+      await wait();
+      return dataDown ? r.abort() : r.fulfill({ json: config });
+    });
+    await official.route("**/data/schools.json", async (r) => {
+      await wait();
+      return dataDown ? r.abort() : r.fulfill({ json: schools });
+    });
+    await official.route("**/data/rankings.json", (r) =>
+      r.fulfill({ json: empty }),
+    );
+    const op = await official.newPage();
+    track(op);
+    const od = driver(op, false);
+    const result = {
+      schemaVersion: 1,
+      recordType: "classroom-escape-result",
+      episodeId: "ep01",
+      roundId: "fixture-round",
+      difficultyId: "standard",
+      contentVersion: "ep01-1.0.0",
+      schoolId: "FIXTURE-1",
+      solvedPuzzleIds: ["P1", "P2", "P3", "P4", "P5"],
+      foundBonusIds: ["B1", "B3"],
+      escaped: true,
+    };
+    await op.goto(base + "#/tools/results");
+    await expect(op.locator("#result-files")).toBeEnabled();
+    const file = (name, json) => ({
+      name,
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(json)),
+    });
+    await op
+      .locator("#result-files")
+      .setInputFiles([
+        file("90.json", result),
+        file("same.json", result),
+        file("95.json", { ...result, foundBonusIds: ["B1", "B2", "B3"] }),
+        file("invalid.json", { ...result, studentName: "must reject" }),
+      ]);
+    await op.locator(".conflict").waitFor();
+    await expect(
+      op.locator('[data-action="aggregate-download"]'),
+    ).toBeDisabled();
+    await od.act("conflict", "0:replace");
+    let ev = op.waitForEvent("download");
+    await od.act("aggregate-download");
+    let json = JSON.parse(await readFile(await (await ev).path(), "utf8"));
+    assert.equal(json.records[0].score, 95);
+    assert.deepEqual(Object.keys(json.records[0]).sort(), [
+      "bonusCount",
+      "escaped",
+      "schoolId",
+      "score",
     ]);
-  await op.locator(".conflict").waitFor();
-  await expect(op.locator('[data-action="aggregate-download"]')).toBeDisabled();
-  await od.act("conflict", "0:replace");
-  let ev = op.waitForEvent("download");
-  await od.act("aggregate-download");
-  let json = JSON.parse(await readFile(await (await ev).path(), "utf8"));
-  assert.equal(json.records[0].score, 95);
-  assert.deepEqual(Object.keys(json.records[0]).sort(), [
-    "bonusCount",
-    "escaped",
-    "schoolId",
-    "score",
-  ]);
-  assert.equal(json.records.length, 1);
-  await expect(op.locator(".error-list")).not.toBeEmpty();
-  pass(
-    "official fixture file validation, duplicate/conflict handling and safe local ranking download",
-  );
-  // A network blip when the game starts must not drop the chosen school or round.
-  await op.goto(base);
-  await od.act("new");
-  await od.act("choose-school", "FIXTURE-1");
-  // The default (guided) lesson is practice; the notice says so until official rules are chosen.
-  await expect(
-    op.locator(".school-options + .notice, .notice").first(),
-  ).toContainText("연습 모드");
-  await officialRules(op, od);
-  await expect(op.locator(".notice").first()).toContainText(
-    "공식 규칙으로 시작해요",
-  );
-  dataDown = true;
-  await toStory(op, od);
-  dataDown = false;
-  const blipped = await saved(op);
-  assert.equal(blipped.schoolId, "FIXTURE-1");
-  assert.equal(blipped.roundId, "fixture-round");
-  await op.evaluate(() => localStorage.clear());
-  pass("data refresh failure at game start keeps the chosen school and round");
-  // Leaving the setup screen during a slow refresh must not be pulled back into the game.
-  await op.goto(base);
-  await od.act("new");
-  dataSlow = true;
-  await od.act("setup-next");
-  await expect(
-    op.locator('button[data-action="setup-next"]').first(),
-  ).toBeDisabled();
-  await op.goto(base + "#/teacher");
-  await op.waitForTimeout(2500);
-  dataSlow = false;
-  assert.equal(new URL(op.url()).hash, "#/teacher");
-  assert.equal(await saved(op), null);
-  pass("a slow setup refresh locks its button and respects leaving the screen");
-  await op.setViewportSize({ width: 740, height: 360 });
-  await start(op, od, "FIXTURE-1");
-  await play(op, { prefix: "mobile" });
-  await expect(op.locator('[data-action="export"]')).toBeEnabled();
-  ev = op.waitForEvent("download");
-  await od.act("export");
-  json = JSON.parse(await readFile(await (await ev).path(), "utf8"));
-  assert.deepEqual(json, result);
-  pass(
-    "official fixture full phone-landscape UI play and exact 90-point result download",
-  );
-  config = {
-    ...fixtureConfig,
-    activeRound: {
-      ...fixtureConfig.activeRound,
-      roundId: "next-fixture-round",
-    },
-  };
-  await od.act("refresh-config");
-  await expect(op.locator('[data-action="export"]')).toBeDisabled();
-  config = {
-    ...fixtureConfig,
-    activeRound: { ...fixtureConfig.activeRound, acceptingResults: false },
-  };
-  await op.goto(base + "#/tools/results");
-  await od.act("refresh-config");
-  await expect(op.locator('[data-action="aggregate-download"]')).toBeDisabled();
-  await official.close();
-  pass(
-    "changed round blocks old result export; closed round blocks aggregation",
-  );
+    assert.equal(json.records.length, 1);
+    await expect(op.locator(".error-list")).not.toBeEmpty();
+    pass(
+      "official fixture file validation, duplicate/conflict handling and safe local ranking download",
+    );
+    // A network blip when the game starts must not drop the chosen school or round.
+    await op.goto(base);
+    await od.act("new");
+    await od.act("choose-school", "FIXTURE-1");
+    // The default (guided) lesson is practice; the notice says so until official rules are chosen.
+    await expect(
+      op.locator(".school-options + .notice, .notice").first(),
+    ).toContainText("연습 모드");
+    await officialRules(op, od);
+    await expect(op.locator(".notice").first()).toContainText(
+      "공식 규칙으로 시작해요",
+    );
+    dataDown = true;
+    await toStory(op, od);
+    dataDown = false;
+    const blipped = await saved(op);
+    assert.equal(blipped.schoolId, "FIXTURE-1");
+    assert.equal(blipped.roundId, "fixture-round");
+    await op.evaluate(() => localStorage.clear());
+    pass(
+      "data refresh failure at game start keeps the chosen school and round",
+    );
+    // Leaving the setup screen during a slow refresh must not be pulled back into the game.
+    await op.goto(base);
+    await od.act("new");
+    dataSlow = true;
+    await od.act("setup-next");
+    await expect(
+      op.locator('button[data-action="setup-next"]').first(),
+    ).toBeDisabled();
+    await op.goto(base + "#/teacher");
+    await op.waitForTimeout(2500);
+    dataSlow = false;
+    assert.equal(new URL(op.url()).hash, "#/teacher");
+    assert.equal(await saved(op), null);
+    pass(
+      "a slow setup refresh locks its button and respects leaving the screen",
+    );
+    await op.setViewportSize({ width: 740, height: 360 });
+    await start(op, od, "FIXTURE-1");
+    await play(op, { prefix: "mobile" });
+    await expect(op.locator('[data-action="export"]')).toBeEnabled();
+    ev = op.waitForEvent("download");
+    await od.act("export");
+    json = JSON.parse(await readFile(await (await ev).path(), "utf8"));
+    assert.deepEqual(json, result);
+    pass(
+      "official fixture full phone-landscape UI play and exact 90-point result download",
+    );
+    config = {
+      ...fixtureConfig,
+      activeRound: {
+        ...fixtureConfig.activeRound,
+        roundId: "next-fixture-round",
+      },
+    };
+    await od.act("refresh-config");
+    await expect(op.locator('[data-action="export"]')).toBeDisabled();
+    config = {
+      ...fixtureConfig,
+      activeRound: { ...fixtureConfig.activeRound, acceptingResults: false },
+    };
+    await op.goto(base + "#/tools/results");
+    await od.act("refresh-config");
+    await expect(
+      op.locator('[data-action="aggregate-download"]'),
+    ).toBeDisabled();
+    await official.close();
+    pass(
+      "changed round blocks old result export; closed round blocks aggregation",
+    );
+  }
   currentPage = page;
   await page.setViewportSize({ width: 768, height: 1024 });
   // Headless Chromium blocks on the print dialog; the pages are checked as text instead.
