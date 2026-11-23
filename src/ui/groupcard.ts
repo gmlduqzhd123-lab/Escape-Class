@@ -19,5 +19,5 @@ export function groupCardSection(
       ),
   ).join(
     "",
-  )}</div>${b("모둠 기록 카드 저장", "group-card", "", `class="primary" ${c.groupNumber ? "" : "disabled"}`)}</section>`;
+  )}</div>${b("모둠 기록 카드 저장", "group-card", "", `class="primary" ${c.groupNumber ? "" : 'disabled aria-describedby="group-card-help"'}`)}${c.groupNumber ? "" : '<p id="group-card-help" class="muted">먼저 우리 모둠 번호를 눌러요.</p>'}</section>`;
 }

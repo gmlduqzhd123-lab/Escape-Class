@@ -115,7 +115,7 @@ function p2(s: Progress, c: ViewContext) {
  )}</div>
  <div class="lens-controls">${p.lensUsed ? b("↻ 렌즈 돌리기", "lens-rotate", "", 'class="primary" ' + disabled(d)) : owned ? b("◎ 렌즈 올리기", "place-lens", "O04", 'class="primary"') : ""}</div>
  ${ready ? `<div class="window-reading" aria-label="렌즈에 보이는 세 숫자">${[7, 1, 3].map((n, i) => `<span>창 ${i + 1}<strong>${digit(c.learning, n)}</strong></span>`).join("")}</div>` : '<p class="notice">렌즈의 ▲ 표시가 위를 향하면 숫자를 누를 수 있어요.</p>'}
- <div class="code-display" aria-live="polite">${esc(displayCode(c.learning, p.code).padEnd(3, "_"))}</div><div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "code", String(n), disabled(d || !ready))).join("")}</div>`;
+ <div class="code-entry">${codeSlots(displayCode(c.learning, p.code), ready)}<div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "지우기", 0].map((n) => b(String(n), "code", String(n), disabled(d || !ready))).join("")}</div></div>`;
   });
 }
 function p3(s: Progress, c: ViewContext) {
@@ -222,6 +222,18 @@ function final(s: Progress, c: ViewContext) {
 }
 function bonus(s: Progress, id: string, title: string, content: string) {
   return `${head(title, "장치의 기호를 살펴보고 직접 눌러 보세요.")}${s.foundBonusIds.includes(id as any) ? '<div class="opened-device">✓ 추가 단서를 찾았어요 · 5점</div>' : content}`;
+}
+/** The lens code as three labelled windows; the next one to fill is marked. */
+function codeSlots(code: string, ready: boolean) {
+  const next = ready && code.length < 3 ? code.length : -1;
+  return `<div class="code-display code-slots" aria-live="polite" aria-label="입력한 숫자 ${code ? [...code].join(" ") : "없음"}">${[
+    0, 1, 2,
+  ]
+    .map(
+      (i) =>
+        `<span class="code-slot${i === next ? " is-next" : ""}"${i === next ? ' aria-current="step"' : ""}><small>창 ${i + 1}</small><strong>${esc(code[i] ?? "_")}</strong></span>`,
+    )
+    .join("")}</div>`;
 }
 export function objectContent(
   s: Progress,

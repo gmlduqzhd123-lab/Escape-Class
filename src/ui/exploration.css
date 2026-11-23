@@ -361,3 +361,22 @@
     min-width: 60px;
   }
 }
+
+/* Five friendship pieces in the 3D HUD: hollow until found. Narrow
+   screens keep hiding them (see the 700px rule above). */
+.explore-pieces {
+  gap: 2px;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+@media (min-width: 701px) {
+  .explore-pieces {
+    display: inline-flex;
+  }
+}
+.piece-pip {
+  color: #6b7461;
+}
+.piece-pip.found {
+  color: #2f6b4f;
+}
