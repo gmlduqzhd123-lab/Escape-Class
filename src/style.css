@@ -148,6 +148,11 @@ summary:focus-visible,
   outline: 3px solid #a36a13;
   outline-offset: 4px;
 }
+/* A screen's heading takes focus after navigation so screen readers start
+   there; it is not a control, so it gets no button-like ring. */
+main h1[tabindex="-1"]:focus-visible {
+  outline: none;
+}
 input:not([type="checkbox"]):not([type="file"]) {
   width: 100%;
   min-height: 50px;

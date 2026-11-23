@@ -269,3 +269,31 @@
     padding: 8px 4px;
   }
 }
+
+/* Class board: five segments per group, filled for each piece found. */
+.board-progress {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.board-progress > span {
+  width: 14px;
+  height: 10px;
+  border-radius: 3px;
+  background: #dfe5d6;
+  border: 1px solid #b9c4ad;
+}
+.board-progress > span.done {
+  background: #3f7a59;
+  border-color: #3f7a59;
+}
+.board-flag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fbefd2;
+  color: #6b4a12;
+  font-size: 0.85em;
+  font-weight: 600;
+}

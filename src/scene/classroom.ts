@@ -9,6 +9,9 @@ import type { ScenePose } from "../game/learning";
 import { episode, type EpisodeId } from "../content/episodes";
 import { buildRoom } from "./furniture";
 
+// Resting view angle: tilted a little down so the boards and desks fill the
+// screen rather than the blank ceiling.
+const LEVEL_PITCH = -0.1;
 export interface ClassroomState {
   objectiveId?: string;
   solvedPuzzleIds: string[];
@@ -120,7 +123,7 @@ export function createClassroomScene(
   let zoom = 1;
   let baseFov = 68;
   let yaw = 0;
-  let pitch = -0.045;
+  let pitch = LEVEL_PITCH;
   let currentStop = "center";
   if (options.initialPose && STOPS[options.initialPose.stop]) {
     currentStop = options.initialPose.stop;
@@ -562,12 +565,20 @@ export function createClassroomScene(
         buttonWidth / 2 + 8,
         Math.min(width - buttonWidth / 2 - 8, point.x),
       );
-      const y = Math.max(labelTop, Math.min(labelBottom - 28, point.y));
-      const overlaps = occupied.some(
-        (box) =>
-          Math.abs(box.x - x) < (box.w + buttonWidth) / 2 + 8 &&
-          Math.abs(box.y - y) < 54,
-      );
+      const clash = (at: number) =>
+        occupied.some(
+          (box) =>
+            Math.abs(box.x - x) < (box.w + buttonWidth) / 2 + 8 &&
+            Math.abs(box.y - at) < 54,
+        );
+      // A label that would sit on another moves one row up or down before
+      // it gives up, so nearby objects keep their names.
+      const wanted = Math.max(labelTop, Math.min(labelBottom - 28, point.y));
+      const y =
+        [wanted, wanted - 56, wanted + 56].find(
+          (at) => at >= labelTop && at <= labelBottom - 28 && !clash(at),
+        ) ?? wanted;
+      const overlaps = clash(y);
       const visible =
         point.visible &&
         distance > 0.4 &&
@@ -592,7 +603,13 @@ export function createClassroomScene(
         markerWidth / 2 + 8,
         Math.min(width - markerWidth / 2 - 8, point.x),
       );
-      const markerY = Math.min(stage.clientHeight - 32, point.y);
+      // A floor marker under the dock is lifted just above it instead of
+      // disappearing, so short phone screens still show where to walk.
+      const markerY = Math.min(
+        stage.clientHeight - 32,
+        point.y,
+        labelBottom - 28,
+      );
       const distance = camera.position.distanceTo(marker.point);
       const neighbor = STOPS[currentStop].links.includes(marker.id);
       const overlaps = occupied.some(
@@ -601,7 +618,6 @@ export function createClassroomScene(
           Math.abs(box.y - markerY) < 52,
       );
       marker.button.hidden =
-        markerY + 27 > labelBottom ||
         !point.floorVisible ||
         point.y < 80 ||
         moving ||
@@ -721,10 +737,10 @@ export function createClassroomScene(
           ? Math.atan2(-direction.x, -direction.z)
           : yaw;
       const finalPitch = reset
-        ? -0.045
+        ? LEVEL_PITCH
         : direction
           ? Math.asin(direction.y)
-          : -0.045;
+          : LEVEL_PITCH;
       animate(camera.position.clone(), finalYaw, finalPitch, 330, () => {
         if (token !== journey || !active || disposed) return;
         setMoving(false);
@@ -820,7 +836,7 @@ export function createClassroomScene(
   }
   function turn(delta: number) {
     if (!active || moving || disposed) return;
-    animate(camera.position.clone(), yaw + delta, -0.045, 360, () => {
+    animate(camera.position.clone(), yaw + delta, LEVEL_PITCH, 360, () => {
       yaw = normalizeAngle(yaw);
     });
   }
@@ -932,7 +948,9 @@ export function createClassroomScene(
       )
         renderer.setDrawingBufferSize(width, height, ratio);
       camera.aspect = width / height;
-      baseFov = width < 520 ? 78 : 68;
+      // Taller desktop windows showed a third of blank ceiling at 68°; a
+      // narrower view there brings the boards and their labels closer.
+      baseFov = width < 520 ? 78 : width / height < 1.6 ? 60 : 66;
       camera.fov = zoomedFov();
       camera.updateProjectionMatrix();
       camera.rotation.set(pitch, yaw, 0, "YXZ");

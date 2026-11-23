@@ -310,10 +310,16 @@
   #app.has-device-panel > #toast {
     display: none;
   }
+  /* Feedback shares the header row instead of pushing the device down. */
   #app .zoom-top > .inline-feedback:not([hidden]) {
-    display: block;
-    flex: 1 0 100%;
-    font-size: 16px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    flex: 1 1 220px;
+    order: 5;
+    font-size: 15px;
+    line-height: 1.35;
   }
   #app .zoom-top h2 {
     font-size: 18px;
@@ -395,6 +401,23 @@
     font-size: 24px;
     min-height: 54px;
     padding: 8px 6px;
+  }
+  /* Short screens: the code windows sit beside the keypad, so the whole
+     lock fits without scrolling. */
+  #app .code-entry {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    align-items: center;
+    gap: 12px;
+    max-width: 640px;
+  }
+  #app .code-entry .code-display {
+    margin: 0;
+  }
+  #app .code-entry .keypad button {
+    min-height: 44px;
+    font-size: 20px;
+    padding: 4px;
   }
   #app .route-board {
     max-width: 320px;

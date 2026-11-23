@@ -120,6 +120,12 @@ async function axeCheck(page, name) {
   if (process.env.AXE_REPORT) return;
   assert.deepEqual(found, [], name + " accessibility");
 }
+// The result screen folds the class-board card and result file under one summary.
+async function openSend(page) {
+  const send = page.locator('details[data-disclosure="result-send"]');
+  if (!(await send.evaluate((d) => d.open)))
+    await send.locator("summary").click();
+}
 function driver(page, keyboard) {
   const room = () => page.locator("#classroom-scene, .adventure-room").first();
   const act = async (action, value, scope = page) => {
@@ -323,7 +329,11 @@ async function play(
     true,
   );
   for (let i = 0; i < 3; i++) await act("lens-rotate");
-  for (const n of ["1", "1", "1"]) await act("code", n);
+  // The code shows which lens window the next digit belongs to.
+  await expect(page.locator(".code-slot.is-next")).toContainText("창 1");
+  await act("code", "1");
+  await expect(page.locator(".code-slot.is-next")).toContainText("창 2");
+  for (const n of ["1", "1"]) await act("code", n);
   // The wrong-code message must survive the re-render that follows it.
   await expect(page.locator("#announcer")).not.toBeEmpty();
   assert.equal((await saved(page)).solvedPuzzleIds.length, 1);
@@ -485,7 +495,15 @@ try {
   track(page);
   const d = driver(page, true);
   await start(page, d);
+  // First steps: a one-line coach until the first clue, and five hollow pieces.
+  await expect(page.locator(".explore-coach")).toBeVisible();
+  await expect(page.locator(".explore-pieces .piece-pip")).toHaveCount(5);
+  await expect(page.locator(".explore-pieces .piece-pip.found")).toHaveCount(0);
   await play(page, { keyboard: true, bonusAll: true, prefix: "desktop" });
+  await expect(
+    page.locator('details[data-disclosure="result-send"]'),
+  ).not.toHaveAttribute("open", "");
+  await openSend(page);
   await expect(page.locator('[data-action="export"]')).toBeDisabled();
   pass(
     "practice export stays disabled; complete mandatory flow uses keyboard without dragging",
@@ -530,6 +548,7 @@ try {
     },
   ]);
   await expect(page.locator(".board-table tbody tr")).toHaveCount(2);
+  await expect(page.locator(".board-progress .done")).toHaveCount(10);
   await expect(page.locator(".board-summary")).toContainText("2모둠 중 2모둠");
   await expect(page.locator(".error-list")).toContainText("broken.json");
   await layout(page, "class board");
@@ -1090,6 +1109,7 @@ try {
     await op.setViewportSize({ width: 740, height: 360 });
     await start(op, od, "FIXTURE-1");
     await play(op, { prefix: "mobile" });
+    await openSend(op);
     await expect(op.locator('[data-action="export"]')).toBeEnabled();
     ev = op.waitForEvent("download");
     await od.act("export");

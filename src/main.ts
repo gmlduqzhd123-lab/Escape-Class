@@ -1635,6 +1635,9 @@ window.addEventListener("hashchange", () => {
     void fullscreen.exit();
   }
   if (route() === "/play" && c.state?.paused) c.modal = "pause";
+  // A message belongs to the screen it was said on.
+  clearTimeout(toastTimeout);
+  c.toast = "";
   render();
   document
     .querySelector<HTMLElement>("main h1")
